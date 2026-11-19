@@ -186,6 +186,52 @@
     }
   };
 
+  /* ---------- 2b) 下拉菜单定位 ---------- */
+  // 菜单默认贴着按钮右侧展开；靠边时夹进视口，避免在窄屏或 RTL 下被切掉。
+
+  const placeMenu = (details) => {
+    const menu = details?.querySelector(".tools__menu");
+    if (!details || !menu || !details.open) return;
+    menu.style.left = "";
+    menu.style.right = "";
+    const edge = 10;
+    const box = menu.getBoundingClientRect();
+    const vw = document.documentElement.clientWidth;
+    let shift = 0;
+    if (box.left < edge) shift = edge - box.left;
+    else if (box.right > vw - edge) shift = vw - edge - box.right;
+    if (shift) {
+      const current = parseFloat(getComputedStyle(menu).left) || 0;
+      menu.style.left = `${current + shift}px`;
+      menu.style.right = "auto";
+    }
+  };
+
+  const closeMenus = (keep) => {
+    for (const details of document.querySelectorAll("details.tools__drop[open]")) {
+      if (details !== keep) details.open = false;
+    }
+  };
+
+  document.addEventListener("toggle", (event) => {
+    const details = event.target;
+    if (!(details instanceof HTMLDetailsElement) || !details.open) return;
+    closeMenus(details);
+    placeMenu(details);
+  }, true);
+
+  document.addEventListener("click", (event) => {
+    if (!event.target.closest(".tools__drop")) closeMenus();
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeMenus();
+  });
+
+  window.addEventListener("resize", () => {
+    for (const details of document.querySelectorAll("details.tools__drop[open]")) placeMenu(details);
+  });
+
   /* ---------- 3) 配色 ---------- */
 
   const THEMES = ["system", "light", "dark"];
@@ -211,6 +257,13 @@
     const icon = document.querySelector("[data-theme-icon]");
     if (label) label.textContent = t(THEME_LABEL[theme]);
     if (icon) icon.textContent = THEME_ICON[theme];
+    for (const item of document.querySelectorAll("[data-theme-menu] [data-value]")) {
+      item.setAttribute("aria-checked", String(item.dataset.value === theme));
+      const mark = item.querySelector("[data-item-icon]");
+      if (mark) mark.textContent = THEME_ICON[item.dataset.value];
+      const text = item.querySelector("[data-item-text]");
+      if (text) text.textContent = t(THEME_LABEL[item.dataset.value]);
+    }
   }
 
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
@@ -226,29 +279,53 @@
     if (!tools) {
       tools = document.createElement("div");
       tools.className = "tools";
+      inner.append(tools);
+    }
 
-      const themeBtn = document.createElement("button");
-      themeBtn.type = "button";
-      themeBtn.className = "tools__btn";
-      themeBtn.setAttribute("data-theme-toggle", "");
-      themeBtn.setAttribute("aria-label", "切换配色");
-      themeBtn.innerHTML =
+    if (!tools.querySelector("[data-theme-menu]")) {
+      const themeBox = document.createElement("details");
+      themeBox.className = "tools__drop";
+      themeBox.setAttribute("data-theme-box", "");
+      themeBox.innerHTML =
+        '<summary class="tools__btn" aria-label="切换配色">' +
         '<span class="tools__icon" data-theme-icon aria-hidden="true">◐</span>' +
-        '<span class="tools__label" data-theme-label>跟随系统</span>';
-      tools.append(themeBtn);
+        '<span class="tools__label" data-theme-label>跟随系统</span>' +
+        "</summary>" +
+        '<div class="tools__menu" role="menu" data-theme-menu></div>';
+      tools.prepend(themeBox);
 
+      const themeMenu = themeBox.querySelector("[data-theme-menu]");
+      for (const value of THEMES) {
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = "tools__item";
+        item.dataset.value = value;
+        item.setAttribute("role", "menuitemradio");
+        item.setAttribute("aria-checked", "false");
+        item.innerHTML =
+          `<span class="tools__item-main"><i class="tools__ic" data-item-icon aria-hidden="true">${THEME_ICON[value]}</i>` +
+          `<span data-item-text>${THEME_LABEL[value]}</span></span>`;
+        item.addEventListener("click", () => {
+          theme = value;
+          localStorage.setItem("xmt-theme", value);
+          applyTheme();
+          themeBox.open = false;
+        });
+        themeMenu.append(item);
+      }
+    }
+
+    if (!tools.querySelector("[data-lang-menu]")) {
       const lang = document.createElement("details");
-      lang.className = "lang";
+      lang.className = "tools__drop";
       lang.setAttribute("data-lang", "");
       lang.innerHTML =
         '<summary class="tools__btn" aria-label="切换语言">' +
         '<span class="tools__icon" aria-hidden="true">文</span>' +
         '<span class="tools__label" data-lang-label>简体中文</span>' +
         "</summary>" +
-        '<div class="lang__menu" role="menu" data-lang-menu></div>';
+        '<div class="tools__menu tools__menu--wide" role="menu" data-lang-menu></div>';
       tools.append(lang);
-
-      inner.append(tools);
     }
 
     const menu = tools.querySelector("[data-lang-menu]");
@@ -256,25 +333,18 @@
       for (const locale of LOCALES) {
         const item = document.createElement("button");
         item.type = "button";
-        item.className = "lang__item";
+        item.className = "tools__item";
         item.dataset.code = locale.code;
         item.setAttribute("role", "menuitemradio");
         item.setAttribute("aria-checked", "false");
         item.innerHTML = `<span>${locale.name}</span><small>${locale.code}</small>`;
         item.addEventListener("click", () => {
           setLanguage(locale.code);
-          tools.querySelector("details")?.removeAttribute("open");
+          item.closest("details").open = false;
         });
         menu.append(item);
       }
     }
-
-    tools.querySelector("[data-theme-toggle]")?.addEventListener("click", () => {
-      const next = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length];
-      theme = next;
-      localStorage.setItem("xmt-theme", next);
-      applyTheme();
-    });
   };
 
   /* ---------- 5) 提取码 / 分享链接：点击复制 ---------- */

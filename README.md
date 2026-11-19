@@ -11,11 +11,10 @@ site/                 源文件（可直接读、可直接用浏览器打开）
   index.html          首页
   orgs.html           组织
   media.html          媒体资源
-  cloud.html          云上桂中
+  cloud.html          云上桂中（入口页：把外部地址集中摆在一处）
   404.html            未找到
   assets/css/style.css
-  assets/js/site.js           交互：滚动进入、复制、年份、配色、多语言
-  assets/js/cloud.js          云上桂中的 CSS 3D 场景
+  assets/js/site.js           交互：滚动进入、复制、年份、配色菜单、语言菜单
   assets/i18n/*.json          各语言词条（键是中文原句，值是译文）
   assets/fonts/newsreader-latin.woff2
   assets/img/*.webp
@@ -42,7 +41,8 @@ node scripts/serve.mjs site # 直接预览源文件
 
 - 加一个组织：`site/orgs.html` 复制一节 `entry`，同时 `site/index.html` 加一张 `org` 卡片。
 - 换标识图：把横向长方形图放进 `site/assets/img/`，改 `<img src>`；白底图会靠 `mix-blend-mode: multiply` 融进纸色，深色底图直接显示。
-- 补链接：`site/media.html` 里把「待上线」那行改成 `<a>`，`<span class="link__meta">` 跟着改。
+- 补链接：`site/media.html` 里把「待上线」那行改成 `<a>`，`<span class="link__meta">` 跟着改。移动云盘按学期/活动分多个分享，每个分享一行（`data-copy` 放提取码）；官方账号在 C 组，抖音有成卡片的 `.account` 区块（二维码图放 `assets/img/douyin-qr.webp`）。
+- 云上桂中：`site/cloud.html` 只是入口页，外部地址确定后把对应行的 `.link-row--muted` 去掉、`href` 换成真地址。
 - 改完提交推 `main`，CI 会自动构建发布，约两三分钟。
 
 ## 部署
@@ -74,9 +74,9 @@ node deploy/rollout.mjs   # 只切镜像并校验
 
 ## 多语言与配色
 
-配色三态：跟随系统 / 浅色 / 深色，按钮在页头右侧，选择存 `localStorage` 的 `xmt-theme`。深色只换墨色，纸色底版留给图片（白底标识用 `mix-blend-mode: multiply` 融进 `--tile`，暗色下不乱）。也可以用 `?theme=dark`、`?theme=light` 直接看。
+配色三态：跟随系统 / 浅色 / 深色，页头右侧的下拉菜单里选，选择存 `localStorage` 的 `xmt-theme`。深色只换墨色，纸色底版留给图片（白底标识用 `mix-blend-mode: multiply` 融进 `--tile`，暗色下不乱）。也可以用 `?theme=dark`、`?theme=light` 直接看。
 
-语言同理：`assets/js/site.js` 会给页头装一个语言菜单，选完存 `xmt-lang`，也可以用 `?lang=en` 分享链接。词条在 `assets/i18n/<code>.json`：
+语言同理：`assets/js/site.js` 会给页头装一个语言菜单（和配色一样是下拉），选完存 `xmt-lang`，也可以用 `?lang=en` 分享链接。窄屏下品牌名会省略，两个工具按钮始终留在第一行；菜单会被夹在视口内，不会被屏幕边缘切掉。词条在 `assets/i18n/<code>.json`：
 
 ```json
 { "code": "en", "notice": "……", "map": { "首页": "Home", "组织": "Organisations" } }
