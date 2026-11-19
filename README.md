@@ -1,13 +1,13 @@
 # 桂林中学新媒体
 
-团委学生会新媒体运营部 · 时光驿客 · Life 摄影社团 的公开站点。
+团委学生会新媒体运营部 · 时光驿客 · Life 摄影社团 的公开站点：<https://xmt.idoknow.top>
 
-纯静态多页站点，无运行时框架：HTML + 一份 CSS + 一份 JS，构建脚本只做哈希指纹、链接校验与预压缩，产物由 nginx 直接托管。
+纯静态多页站点，无运行时框架：HTML + 一份 CSS + 一份 JS。构建脚本只做哈希指纹、链接校验与预压缩，产物由 nginx 直接托管。
 
 ## 目录
 
 ```
-site/                 源文件（直接可读、可直接打开）
+site/                 源文件（可直接读、可直接用浏览器打开）
   index.html          首页
   orgs.html           组织
   media.html          媒体资源
@@ -17,34 +17,60 @@ site/                 源文件（直接可读、可直接打开）
   assets/js/site.js
   assets/fonts/newsreader-latin.woff2
   assets/img/*.webp
-scripts/build.mjs     构建：指纹、校验、生成 dist 与 .gz
-deploy/apply.mjs      集群对象（Deployment / Service / Ingress）幂等应用
-deploy/rollout.mjs    CI 用：切镜像并等就绪
+scripts/build.mjs     构建：指纹、链接校验、预压缩，产出 dist/
+scripts/serve.mjs     本地预览（干净路径 + 缓存头）
+deploy/k8s/*.json     Deployment / Service / Ingress 清单
+deploy/apply.mjs      把上面三份清单幂等地应用进集群
+deploy/rollout.mjs    CI 用：切镜像、等滚动完成、再验公网
 nginx.conf            静态站托管配置（gzip_static、缓存、安全头）
-Dockerfile            构建产物 → nginx:alpine
+Dockerfile            构建产物 → nginx:1.27-alpine
 ```
-
-## 字体
-
-标题用衬线（中文宋体族 + 自托管 Newsreader 变量字体），正文用系统黑体族，
-数字与英文小标签用等宽。不加载中文字体包，避免几百 KB 的下载。
 
 ## 本地
 
 ```bash
-npm run build        # 产出 dist/
-node scripts/serve.mjs   # 可选：本地起一个静态服务
+npm run build              # 产出 dist/
+node scripts/serve.mjs     # 预览 dist/，默认 4173
+node scripts/serve.mjs site # 直接预览源文件
 ```
+
+## 改内容
+
+页面文案、组织条目、链接都在 `site/*.html` 里，一行一个，不用碰构建脚本。
+
+- 加一个组织：`site/orgs.html` 复制一节 `entry`，同时 `site/index.html` 加一张 `org` 卡片。
+- 换标识图：把横向长方形图放进 `site/assets/img/`，改 `<img src>`；白底图会靠 `mix-blend-mode: multiply` 融进纸色，深色底图直接显示。
+- 补链接：`site/media.html` 里把「待上线」那行改成 `<a>`，`<span class="link__meta">` 跟着改。
+- 改完提交推 `main`，CI 会自动构建发布，约两三分钟。
 
 ## 部署
 
-推 `main` 即触发 GitHub Actions：构建 → 推 `ghcr.io/idoknow/xmt` → PATCH 集群 Deployment 并等 Pod 就绪。
+推 `main` → GitHub Actions 三段：构建 `dist/` → 构建并推 `ghcr.io/idoknow/xmt:sha-<commit>` → 切集群镜像并等就绪、再从公网校验。
 
-需要的仓库 Secrets：
+集群位置：Rancher 的 `local` 集群（k3s），命名空间 `idoknow`，Pod 固定在香港节点 `cn-hk-fxy-01`（有两条 NoSchedule 要求，Deployment 里已带 tolerations）。Ingress class `hongkong`，入口 LB `38.39.30.208`，TLS 用现有 `wildcard-idoknow-top-tls`。
+
+需要的仓库 Secrets（Settings → Secrets and variables → Actions）：
 
 | 名称 | 说明 |
 | --- | --- |
-| `K8S_TOKEN` | Rancher 的 Bearer Token（`token-xxx:secret`） |
-| `K8S_BASE` | 形如 `https://rancher.rockchin.top/k8s/clusters/local` |
+| `K8S_TOKEN` | Rancher 的 Bearer Token（`token-xxxx:yyyy`） |
+| `K8S_BASE` | `https://rancher.rockchin.top/k8s/clusters/local` |
 
-站点：<https://xmt.idoknow.top>（香港节点，Ingress class `hongkong`）。
+Token 只在 `idoknow` 命名空间有权限，够用：Deployment、Service、Ingress、Pod 都在这个范围里。
+
+手工操作（本机需要同样的两个环境变量）：
+
+```bash
+node deploy/apply.mjs     # 首次或改了 k8s 清单
+node deploy/rollout.mjs   # 只切镜像并校验
+```
+
+## 域名
+
+`xmt.idoknow.top` 是 Cloudflare 里一条独立的 `A` 记录，指向 `38.39.30.208`（不代理、TTL 300）。
+必须有这条记录：zone 里还有个 `*.idoknow.top → 45.137.180.156` 的通配记录，缺了这条独立记录，请求会落到另一台机器上。
+
+## 字体
+
+标题用衬线（中文宋体族 + 自托管 Newsreader 变量字体，57KB Latin 子集），正文用系统黑体族，数字与英文小标签用等宽。
+不加载中文字体包，避免几百 KB 的下载；中文标题在 macOS 上落 Songti SC、Windows 上落 SimSun/思源宋体。

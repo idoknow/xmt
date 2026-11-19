@@ -13,17 +13,37 @@ function authToken() {
   return TOKEN;
 }
 
-export async function k8s(method, path, body, contentType = "application/json") {
+const NETWORK_RETRIES = 3;
+
+async function request(method, path, body, contentType) {
   const url = `${BASE}${path}`;
-  const response = await fetch(url, {
-    method,
-    headers: {
-      authorization: `Bearer ${authToken()}`,
-      accept: "application/json",
-      ...(body ? { "content-type": contentType } : {}),
-    },
-    body: body ? (typeof body === "string" ? body : JSON.stringify(body)) : undefined,
-  });
+  const payload = body ? (typeof body === "string" ? body : JSON.stringify(body)) : undefined;
+
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await fetch(url, {
+        method,
+        headers: {
+          authorization: `Bearer ${authToken()}`,
+          accept: "application/json",
+          ...(payload ? { "content-type": contentType } : {}),
+        },
+        body: payload,
+      });
+    } catch (error) {
+      // 网络层错误（连接被重置、DNS 抖动、代理断开）才重试；HTTP 错误码不重试。
+      const cause = error.cause?.code ?? error.cause?.message ?? "";
+      if (attempt >= NETWORK_RETRIES) {
+        throw new Error(`${method} ${path} → 网络请求失败（试了 ${attempt} 次）：${error.message}${cause ? ` / ${cause}` : ""}`);
+      }
+      console.log(`  网络错误，${attempt} 次重试：${method} ${path}：${error.message}${cause ? ` / ${cause}` : ""}`);
+      await sleep(1000 * attempt);
+    }
+  }
+}
+
+export async function k8s(method, path, body, contentType = "application/json") {
+  const response = await request(method, path, body, contentType);
 
   const text = await response.text();
   let json;
