@@ -322,16 +322,18 @@ blockquote {
 
 .emblem {
   position: relative;
-  width: clamp(112px, 22vw, 168px);
-  aspect-ratio: 1;
+  width: clamp(120px, 22vw, 168px);
+  height: clamp(120px, 22vw, 168px);
   flex: none;
 }
 
 .emblem img {
-  position: relative;
+  position: absolute;
+  inset: 0;
   z-index: 1;
   width: 100%;
   height: 100%;
+  object-fit: cover;
   border-radius: 50%;
   animation: emblem-in 1.2s var(--ease) both;
 }
@@ -485,7 +487,7 @@ blockquote {
   justify-content: center;
   background: var(--paper-2);
   border: 1px solid var(--rule);
-  aspect-ratio: 3 / 1.55;
+  aspect-ratio: 4 / 3;
   padding: 1rem;
   overflow: hidden;
 }
@@ -495,6 +497,8 @@ blockquote {
   width: auto;
   max-width: 100%;
   object-fit: contain;
+  /* 标识是白底图，乘到底色上，白边融进纸面 */
+  mix-blend-mode: multiply;
   transition: transform 0.6s var(--ease);
 }
 
@@ -503,15 +507,15 @@ blockquote {
 }
 
 .org__mark--round {
-  aspect-ratio: 1;
   max-width: 168px;
-  border-radius: 50%;
-  margin-inline: auto;
   width: 100%;
+  margin-inline: auto;
 }
 
 .org__mark--round img {
   border-radius: 50%;
+  height: 100%;
+  width: auto;
 }
 
 .org__mark--pending {
@@ -956,6 +960,7 @@ blockquote {
   max-height: 100%;
   width: auto;
   object-fit: contain;
+  mix-blend-mode: multiply;
 }
 
 .entry__body h2 {
@@ -1147,8 +1152,23 @@ blockquote {
   }
 
   .hero__aside {
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: flex-end;
+    display: grid;
+    justify-items: start;
+    align-content: end;
+    gap: clamp(1rem, 3vw, 1.6rem);
+  }
+}
+
+@media (max-width: 720px) {
+  .org__mark {
+    aspect-ratio: 16 / 9;
+  }
+
+  .org__mark--round {
+    max-width: 132px;
+  }
+
+  .entry__mark {
+    aspect-ratio: 16 / 7;
   }
 }

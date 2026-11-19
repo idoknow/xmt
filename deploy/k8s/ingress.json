@@ -1,0 +1,27 @@
+{
+  "apiVersion": "networking.k8s.io/v1",
+  "kind": "Ingress",
+  "metadata": {
+    "name": "xmt-idoknow-hk",
+    "namespace": "idoknow",
+    "labels": { "app": "xmt", "app.kubernetes.io/part-of": "xmt" }
+  },
+  "spec": {
+    "ingressClassName": "hongkong",
+    "tls": [{ "hosts": ["xmt.idoknow.top"], "secretName": "wildcard-idoknow-top-tls" }],
+    "rules": [
+      {
+        "host": "xmt.idoknow.top",
+        "http": {
+          "paths": [
+            {
+              "path": "/",
+              "pathType": "Prefix",
+              "backend": { "service": { "name": "xmt", "port": { "name": "http" } } }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

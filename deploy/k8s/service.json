@@ -1,0 +1,14 @@
+{
+  "apiVersion": "v1",
+  "kind": "Service",
+  "metadata": {
+    "name": "xmt",
+    "namespace": "idoknow",
+    "labels": { "app": "xmt", "app.kubernetes.io/part-of": "xmt" }
+  },
+  "spec": {
+    "type": "ClusterIP",
+    "selector": { "app": "xmt" },
+    "ports": [{ "name": "http", "port": 80, "targetPort": "http", "protocol": "TCP" }]
+  }
+}

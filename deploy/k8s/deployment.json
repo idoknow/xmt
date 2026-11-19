@@ -1,0 +1,64 @@
+{
+  "apiVersion": "apps/v1",
+  "kind": "Deployment",
+  "metadata": {
+    "name": "xmt",
+    "namespace": "idoknow",
+    "labels": { "app": "xmt", "app.kubernetes.io/part-of": "xmt" }
+  },
+  "spec": {
+    "replicas": 2,
+    "revisionHistoryLimit": 3,
+    "progressDeadlineSeconds": 300,
+    "strategy": {
+      "type": "RollingUpdate",
+      "rollingUpdate": { "maxUnavailable": 0, "maxSurge": 1 }
+    },
+    "selector": { "matchLabels": { "app": "xmt" } },
+    "template": {
+      "metadata": { "labels": { "app": "xmt" } },
+      "spec": {
+        "nodeSelector": { "kubernetes.io/hostname": "cn-hk-fxy-01" },
+        "tolerations": [
+          { "key": "migration.rockchin.top/hold", "operator": "Equal", "value": "true", "effect": "NoSchedule" },
+          { "key": "workload.rockchin.top/langbot-cloud-excluded", "operator": "Equal", "value": "true", "effect": "NoSchedule" }
+        ],
+        "containers": [
+          {
+            "name": "web",
+            "image": "ghcr.io/idoknow/xmt:latest",
+            "imagePullPolicy": "IfNotPresent",
+            "ports": [{ "name": "http", "containerPort": 80 }],
+            "readinessProbe": {
+              "tcpSocket": { "port": 80 },
+              "initialDelaySeconds": 3,
+              "periodSeconds": 5,
+              "timeoutSeconds": 3,
+              "failureThreshold": 3
+            },
+            "livenessProbe": {
+              "tcpSocket": { "port": 80 },
+              "initialDelaySeconds": 10,
+              "periodSeconds": 10,
+              "timeoutSeconds": 3,
+              "failureThreshold": 3
+            },
+            "resources": {
+              "requests": { "cpu": "10m", "memory": "24Mi" },
+              "limits": { "cpu": "300m", "memory": "128Mi" }
+            },
+            "securityContext": { "allowPrivilegeEscalation": false },
+            "volumeMounts": [
+              { "name": "cache", "mountPath": "/var/cache/nginx" },
+              { "name": "run", "mountPath": "/var/run" }
+            ]
+          }
+        ],
+        "volumes": [
+          { "name": "cache", "emptyDir": { "sizeLimit": "32Mi" } },
+          { "name": "run", "emptyDir": { "sizeLimit": "4Mi" } }
+        ]
+      }
+    }
+  }
+}
