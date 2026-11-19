@@ -1,0 +1,33 @@
+{
+  "code": "es",
+  "name": "Español",
+  "notice": "La interfaz está traducida; el cuerpo de las páginas sigue en chino y se traduce poco a poco.",
+  "map": {
+    "首页": "Inicio",
+    "组织": "Organizaciones",
+    "媒体资源": "Medios",
+    "云上桂中": "Campus digital",
+    "桂林中学新媒体": "Nuevos medios del Instituto de Guilin",
+    "团委学生会新媒体运营部": "Oficina de nuevos medios",
+    "跟随系统": "Sistema",
+    "浅色": "Claro",
+    "深色": "Oscuro",
+    "已复制": "Copiado",
+    "待上线": "Próximamente",
+    "标识待补": "Logo pendiente",
+    "站点": "Sitio",
+    "联系": "Contacto",
+    "桂林中学": "Instituto de Guilin",
+    "时光驿客": "Shiguang Yike",
+    "Life 摄影社团": "Club de fotografía Life",
+    "这一页还没有": "Esta página aún no existe",
+    "跳到正文": "Ir al contenido",
+    "桂中的另一种": "Otra forma",
+    "记录": "de recordar",
+    "广西 · 桂林中学 · 一九〇五": "Guangxi · Instituto de Guilin · 1905",
+    "移动云盘资料库": "Archivo de China Mobile Cloud",
+    "校内：团委学生会新媒体运营部": "En el centro: Oficina de nuevos medios",
+    "域名：xmt.idoknow.top": "Dominio: xmt.idoknow.top",
+    "一个由学生维护的站点。内容以归档为主，不做即时新闻。": "Un sitio mantenido por estudiantes. Archivamos en lugar de perseguir la actualidad."
+  }
+}

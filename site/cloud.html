@@ -3,8 +3,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>云上桂中 · 桂林中学新媒体</title>
-    <meta name="description" content="云上桂中：面向桂中师生的线上服务入口，筹备中的计划与后续安排。" />
+    <title>云上桂中 · 校园云游 · 桂林中学新媒体</title>
+    <meta
+      name="description"
+      content="云上桂中：用 3D 建模把桂中校园搬上网。现在先放出轴测关系图与漫游路线，模型一栋栋替换上来。"
+    />
     <meta name="theme-color" content="#f6f3ec" />
     <link rel="icon" href="/assets/img/school-emblem.webp" type="image/webp" />
     <link rel="preload" href="/assets/fonts/newsreader-latin.woff2" as="font" type="font/woff2" crossorigin />
@@ -29,67 +32,221 @@
           <a href="/media">媒体资源</a>
           <a href="/cloud" aria-current="page">云上桂中</a>
         </nav>
+        <div class="tools">
+          <button class="tools__btn" type="button" data-theme-toggle aria-label="切换配色">
+            <span class="tools__icon" data-theme-icon aria-hidden="true">◐</span>
+            <span class="tools__label" data-theme-label>跟随系统</span>
+          </button>
+          <details class="lang" data-lang>
+            <summary class="tools__btn" aria-label="切换语言">
+              <span class="tools__icon" aria-hidden="true">文</span>
+              <span class="tools__label" data-lang-label>简体中文</span>
+            </summary>
+            <div class="lang__menu" role="menu" data-lang-menu></div>
+          </details>
+        </div>
       </div>
     </header>
 
     <main id="main">
       <section class="page-head">
         <div class="wrap">
-          <p class="eyebrow">Cloud Campus</p>
+          <p class="eyebrow">Digital Campus</p>
           <h1 class="page-head__title">云上桂中</h1>
           <p class="page-head__lead">
-            把散在群里、纸上的东西，收进一个能查得到的地方。现在只有介绍，功能一项项来。
+            把校园做成可以走进去的模型。毕业的人能回来看看教室在第几层，在校的人能提前认路，
+            招生季不用翻图册——鼠标一拖，从校门走到操场。
           </p>
+          <p class="notice" data-i18n-note hidden></p>
         </div>
       </section>
 
       <section class="section" style="border-top: 0">
         <div class="wrap">
-          <div class="prose">
-            <h2>是什么</h2>
-            <p>
-              云上桂中是一个面向校内师生的线上入口：课表与作息、活动报名、通知与资料下载，
-              尽量放在同一个域名下，用同一套入口找得到。
-            </p>
-            <p>
-              它和本站的关系简单：本站负责“被看见”——活动的影像与文字；
-              云上桂中负责“被用到”——日常要查、要报、要下载的东西。
-            </p>
-
-            <h2>现在到哪一步</h2>
+          <div class="section__head">
+            <h2 class="section__title"><span class="section__no">01 / 序厅</span>校园关系图</h2>
+            <p class="section__more">拖动旋转 · 点击建筑</p>
           </div>
 
-          <ul class="timeline" style="max-width: 46rem">
+          <div class="campus" data-campus>
+            <div class="campus__layout">
+              <div
+                class="campus__frame"
+                data-frame
+                role="application"
+                aria-label="校园轴测示意：可拖动旋转，点击建筑查看说明"
+              >
+                <span class="campus__hint">轴测示意 · 先导版</span>
+                <span class="campus__badge" data-badge>8 处 · 建模中</span>
+
+                <div class="campus__stage" data-stage>
+                  <div class="campus__plot" data-plot></div>
+                </div>
+
+                <div class="campus__hud">
+                  <button class="campus__btn" type="button" data-zoom="out" aria-label="缩小">−</button>
+                  <button class="campus__btn" type="button" data-zoom="in" aria-label="放大">＋</button>
+                  <button class="campus__btn" type="button" data-view aria-pressed="false">俯视</button>
+                  <button class="campus__btn" type="button" data-spin aria-pressed="true">自转</button>
+                  <button class="campus__btn" type="button" data-reset>复位</button>
+                </div>
+              </div>
+
+              <aside class="spec" data-spec aria-live="polite">
+                <p class="spec__tag" data-spec-tag>入口</p>
+                <h3 class="spec__name" data-spec-name>主教学楼</h3>
+                <p class="spec__note" data-spec-note>拖动上面的图转一圈，或者直接点某栋楼。</p>
+                <dl class="spec__dl">
+                  <dt>性质</dt>
+                  <dd data-spec-kind>—</dd>
+                  <dt>楼层</dt>
+                  <dd data-spec-floor>—</dd>
+                  <dt>建模</dt>
+                  <dd data-spec-status>—</dd>
+                </dl>
+                <div class="spec__bar" aria-hidden="true"><span data-spec-bar></span></div>
+              </aside>
+            </div>
+
+            <div class="stats">
+              <div class="stats__item reveal">
+                <p class="stats__num">8<small>处</small></p>
+                <p class="stats__label">先导图里的建筑与场地</p>
+              </div>
+              <div class="stats__item reveal" style="--d: 80ms">
+                <p class="stats__num">3<small>阶段</small></p>
+                <p class="stats__label">测绘、建模、进引擎</p>
+              </div>
+              <div class="stats__item reveal" style="--d: 160ms">
+                <p class="stats__num">1:1<small>尺度</small></p>
+                <p class="stats__label">按实测米数建模，不做修饰性放大</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="wrap">
+          <div class="section__head">
+            <h2 class="section__title"><span class="section__no">02 / 漫游</span>从校门走一遍</h2>
+          </div>
+
+          <p class="prose-lede">
+            路线按新生第一次来校的顺序排：进校门、过操场、到教学楼、上图书馆、最后去食堂和宿舍。
+            点下面任一站，上面的图会转到那栋楼。
+          </p>
+
+          <ul class="tour" data-tour>
+            <li>
+              <button type="button" data-goto="gate">
+                <span class="tour__no">01</span>
+                <span class="tour__name">校门与围墙</span>
+                <span class="tour__meta">92%</span>
+              </button>
+            </li>
+            <li>
+              <button type="button" data-goto="track">
+                <span class="tour__no">02</span>
+                <span class="tour__name">操场与跑道</span>
+                <span class="tour__meta">22%</span>
+              </button>
+            </li>
+            <li>
+              <button type="button" data-goto="main">
+                <span class="tour__no">03</span>
+                <span class="tour__name">主教学楼</span>
+                <span class="tour__meta">78%</span>
+              </button>
+            </li>
+            <li>
+              <button type="button" data-goto="lab">
+                <span class="tour__no">04</span>
+                <span class="tour__name">实验楼</span>
+                <span class="tour__meta">65%</span>
+              </button>
+            </li>
+            <li>
+              <button type="button" data-goto="library">
+                <span class="tour__no">05</span>
+                <span class="tour__name">图书馆</span>
+                <span class="tour__meta">54%</span>
+              </button>
+            </li>
+            <li>
+              <button type="button" data-goto="canteen">
+                <span class="tour__no">06</span>
+                <span class="tour__name">食堂</span>
+                <span class="tour__meta">40%</span>
+              </button>
+            </li>
+            <li>
+              <button type="button" data-goto="dorm">
+                <span class="tour__no">07</span>
+                <span class="tour__name">宿舍楼</span>
+                <span class="tour__meta">30%</span>
+              </button>
+            </li>
+            <li>
+              <button type="button" data-goto="hall">
+                <span class="tour__no">08</span>
+                <span class="tour__name">礼堂</span>
+                <span class="tour__meta">18%</span>
+              </button>
+            </li>
+          </ul>
+
+          <p class="prose-note">
+            上面的轴测图是纸色的体块示意：谁在哪、几层高、和谁挨着，先对上。
+            等 WebGL 模型一栋栋进来，这里会换成能真的走进去的版本——现在的图只保证位置关系不错。
+          </p>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="wrap">
+          <div class="section__head">
+            <h2 class="section__title"><span class="section__no">03 / 进度</span>模型怎么做</h2>
+          </div>
+
+          <ul class="timeline">
             <li class="reveal">
               <span class="timeline__when">已完成</span>
-              <span class="timeline__what"><b>介绍页</b>上线，先把定位与边界说清楚，不承诺尚未完成的功能。</span>
+              <span class="timeline__what"><b>平面测绘</b>：拿最新总平面图核对，量出每栋楼的进深、面宽与间距，落到同一套坐标里。</span>
             </li>
             <li class="reveal" style="--d: 60ms">
               <span class="timeline__when">进行中</span>
-              <span class="timeline__what"><b>需求收集</b>：向各班与社团问一圈，哪些查询、报名、下载最常用。</span>
+              <span class="timeline__what"><b>体块建模</b>：先砌方正体块，只求轮廓与高度对；女儿墙、连廊这类细节后面再补。</span>
             </li>
             <li class="reveal" style="--d: 120ms">
-              <span class="timeline__when">下一步</span>
-              <span class="timeline__what"><b>课表与作息</b>查询，先做只读、免登录的一版。</span>
+              <span class="timeline__when">进行中</span>
+              <span class="timeline__what"><b>贴图与门窗</b>：按实地照片做立面贴图，门窗洞口单独开，不整体贴一张图了事。</span>
             </li>
             <li class="reveal" style="--d: 180ms">
-              <span class="timeline__when">待定</span>
-              <span class="timeline__what"><b>活动报名与资料下载</b>，涉及账号与权限，要看学校这边的安排。</span>
+              <span class="timeline__when">下一步</span>
+              <span class="timeline__what"><b>进引擎</b>：合并网格、压贴图，让手机也能拖动不卡；加载走分级，远处先出体块。</span>
             </li>
             <li class="reveal" style="--d: 240ms">
               <span class="timeline__when">待定</span>
-              <span class="timeline__what">与校内已有服务的对接。不重复造一个已经有的东西。</span>
+              <span class="timeline__what"><b>室内与夜景</b>：教室、走廊、操场灯。工作量大，看参与的人有多少。</span>
             </li>
           </ul>
 
           <div class="prose" style="margin-top: clamp(2rem, 5vw, 3rem)">
+            <h2>数据从哪来</h2>
+            <p>
+              平面关系用学校公开的总平面图；层高、门窗尺寸靠实地量，量一次记一次，避免「凭印象建模」。
+              拍到的照片按楼归档在<a href="/media">媒体资源</a>的资料库里，建模的人直接取用。
+            </p>
+            <h2>为什么先做示意</h2>
+            <p>
+              真实的 3D 模型要好几个月。先把位置关系对清楚，既能让新生认路，也能给建模的人一个对照——
+              哪栋楼该在哪儿、多大、离操场几步，这些错了后面全白做。
+            </p>
             <h2>怎么参与</h2>
             <p>
-              功能建议、页面原型、哪怕是“这个入口太深了”的抱怨，都可以交给团委学生会新媒体运营部。
-              这页会随着进展改，不是一次性的宣传页。
-            </p>
-            <p>
-              已上线的入口仍然在 <a href="/media">媒体资源</a>；社团与组织的说明在 <a href="/orgs">组织</a>。
+              会建模、会写前端、或者只是想让自己常去的那栋楼先做出来，都找团委学生会新媒体运营部。
+              投稿老照片也可以：同一栋楼不同年份的立面，能反推出改动过什么。
             </p>
           </div>
         </div>
@@ -137,5 +294,6 @@
     </footer>
 
     <script src="/assets/js/site.js" defer></script>
+    <script src="/assets/js/cloud.js" defer></script>
   </body>
 </html>

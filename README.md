@@ -14,7 +14,9 @@ site/                 源文件（可直接读、可直接用浏览器打开）
   cloud.html          云上桂中
   404.html            未找到
   assets/css/style.css
-  assets/js/site.js
+  assets/js/site.js           交互：滚动进入、复制、年份、配色、多语言
+  assets/js/cloud.js          云上桂中的 CSS 3D 场景
+  assets/i18n/*.json          各语言词条（键是中文原句，值是译文）
   assets/fonts/newsreader-latin.woff2
   assets/img/*.webp
 scripts/build.mjs     构建：指纹、链接校验、预压缩，产出 dist/
@@ -69,6 +71,21 @@ node deploy/rollout.mjs   # 只切镜像并校验
 
 `xmt.idoknow.top` 是 Cloudflare 里一条独立的 `A` 记录，指向 `38.39.30.208`（不代理、TTL 300）。
 必须有这条记录：zone 里还有个 `*.idoknow.top → 45.137.180.156` 的通配记录，缺了这条独立记录，请求会落到另一台机器上。
+
+## 多语言与配色
+
+配色三态：跟随系统 / 浅色 / 深色，按钮在页头右侧，选择存 `localStorage` 的 `xmt-theme`。深色只换墨色，纸色底版留给图片（白底标识用 `mix-blend-mode: multiply` 融进 `--tile`，暗色下不乱）。也可以用 `?theme=dark`、`?theme=light` 直接看。
+
+语言同理：`assets/js/site.js` 会给页头装一个语言菜单，选完存 `xmt-lang`，也可以用 `?lang=en` 分享链接。词条在 `assets/i18n/<code>.json`：
+
+```json
+{ "code": "en", "notice": "……", "map": { "首页": "Home", "组织": "Organisations" } }
+```
+
+- 键是**页面上的中文原句**（按空白折叠后逐字匹配），值是译文；匹配不到就保持中文，所以可以只翻一半。
+- 当前是「界面全译、正文待译」：`notice` 一句话说明正文仍是中文，渲染在页头导语下面。英文另有正文兜底，缺词条会先找 `en.json`。
+- 加一门语言：在 `site.js` 的 `LOCALES` 里加一行（`code`/`name`/`dir`），再建对应 json；RTL 语言把 `dir` 写成 `rtl`，页面会自动镜像。
+- 现有：简体、繁體、English、日本語、한국어、Русский、Français、Deutsch、Español、العربية、हिन्दी、བོད་ཡིག、Монгол、ئۇيغۇرچە、Vahcuengh（后四种只译了导航与常用词）。
 
 ## 字体
 
