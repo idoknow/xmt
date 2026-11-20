@@ -12,10 +12,24 @@
 //       MD5(base64(排序后的 encodeURIComponent(body))) + MD5(ts + ":" + rand) ) 转大写
 import { createReadStream } from "node:fs";
 import { stat as statFile } from "node:fs/promises";
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes, createDecipheriv } from "node:crypto";
 
 const ROUTE_HOST = "https://user-njs.yun.139.com";
 const ROUTE_PATH = "/user/route/qryRoutePolicy";
+
+// 网页端 single_login_flag=1 时，Cookie 里的 ORCHES-C-TOKEN 是 AES-128-ECB/Pkcs7
+// 加密过的 authToken，密钥是前端常量 C_ENCRYPT_CODE。解出来的才是接口要的令牌。
+const C_ENCRYPT_CODE = "c7lXOigXahPnTViq";
+
+export const decryptCookieToken = (raw) => {
+  try {
+    const decipher = createDecipheriv("aes-128-ecb", Buffer.from(C_ENCRYPT_CODE, "utf8"), null);
+    const text = Buffer.concat([decipher.update(Buffer.from(raw, "base64")), decipher.final()]).toString("utf8");
+    return /^[\x20-\x7e]+$/.test(text) ? text : "";
+  } catch {
+    return "";
+  }
+};
 
 const md5 = (value) => createHash("md5").update(value).digest("hex");
 
@@ -65,8 +79,9 @@ function decodeBase64Text(value) {
   }
 }
 
-// 把用户给的东西拆成账号 + 令牌。cookie 里 ORCHES-C-TOKEN 是令牌，
-// ORCHES-I-ACCOUNT-ENCRYPT 解出来就是完账号（手机号）。
+// 把用户给的东西拆成账号 + 令牌。
+// cookie 模式下：ORCHES-I-ACCOUNT-ENCRYPT 解出来是账号（手机号），
+// ORCHES-C-TOKEN 需要 AES 解密才是接口认的 authToken。
 function credentialsOf(cfg) {
   let authorization = String(cfg.authorization || "").trim();
   let account = String(cfg.username || cfg.account || "").trim();
@@ -79,7 +94,8 @@ function credentialsOf(cfg) {
 
   if (!authorization && cfg.cookie) {
     const jar = parseCookies(cfg.cookie);
-    token = token || jar.get("ORCHES-C-TOKEN") || "";
+    const rawToken = jar.get("ORCHES-C-TOKEN") || "";
+    token = token || decryptCookieToken(rawToken) || rawToken;
     account = account || decodeBase64Text(jar.get("ORCHES-I-ACCOUNT-ENCRYPT")) || "";
     source = token ? "cookie" : "";
   }
@@ -111,7 +127,8 @@ export function yun139Driver(cfg = {}) {
   let authorization = saved.authorization;
   let account = saved.account;
   let token = saved.token;
-  const rootFolderId = String(cfg.root_folder_id || "").trim();
+  // 139 个人云的根目录 ID 就是字符串 "root"，不是空串也不是 -1
+  const rootFolderId = String(cfg.root_folder_id || "").trim() || "root";
 
   if (!authorization) {
     const dropped = rawCookie ? parseCookies(rawCookie).skipped || [] : [];
@@ -300,19 +317,30 @@ export function yun139Driver(cfg = {}) {
         throw Object.assign(new Error("139 创建上传任务失败"), { status: 502 });
       }
 
+      // 上传地址是预签名 URL，分片长度必须用我们自己声明的值（响应里的 partSize 是 null）
       for (const part of uploads) {
-        const start = Number(part.offset ?? (Number(part.partNumber) - 1) * partSize);
-        const length = Number(part.partSize || partSize);
+        const number = Number(part.partNumber);
+        const local = partInfos.find((item) => item.partNumber === number) || partInfos[0];
+        const start = local.offset;
+        const length = local.partSize;
         const res = await fetch(part.uploadUrl, {
           method: "PUT",
           headers: { "content-type": "application/octet-stream", "content-length": String(length) },
           body: createReadStream(filePath, { start, end: start + length - 1 }),
           duplex: "half",
         });
-        if (!res.ok) throw Object.assign(new Error(`139 分片上传失败（${res.status}）`), { status: 502 });
+        if (!res.ok) {
+          const detail = await res.text().catch(() => "");
+          throw Object.assign(new Error(`139 分片上传失败（${res.status}）${detail.slice(0, 120)}`), { status: 502 });
+        }
       }
 
-      await call("/file/complete", { fileId, contentHash, contentHashAlgorithm: "SHA256" });
+      await call("/file/complete", {
+        fileId,
+        uploadId: created?.uploadId,
+        contentHash,
+        contentHashAlgorithm: "SHA256",
+      });
       return { path: `/${fileId}`, size: info.size };
     },
 
