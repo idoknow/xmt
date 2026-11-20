@@ -55,6 +55,16 @@ const setView = (view) => {
 setView(localStorage.getItem("mem-view") || "grid");
 $$("[data-view]").forEach((btn) => btn.addEventListener("click", () => setView(btn.dataset.view)));
 
+/* 排序菜单：点外面收起来，Esc 也收 */
+document.addEventListener("click", (event) => {
+  for (const box of $$("[data-sort][open]")) {
+    if (!box.contains(event.target)) box.removeAttribute("open");
+  }
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") $("[data-sort][open]")?.removeAttribute("open");
+});
+
 /* ---------- 多选与分享 ---------- */
 
 const picks = new Set();

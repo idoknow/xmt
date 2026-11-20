@@ -131,6 +131,10 @@ export function galleryPage({ site, user, items, total, query }) {
     ["name", "名称"],
     ["size", "大小"],
   ];
+  const currentSort = sorts.some(([key]) => key === query.sort) ? query.sort : "new";
+  const sortLabel = sorts.find(([key]) => key === currentSort)[1];
+  const sortHref = (key) =>
+    `/memories?sort=${key}${query.q ? `&q=${encodeURIComponent(query.q)}` : ""}`;
   const body = `
 <section class="m-hero">
   <p class="m-kicker">Memories · 校园媒体库</p>
@@ -144,9 +148,20 @@ export function galleryPage({ site, user, items, total, query }) {
 <form class="m-toolbar" method="get" action="/memories">
   <div class="m-toolbar__right">
     <label class="m-search"><input type="search" name="q" value="${e(query.q || "")}" placeholder="搜索名称、备注、标签" /></label>
-    <label class="m-select"><select name="sort">${sorts
-      .map(([key, label]) => `<option value="${key}"${(query.sort || "new") === key ? " selected" : ""}>${label}</option>`)
-      .join("")}</select></label>
+    <details class="m-sort" data-sort>
+      <summary class="m-sort__btn" aria-label="排序：${sortLabel}">
+        <span data-sort-label>${sortLabel}</span>
+        <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="m4.6 6.4 3.4 3.4 3.4-3.4" /></svg>
+      </summary>
+      <div class="m-sort__menu" role="menu">
+        ${sorts
+          .map(
+            ([key, label]) =>
+              `<a class="m-sort__item${key === currentSort ? " is-on" : ""}" role="menuitemradio" aria-checked="${key === currentSort}" href="${sortHref(key)}">${label}</a>`,
+          )
+          .join("")}
+      </div>
+    </details>
     <div class="m-view" role="group" aria-label="视图">
       <button type="button" class="m-view__btn is-on" data-view="grid" title="网格">▦</button>
       <button type="button" class="m-view__btn" data-view="list" title="列表">☰</button>
