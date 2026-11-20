@@ -1735,6 +1735,16 @@ html[dir="rtl"] :is(.page-head__lead, .prose p, .prose-lede, .prose-note, .notic
     aspect-ratio: 1;
     max-width: 132px;
   }
+
+  /* 抖音卡片：手机上二维码缩小居中，别占满一屏 */
+  .account {
+    gap: 1.1rem;
+  }
+
+  .account__qr {
+    max-width: 11.5rem;
+    justify-self: center;
+  }
 }
 
 /* ---------- 阅读进度 ---------- */

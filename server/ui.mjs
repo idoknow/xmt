@@ -285,9 +285,9 @@ export function adminPage({ site, user, users, drives, settings, counters }) {
     .map(
       (drive) => `<tr>
         <td><strong>${e(drive.name)}</strong><small>${e(DRIVERS[drive.driver]?.label || drive.driver)}</small></td>
-        <td class="m-mono">${e(drive.root || "/")}</td>
-        <td>${drive.enabled ? "启用" : "停用"}</td>
-        <td>${e(drive.visibility)}</td>
+        <td data-label="目录" class="m-mono">${e(drive.root || "/")}</td>
+        <td data-label="状态">${drive.enabled ? "启用" : "停用"}</td>
+        <td data-label="可见">${e(drive.visibility)}</td>
         <td><div class="m-row-actions">
           <button class="m-btn m-btn--tiny" data-drive-test="${drive.id}">测试</button>
           <button class="m-btn m-btn--tiny m-btn--danger" data-drive-del="${drive.id}">删除</button>
@@ -305,9 +305,9 @@ export function adminPage({ site, user, users, drives, settings, counters }) {
             row.note ? ` · ${e(row.note)}` : ""
           }</small></span>
         </div></td>
-        <td>${e(roleLabel[row.role] || row.role)}</td>
-        <td>${row.status === "active" ? "正常" : "停用"}</td>
-        <td>${fmtDate(row.last_login_at)}</td>
+        <td data-label="角色">${e(roleLabel[row.role] || row.role)}</td>
+        <td data-label="状态">${row.status === "active" ? "正常" : "停用"}</td>
+        <td data-label="最近登录">${fmtDate(row.last_login_at)}</td>
         <td><div class="m-row-actions">
           <select data-role="${row.id}" class="m-select m-select--tiny">
             <option value="user"${row.role === "user" ? " selected" : ""}>成员</option>
