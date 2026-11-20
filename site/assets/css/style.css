@@ -847,7 +847,7 @@ html[dir="rtl"] :is(.page-head__lead, .prose p, .prose-lede, .prose-note, .notic
 .org__mark--ink {
   background: #121118;
   border-color: rgba(236, 232, 222, 0.16);
-  padding: 0;
+  padding: 0.55rem;
 }
 
 .org__mark--ink img {
@@ -855,7 +855,7 @@ html[dir="rtl"] :is(.page-head__lead, .prose p, .prose-lede, .prose-note, .notic
   height: 100%;
   max-height: none;
   max-width: none;
-  object-fit: cover;
+  object-fit: contain;
   mix-blend-mode: normal;
 }
 
@@ -1384,7 +1384,7 @@ html[dir="rtl"] :is(.page-head__lead, .prose p, .prose-lede, .prose-note, .notic
 .entry__mark--ink {
   background: #121118;
   border-color: rgba(236, 232, 222, 0.16);
-  padding: 0;
+  padding: 0.7rem;
   overflow: hidden;
 }
 
@@ -1393,7 +1393,7 @@ html[dir="rtl"] :is(.page-head__lead, .prose p, .prose-lede, .prose-note, .notic
   height: 100%;
   max-height: none;
   max-width: none;
-  object-fit: cover;
+  object-fit: contain;
   mix-blend-mode: normal;
 }
 
