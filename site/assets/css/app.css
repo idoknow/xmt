@@ -668,6 +668,24 @@ html[data-view="list"] .m-card__name {
 .m-form--grid {
   grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
 }
+.m-form__wide {
+  grid-column: 1 / -1;
+}
+.m-form textarea {
+  width: 100%;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--surface, #fff);
+  color: var(--ink);
+  font: 0.78rem/1.45 var(--mono);
+  resize: vertical;
+  word-break: break-all;
+}
+.m-form textarea:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--vermilion) 55%, transparent);
+  outline-offset: 1px;
+}
 .m-fieldset {
   border: 1px solid var(--rule);
   border-radius: 4px;

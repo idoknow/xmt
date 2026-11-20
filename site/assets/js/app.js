@@ -289,11 +289,16 @@ const renderDriveFields = (driverKey) => {
     <p class="m-hint">${spec.hint || ""}</p>
     <div class="m-form m-form--grid">
       ${spec.fields
-        .map(
-          (field) => `<label><span>${field.label}</span><input name="cfg.${field.key}" type="${
+        .map((field) => {
+          if (field.type === "textarea") {
+            return `<label class="m-form__wide"><span>${field.label}</span><textarea name="cfg.${field.key}" rows="4" placeholder="${
+              field.placeholder || ""
+            }" spellcheck="false"></textarea></label>`;
+          }
+          return `<label><span>${field.label}</span><input name="cfg.${field.key}" type="${
             field.type === "password" ? "password" : "text"
-          }" placeholder="${field.placeholder || ""}" autocomplete="off" /></label>`,
-        )
+          }" placeholder="${field.placeholder || ""}" autocomplete="off" /></label>`;
+        })
         .join("")}
     </div></fieldset>`;
 };
@@ -314,7 +319,7 @@ $("[data-add-drive]")?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
   const config = {};
-  for (const input of $$('[data-drive-fields] input')) {
+  for (const input of $$('[data-drive-fields] input, [data-drive-fields] textarea')) {
     const key = input.name.replace("cfg.", "");
     if (input.value.trim()) config[key] = input.value.trim();
   }
