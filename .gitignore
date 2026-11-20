@@ -4,3 +4,6 @@ node_modules/
 Thumbs.db
 *.log
 .tmp/
+
+# Memories 运行数据：SQLite + 上传的文件，不进版本库
+data/

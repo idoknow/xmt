@@ -2,15 +2,17 @@
   "name": "xmt-site",
   "version": "1.0.0",
   "private": true,
-  "description": "桂林中学新媒体 · 团委学生会新媒体运营部 / 时光驿客 / Life 摄影社团",
+  "description": "桂林中学新媒体 · 团委学生会新媒体运营部 / 时光驿客 / Life 摄影社团 + Memories 校园图片库",
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
     "serve": "node scripts/serve.mjs",
+    "start": "node server/index.mjs",
+    "dev": "node server/index.mjs",
     "deploy:apply": "node deploy/apply.mjs"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22.5"
   },
   "license": "UNLICENSED"
 }

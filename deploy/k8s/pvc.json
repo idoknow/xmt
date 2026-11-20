@@ -1,0 +1,13 @@
+{
+  "apiVersion": "v1",
+  "kind": "PersistentVolumeClaim",
+  "metadata": {
+    "name": "xmt-data",
+    "namespace": "idoknow",
+    "labels": { "app": "xmt", "app.kubernetes.io/part-of": "xmt" }
+  },
+  "spec": {
+    "accessModes": ["ReadWriteOnce"],
+    "resources": { "requests": { "storage": "5Gi" } }
+  }
+}

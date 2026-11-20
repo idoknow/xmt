@@ -1,0 +1,171 @@
+// SQLite（node:sqlite，无外部依赖）。表结构随版本号递增做迁移。
+import { DatabaseSync } from "node:sqlite";
+import { mkdirSync } from "node:fs";
+import { paths } from "./config.mjs";
+
+mkdirSync(paths.files, { recursive: true });
+
+export const db = new DatabaseSync(paths.db);
+
+db.exec("PRAGMA journal_mode = WAL");
+db.exec("PRAGMA foreign_keys = ON");
+db.exec("PRAGMA busy_timeout = 5000");
+
+const now = () => new Date().toISOString();
+
+db.exec(`
+CREATE TABLE IF NOT EXISTS meta (
+  key   TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS users (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  qq            TEXT UNIQUE,
+  name          TEXT NOT NULL,
+  avatar        TEXT,
+  role          TEXT NOT NULL DEFAULT 'user',
+  status        TEXT NOT NULL DEFAULT 'active',
+  note          TEXT,
+  drive_root    TEXT,
+  created_at    TEXT NOT NULL,
+  last_login_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS sessions (
+  id         TEXT PRIMARY KEY,
+  user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  ua         TEXT,
+  ip         TEXT
+);
+
+CREATE TABLE IF NOT EXISTS oauth_states (
+  state       TEXT PRIMARY KEY,
+  verifier    TEXT NOT NULL,
+  redirect    TEXT,
+  created_at  TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS drives (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  name       TEXT NOT NULL,
+  driver     TEXT NOT NULL,
+  config     TEXT NOT NULL DEFAULT '{}',
+  root       TEXT NOT NULL DEFAULT '/',
+  owner_id   INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  visibility TEXT NOT NULL DEFAULT 'members',
+  enabled    INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS media (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  drive_id   INTEGER NOT NULL REFERENCES drives(id) ON DELETE CASCADE,
+  path       TEXT NOT NULL,
+  name       TEXT NOT NULL,
+  ext        TEXT,
+  mime       TEXT,
+  kind       TEXT NOT NULL DEFAULT 'file',
+  size       INTEGER NOT NULL DEFAULT 0,
+  width      INTEGER,
+  height     INTEGER,
+  sha256     TEXT,
+  owner_id   INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  taken_at   TEXT,
+  note       TEXT,
+  tags       TEXT,
+  created_at TEXT NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS media_drive_path ON media(drive_id, path);
+CREATE INDEX IF NOT EXISTS media_owner ON media(owner_id);
+CREATE INDEX IF NOT EXISTS media_created ON media(created_at DESC);
+
+CREATE TABLE IF NOT EXISTS shares (
+  id             INTEGER PRIMARY KEY AUTOINCREMENT,
+  token          TEXT NOT NULL UNIQUE,
+  kind           TEXT NOT NULL,
+  target         TEXT NOT NULL,
+  created_by     INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  allow_download INTEGER NOT NULL DEFAULT 1,
+  password_hash  TEXT,
+  expires_at     TEXT,
+  created_at     TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS settings (
+  key   TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS audit (
+  id      INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER,
+  action  TEXT NOT NULL,
+  target  TEXT,
+  at      TEXT NOT NULL,
+  ip      TEXT
+);
+`);
+
+/* ---------- 小工具 ---------- */
+
+export const all = (sql, ...args) => db.prepare(sql).all(...args);
+export const get = (sql, ...args) => db.prepare(sql).get(...args);
+export const run = (sql, ...args) => db.prepare(sql).run(...args);
+
+export const setting = (key, fallback = null) => {
+  const row = get("SELECT value FROM settings WHERE key = ?", key);
+  return row ? row.value : fallback;
+};
+
+export const setSetting = (key, value) =>
+  run(
+    "INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+    key,
+    String(value),
+  );
+
+export const audit = (userId, action, target, ip) =>
+  run("INSERT INTO audit (user_id, action, target, at, ip) VALUES (?, ?, ?, ?, ?)", userId || null, action, target || null, now(), ip || null);
+
+/* ---------- 首次启动：管理员与本机存储 ---------- */
+
+export function bootstrap(adminQQ) {
+  const stamp = now();
+  const admin = get("SELECT * FROM users WHERE role = 'admin' LIMIT 1");
+  if (!admin) {
+    run(
+      "INSERT INTO users (qq, name, role, status, drive_root, created_at) VALUES (?, ?, 'admin', 'active', ?, ?)",
+      adminQQ,
+      "管理员",
+      "u-admin",
+      stamp,
+    );
+  }
+
+  const drive = get("SELECT * FROM drives LIMIT 1");
+  if (!drive) {
+    run(
+      "INSERT INTO drives (name, driver, config, root, visibility, created_at) VALUES (?, ?, '{}', '/', 'members', ?)",
+      "本地存储",
+      "local",
+      stamp,
+    );
+  }
+
+  if (!setting("site.title")) setSetting("site.title", "Memories");
+  if (!setting("site.intro"))
+    setSetting(
+      "site.intro",
+      "Memories 为学生打造专属的校园图片分享空间，上传、浏览、管理校园照片，让青春的每一帧都被温柔记录。",
+    );
+  if (!setting("oauth.client_id")) setSetting("oauth.client_id", "");
+  if (!setting("oauth.client_secret")) setSetting("oauth.client_secret", "");
+  if (!setting("oauth.issuer")) setSetting("oauth.issuer", "https://gz.campux.top");
+  if (!setting("share.default_days")) setSetting("share.default_days", "7");
+}
+
+export { now };

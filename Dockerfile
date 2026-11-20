@@ -1,13 +1,23 @@
-# 静态产物 + nginx。构建在镜像之外完成（CI 跑 scripts/build.mjs），镜像只负责发文件。
-FROM nginx:1.27-alpine
+# 站点静态产物 + Memories 服务（Node 原生 http + node:sqlite，无第三方依赖）
+FROM node:24-alpine
 
 LABEL org.opencontainers.image.title="xmt" \
-      org.opencontainers.image.description="桂林中学新媒体 · 静态站点" \
+      org.opencontainers.image.description="桂林中学新媒体 · 站点与 Memories 图片库" \
       org.opencontainers.image.source="https://github.com/idoknow/xmt"
 
-COPY nginx.conf /etc/nginx/nginx.conf
-COPY dist/ /usr/share/nginx/html/
+WORKDIR /app
+ENV NODE_ENV=production \
+    PORT=1145 \
+    DATA_DIR=/data \
+    DIST_DIR=/app/dist
 
-RUN nginx -t
+COPY server ./server
+COPY dist ./dist
+COPY package.json ./
 
-EXPOSE 80
+RUN mkdir -p /data/files && chown -R node:node /data /app
+
+USER node
+EXPOSE 1145
+VOLUME ["/data"]
+CMD ["node", "server/index.mjs"]
