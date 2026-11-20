@@ -21,6 +21,16 @@
           { "key": "workload.rockchin.top/langbot-cloud-excluded", "operator": "Equal", "value": "true", "effect": "NoSchedule" }
         ],
         "securityContext": { "runAsUser": 0, "runAsGroup": 0 },
+        "dnsPolicy": "None",
+        "dnsConfig": {
+          "nameservers": ["10.42.10.1", "223.5.5.5"],
+          "searches": ["idoknow.svc.cluster.local", "svc.cluster.local", "cluster.local"],
+          "options": [
+            { "name": "ndots", "value": "5" },
+            { "name": "timeout", "value": "2" },
+            { "name": "attempts", "value": "2" }
+          ]
+        },
         "containers": [
           {
             "name": "web",
@@ -34,6 +44,7 @@
               { "name": "BASE_URL", "value": "https://xmt.idoknow.top" },
               { "name": "TRUST_PROXY", "value": "1" },
               { "name": "OAUTH_ISSUER", "value": "https://gz.campux.top" },
+              { "name": "OAUTH_API_BASE", "value": "http://campux-admin.idoknow.svc.cluster.local:8989" },
               {
                 "name": "OAUTH_CLIENT_ID",
                 "valueFrom": { "secretKeyRef": { "name": "xmt-memories", "key": "oauth-client-id", "optional": true } }

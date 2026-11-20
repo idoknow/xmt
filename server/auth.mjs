@@ -14,11 +14,14 @@ const pick = (key, fallback = "") => {
 
 export const endpoints = () => {
   const issuer = (pick("oauth.issuer", config.oauth.issuer) || "").replace(/\/+$/, "");
+  // 浏览器打开的是公网地址；服务端调 token/userinfo 可以走集群内地址（配置了的话）
+  const api = (pick("oauth.api_base", config.oauth.apiBase || issuer) || issuer).replace(/\/+$/, "");
   return {
     issuer,
+    api,
     authorize: `${issuer}/oauth/authorize`,
-    token: `${issuer}/oauth/token`,
-    userinfo: `${issuer}/oauth/userinfo`,
+    token: `${api}/oauth/token`,
+    userinfo: `${api}/oauth/userinfo`,
     clientId: pick("oauth.client_id", config.oauth.clientId),
     clientSecret: pick("oauth.client_secret", config.oauth.clientSecret),
     redirectUri: `${config.baseUrl}/memories/oauth/callback`,

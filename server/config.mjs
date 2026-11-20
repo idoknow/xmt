@@ -20,6 +20,8 @@ export const config = {
   // Campux 校园墙 OAuth2（PKCE）
   oauth: {
     issuer: (process.env.OAUTH_ISSUER || "https://gz.campux.top").replace(/\/+$/, ""),
+    // 服务端直连 token/userinfo 用的地址：集群内经 Service 访问，绕开公网回环
+    apiBase: (process.env.OAUTH_API_BASE || process.env.OAUTH_ISSUER || "https://gz.campux.top").replace(/\/+$/, ""),
     clientId: process.env.OAUTH_CLIENT_ID || "",
     clientSecret: process.env.OAUTH_CLIENT_SECRET || "",
     redirectUri: process.env.OAUTH_REDIRECT_URI || `${base}/memories/oauth/callback`,
