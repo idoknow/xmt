@@ -1,5 +1,5 @@
 // 服务端渲染的页面片段。样式来自 /assets/css/style.css + /memories/assets/app.css。
-import { escapeHtml as e } from "./util.mjs";
+import { displayName, escapeHtml as e, qqAvatar } from "./util.mjs";
 import { DRIVERS } from "./drives.mjs";
 
 const year = new Date().getFullYear();
@@ -21,19 +21,26 @@ export const fmtDate = (iso) => {
 
 const roleLabel = { admin: "管理员", user: "成员" };
 
+/** 头像：字母垫底，图片盖在上面；图挂了就露出字母，不至于空一个圈 */
+const avatarTag = (user, className = "m-user__img", textClass = "m-user__text") => {
+  const src = user.avatar || qqAvatar(user.qq);
+  const letter = String(user?.name || "").trim() ? displayName(user).slice(0, 1) : String(user?.qq || "?").slice(-2);
+  const fallback = `<span class="${textClass}" aria-hidden="true">${e(letter)}</span>`;
+  if (!src) return fallback;
+  return `${fallback}<img class="${className}" src="${e(src)}" alt="" width="28" height="28" loading="lazy" decoding="async" referrerpolicy="no-referrer" />`;
+};
+
 /** 右上角头像 + 下拉：里面放「我的上传 / 后台 / 退出」 */
 const profile = (user) => {
   if (!user) return "";
-  const initial = String(user.name || "?").slice(0, 1);
-  const face = user.avatar
-    ? `<img class="m-user__img" src="${e(user.avatar)}" alt="" width="28" height="28" loading="lazy" decoding="async" referrerpolicy="no-referrer" />`
-    : `<span class="m-user__img m-user__img--text" aria-hidden="true">${e(initial)}</span>`;
+  const face = avatarTag(user);
+  const name = displayName(user);
   return `<details class="m-user" data-profile>
-      <summary class="m-user__btn"><span class="m-user__ava">${face}</span><span class="m-user__label">${e(user.name || "我")}</span></summary>
+      <summary class="m-user__btn"><span class="m-user__ava">${face}</span><span class="m-user__label">${e(name)}</span></summary>
       <div class="m-user__menu" role="menu">
         <div class="m-user__head">
           <span class="m-user__ava m-user__ava--lg">${face}</span>
-          <div><strong>${e(user.name || "未命名")}</strong><small>${e(roleLabel[user.role] || "成员")} · QQ ${e(user.qq || "—")}</small></div>
+          <div><strong>${e(name)}</strong><small>${e(roleLabel[user.role] || "成员")} · QQ ${e(user.qq || "—")}</small></div>
         </div>
         <a role="menuitem" href="/memories/my">我的上传</a>
         <a role="menuitem" href="/memories">全部媒体</a>
@@ -292,7 +299,12 @@ export function adminPage({ site, user, users, drives, settings, counters }) {
   const userRows = users
     .map(
       (row) => `<tr data-user="${row.id}">
-        <td><strong>${e(row.name || "—")}</strong><small>QQ ${e(row.qq || "未绑定")}</small></td>
+        <td class="m-member">
+          <span class="m-ava">${avatarTag(row, "m-ava__img", "m-ava__text")}</span>
+          <span class="m-member__text"><strong>${e(displayName(row))}</strong><small>QQ ${e(row.qq || "未绑定")}${
+            row.note ? ` · ${e(row.note)}` : ""
+          }</small></span>
+        </td>
         <td>${e(roleLabel[row.role] || row.role)}</td>
         <td>${row.status === "active" ? "正常" : "停用"}</td>
         <td>${fmtDate(row.last_login_at)}</td>
@@ -326,12 +338,11 @@ export function adminPage({ site, user, users, drives, settings, counters }) {
 
 <section class="m-panel is-on" data-panel="users">
   <form class="m-form m-form--row" data-add-user>
-    <label><span>QQ 号</span><input name="qq" required pattern="\\d{5,12}" placeholder="只收数字" /></label>
-    <label><span>名字</span><input name="name" placeholder="显示名" /></label>
-    <label><span>备注</span><input name="note" placeholder="班级 / 职务" /></label>
+    <label><span>QQ 号</span><input name="qq" required pattern="\\d{5,12}" inputmode="numeric" placeholder="只填号码，如 1692138502" /></label>
+    <label><span>备注</span><input name="note" placeholder="班级 / 职务（可选）" /></label>
     <button class="m-btn m-btn--primary" type="submit">添加成员</button>
   </form>
-  <p class="m-hint">用户只能手动添加，没有注册入口。号码第一次登录时自动绑定。</p>
+  <p class="m-hint">只填 QQ 号就能加人，昵称和头像等他第一次登录时从 Campux 同步；号码必须先加进来，否则登录会被拒绝。</p>
   <table class="m-table"><thead><tr><th>成员</th><th>角色</th><th>状态</th><th>最近登录</th><th></th></tr></thead><tbody>${userRows}</tbody></table>
 </section>
 

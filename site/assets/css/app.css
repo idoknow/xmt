@@ -556,8 +556,17 @@ html[data-view="list"] .m-card__name {
   gap: 0.7rem;
 }
 .m-form--row {
-  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)) auto;
+  display: flex;
+  flex-wrap: wrap;
   align-items: end;
+  gap: 0.7rem;
+}
+.m-form--row > label {
+  flex: 1 1 11rem;
+  min-width: 0;
+}
+.m-form--row > button {
+  flex: 0 0 auto;
 }
 .m-form label {
   display: grid;
@@ -675,6 +684,41 @@ html[data-view="list"] .m-card__name {
   gap: 0.35rem;
   justify-content: flex-end;
 }
+/* 成员表格：头像 + 名字，头像按 QQ 号取 */
+.m-member {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.m-ava {
+  display: inline-grid;
+  place-items: center;
+  position: relative;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  overflow: hidden;
+  flex: none;
+  background: color-mix(in srgb, var(--ink) 10%, transparent);
+}
+.m-ava__text {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+.m-ava__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.m-member__text {
+  min-width: 0;
+}
+.m-member__text strong {
+  font-weight: 500;
+}
 .m-mono {
   font-family: var(--mono);
   font-size: 0.76rem;
@@ -738,7 +782,12 @@ html[data-view="list"] .m-card__name {
     padding: 1.2rem;
   }
   .m-form--row {
-    grid-template-columns: 1fr;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .m-form--row > label,
+  .m-form--row > button {
+    flex: 1 1 auto;
   }
   .m-row-actions {
     flex-wrap: wrap;
@@ -791,18 +840,21 @@ html[data-view="list"] .m-card__name {
   height: 1.75rem;
   border-radius: 50%;
   overflow: hidden;
+  position: relative;
   background: color-mix(in srgb, var(--ink) 10%, transparent);
   flex: none;
 }
 .m-user__img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
-.m-user__img--text {
+.m-user__text {
   font-size: 0.8rem;
-  color: var(--ink);
+  color: var(--ink-soft);
 }
 .m-user__label {
   font-size: 0.82rem;

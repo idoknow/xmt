@@ -29,6 +29,19 @@ export const mimeOf = (name = "") => {
 export const escapeHtml = (value) =>
   String(value ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]);
 
+/** QQ 号判定：Campux 的 QQ 是纯数字，5–12 位 */
+export const isQQ = (value) => value != null && /^\d{5,12}$/.test(String(value).trim());
+
+/** QQ 头像：腾讯公开接口，按号码取，不需要任何凭据 */
+export const qqAvatar = (qq, size = 160) => (isQQ(qq) ? `https://q1.qlogo.cn/g?b=qq&nk=${String(qq).trim()}&s=${size}` : "");
+
+/** 显示名：没起名字就用「QQ <号码>」顶上 */
+export const displayName = (user) => {
+  const name = String(user?.name ?? "").trim();
+  if (name) return name;
+  return user?.qq ? `QQ ${user.qq}` : "未命名";
+};
+
 export const parseCookies = (header = "") => {
   const out = {};
   for (const part of header.split(";")) {

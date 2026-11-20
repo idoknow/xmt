@@ -36,6 +36,7 @@ import {
   html,
   mimeOf,
   parseCookies,
+  qqAvatar,
   readJson,
   redirect,
   send,
@@ -367,9 +368,10 @@ async function api(req, res, url) {
       if (!/^\d{5,12}$/.test(qq)) throw Object.assign(new Error("QQ 号要填数字"), { status: 400 });
       if (get("SELECT id FROM users WHERE qq = ?", qq)) throw Object.assign(new Error("这个 QQ 已经加过了"), { status: 409 });
       run(
-        "INSERT INTO users (qq, name, role, status, created_at) VALUES (?, ?, 'user', 'active', ?)",
+        "INSERT INTO users (qq, name, avatar, role, status, note, created_at) VALUES (?, '', ?, 'user', 'active', ?, ?)",
         qq,
-        String(body.name || "").slice(0, 40) || `用户${qq.slice(-4)}`,
+        qqAvatar(qq),
+        String(body.note || "").slice(0, 60) || null,
         now(),
       );
       return json(res, { ok: true, users: allUsers() });

@@ -82,7 +82,7 @@ node deploy/rollout.mjs   # 只切镜像并校验
 
 `https://xmt.idoknow.top/memories`。同一个进程提供，数据在 PVC `xmt-data`（`/data`：`memories.db` + `files/`）。
 
-- 登录：Campux 校园墙 OAuth（PKCE，S256），回调 `https://xmt.idoknow.top/memories/oauth/callback`。**不开放注册**，管理员在后台手动加 QQ；没开通的 QQ 登录会直接被拒。
+- 登录：Campux 校园墙 OAuth（PKCE，S256），回调 `https://xmt.idoknow.top/memories/oauth/callback`。**不开放注册**，管理员在后台手动加 QQ（只填号码即可，昵称与头像等他第一次登录时从 Campux 同步，头像按 QQ 号取 `q1.qlogo.cn`）；没开通的 QQ 登录会直接被拒。
 - 角色：游客只读（能浏览、能看分享链接）；成员能上传、改名、移动、新建文件夹、删除，但**只能动自己上传的**；管理员不限文件类型、能管存储、管成员、改站点设置。管理员 QQ 由 `ADMIN_QQ` 决定，默认 `1692138502`。
 - 每人一个文件夹（`u-<id>/<YYYY-MM>/`）；管理员默认落在 `admin/<YYYY-MM>/`。
 - 存储：`local`（容器磁盘）、`webdav`（任意 WebDAV，地址/账号/密码/根目录）、`139`（移动云盘，`authorization` 填网页版抓到的 `pc:<账号>:<token>` 的 base64）。后台「存储」页可加多个、可测试连通性。

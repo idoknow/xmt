@@ -2,7 +2,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { config } from "./config.mjs";
 import { all, get, now, run, setting, setSetting, audit } from "./db.mjs";
-import { cookie, parseCookies, redirect } from "./util.mjs";
+import { cookie, isQQ, parseCookies, qqAvatar, redirect } from "./util.mjs";
 
 const b64url = (buf) => buf.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 
@@ -106,9 +106,6 @@ export function beginOAuth(res) {
   redirect(res, url.toString());
 }
 
-/** QQ 号只会是 5–12 位纯数字 */
-const isQQ = (value) => value != null && /^\d{5,12}$/.test(String(value).trim());
-
 // Campux 的 userinfo 长这样：{ sub, name, username, scope, client_id }
 // 其中 name 是 QQ 号、username 是昵称，所以这两处都要看。
 const QQ_KEYS = ["qq", "name", "nickname", "display_name", "username"];
@@ -136,12 +133,6 @@ export function findQQ(value, depth = 0) {
     }
   }
   return null;
-}
-
-/** QQ 头像：Campux 的 userinfo 不带头像时用它兜底（q1.qlogo.cn 公开接口） */
-export function qqAvatar(qq, size = 160) {
-  if (!isQQ(qq)) return "";
-  return `https://q1.qlogo.cn/g?b=qq&nk=${qq}&s=${size}`;
 }
 
 /** 昵称与头像同样从任意层级取，取不到就留空 */

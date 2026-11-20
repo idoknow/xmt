@@ -326,7 +326,7 @@ $("[data-add-user]")?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
   try {
-    await api("/memories/api/users", { qq: form.qq.value.trim(), name: form.name.value.trim(), note: form.note.value.trim() });
+    await api("/memories/api/users", { qq: form.qq.value.trim(), note: form.note ? form.note.value.trim() : "" });
     location.reload();
   } catch (error) {
     alert(error.message);
