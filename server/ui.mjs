@@ -36,7 +36,7 @@ const profile = (user) => {
           <div><strong>${e(user.name || "未命名")}</strong><small>${e(roleLabel[user.role] || "成员")} · QQ ${e(user.qq || "—")}</small></div>
         </div>
         <a role="menuitem" href="/memories/my">我的上传</a>
-        <a role="menuitem" href="/memories">全部图片</a>
+        <a role="menuitem" href="/memories">全部媒体</a>
         ${user.role === "admin" ? '<a role="menuitem" href="/memories/admin">后台管理</a>' : ""}
         <a role="menuitem" class="m-user__out" href="/memories/logout">退出登录</a>
       </div>
@@ -45,8 +45,8 @@ const profile = (user) => {
 
 export function shell({ title, site, user, body, bodyClass = "", scripts = "", head = "" }) {
   const nav = user
-    ? `<a href="/memories">画廊</a>${profile(user)}`
-    : `<a href="/memories">画廊</a><a href="/memories/login">登录</a>`;
+    ? `<a href="/memories">媒体库</a>${profile(user)}`
+    : `<a href="/memories">媒体库</a><a href="/memories/login">登录</a>`;
 
   return `<!doctype html>
 <html lang="zh-CN" data-page="memories">
@@ -67,7 +67,7 @@ ${head}
   <div class="m-top__inner">
     <a class="m-brand" href="/">
       <img src="/assets/img/school-emblem-336.webp" alt="" width="32" height="32" />
-      <span><strong>${e(site.title || "Memories")}</strong><small>桂中校园图片库</small></span>
+      <span><strong>${e(site.title || "Memories")}</strong><small>桂中校园媒体库</small></span>
     </a>
     <nav class="m-nav">${nav}<a href="/" class="m-nav__back">回站点</a></nav>
   </div>
@@ -117,7 +117,7 @@ export function galleryPage({ site, user, items, total, query }) {
   ];
   const body = `
 <section class="m-hero">
-  <p class="m-kicker">Memories · 校园图片库</p>
+  <p class="m-kicker">Memories · 校园媒体库</p>
   <h1>${e(site.title || "Memories")}</h1>
   <p class="m-hero__intro">${e(site.intro || "")}</p>
   <p class="m-hero__stats"><span>${total.n || 0} 项</span><span>${fmtSize(total.bytes)}</span>${
@@ -152,7 +152,7 @@ ${
 }
 ${user ? uploadDialog() : ""}
 `;
-  return shell({ title: "画廊", site, user, body, bodyClass: "m-page--gallery" });
+  return shell({ title: "媒体库", site, user, body, bodyClass: "m-page--gallery" });
 }
 
 export function uploadDialog() {

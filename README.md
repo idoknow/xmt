@@ -4,7 +4,7 @@
 
 纯静态多页站点，无运行时框架：HTML + 一份 CSS + 一份 JS。构建脚本只做哈希指纹、链接校验与预压缩。
 
-站点之外还有一个由同一个进程提供的小服务 **Memories**（校园图片库，`/memories`）：Node 原生 `http` + `node:sqlite`，零第三方依赖，同时对外提供只读 WebDAV。
+站点之外还有一个由同一个进程提供的小服务 **Memories**（校园媒体库，`/memories`）：Node 原生 `http` + `node:sqlite`，零第三方依赖，同时对外提供只读 WebDAV。
 
 ## 目录
 
@@ -78,7 +78,7 @@ node deploy/apply.mjs     # 首次或改了 k8s 清单
 node deploy/rollout.mjs   # 只切镜像并校验
 ```
 
-## Memories（图片库）
+## Memories（媒体库）
 
 `https://xmt.idoknow.top/memories`。同一个进程提供，数据在 PVC `xmt-data`（`/data`：`memories.db` + `files/`）。
 

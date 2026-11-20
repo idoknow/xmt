@@ -106,27 +106,64 @@ export function beginOAuth(res) {
   redirect(res, url.toString());
 }
 
+/** QQ 号只会是 5–12 位纯数字 */
+const isQQ = (value) => value != null && /^\d{5,12}$/.test(String(value).trim());
+
+// Campux 的 userinfo 长这样：{ sub, name, username, scope, client_id }
+// 其中 name 是 QQ 号、username 是昵称，所以这两处都要看。
+const QQ_KEYS = ["qq", "name", "nickname", "display_name", "username"];
+const NAME_KEYS = ["username", "nickname", "display_name", "preferred_username"];
+
 /** 从 userinfo 的任意层级里找 QQ 号 */
 export function findQQ(value, depth = 0) {
   if (!value || depth > 4) return null;
-  if (typeof value === "object") {
-    if (Array.isArray(value)) {
-      for (const item of value) {
-        const hit = findQQ(item, depth + 1);
-        if (hit) return hit;
-      }
-      return null;
-    }
-    if (value.qq != null && /^\d{5,12}$/.test(String(value.qq))) return String(value.qq);
-    for (const key of ["user", "data", "profile", "account", "me"]) {
-      if (value[key]) {
-        const hit = findQQ(value[key], depth + 1);
-        if (hit) return hit;
-      }
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const hit = findQQ(item, depth + 1);
+      if (hit) return hit;
     }
     return null;
   }
+  if (typeof value !== "object") return null;
+
+  for (const key of QQ_KEYS) {
+    if (isQQ(value[key])) return String(value[key]).trim();
+  }
+  for (const key of ["user", "data", "profile", "account", "me", "identity"]) {
+    if (value[key]) {
+      const hit = findQQ(value[key], depth + 1);
+      if (hit) return hit;
+    }
+  }
   return null;
+}
+
+/** 昵称与头像同样从任意层级取，取不到就留空 */
+export function profileOf(value, depth = 0) {
+  const out = { name: "", avatar: "" };
+  if (!value || depth > 4 || typeof value !== "object" || Array.isArray(value)) return out;
+
+  for (const key of NAME_KEYS) {
+    const text = value[key];
+    if (typeof text === "string" && text.trim() && !isQQ(text)) {
+      out.name = text.trim();
+      break;
+    }
+  }
+  for (const key of ["avatar", "avatar_url", "picture", "headimgurl"]) {
+    const text = value[key];
+    if (typeof text === "string" && /^https?:\/\//.test(text)) {
+      out.avatar = text;
+      break;
+    }
+  }
+  for (const key of ["user", "data", "profile", "account", "me"]) {
+    if (!value[key]) continue;
+    const nested = profileOf(value[key], depth + 1);
+    if (!out.name && nested.name) out.name = nested.name;
+    if (!out.avatar && nested.avatar) out.avatar = nested.avatar;
+  }
+  return out;
 }
 
 export async function finishOAuth(code, state, req) {
@@ -171,12 +208,23 @@ export async function finishOAuth(code, state, req) {
   if (!qq) {
     throw Object.assign(new Error(`没有在 OAuth 返回里找到 QQ 号：${infoText.slice(0, 300)}`), { status: 502 });
   }
+  const profile = profileOf(info);
+  const displayName = profile.name || `用户 ${qq}`;
 
   const adminQQ = setting("admin.qq", config.adminQQ);
   const existing = get("SELECT * FROM users WHERE qq = ?", qq);
   if (existing) {
     if (existing.status !== "active") {
       throw Object.assign(new Error("这个账号已被停用，请联系管理员"), { status: 403 });
+    }
+    // 昵称/头像跟着 Campux 走，每次登录同步一次
+    if (profile.name && profile.name !== existing.name) {
+      run("UPDATE users SET name = ? WHERE id = ?", profile.name, existing.id);
+      existing.name = profile.name;
+    }
+    if (profile.avatar && profile.avatar !== existing.avatar) {
+      run("UPDATE users SET avatar = ? WHERE id = ?", profile.avatar, existing.id);
+      existing.avatar = profile.avatar;
     }
     if (String(qq) === String(adminQQ) && existing.role !== "admin") {
       run("UPDATE users SET role = 'admin' WHERE id = ?", existing.id);
@@ -193,12 +241,21 @@ export async function finishOAuth(code, state, req) {
   if (String(qq) === String(adminQQ)) {
     const created = get("SELECT * FROM users WHERE role = 'admin' LIMIT 1");
     if (created) {
-      run("UPDATE users SET qq = ?, drive_root = COALESCE(drive_root, ?) WHERE id = ?", qq, "u-admin", created.id);
+      run(
+        "UPDATE users SET qq = ?, name = ?, avatar = COALESCE(NULLIF(?, ''), avatar), drive_root = COALESCE(drive_root, ?) WHERE id = ?",
+        qq,
+        displayName,
+        profile.avatar,
+        "u-admin",
+        created.id,
+      );
       return get("SELECT * FROM users WHERE id = ?", created.id);
     }
     run(
-      "INSERT INTO users (qq, name, role, status, drive_root, created_at) VALUES (?, '管理员', 'admin', 'active', 'u-admin', ?)",
+      "INSERT INTO users (qq, name, avatar, role, status, drive_root, created_at) VALUES (?, ?, ?, 'admin', 'active', 'u-admin', ?)",
       qq,
+      displayName,
+      profile.avatar,
       now(),
     );
     return get("SELECT * FROM users WHERE qq = ?", qq);

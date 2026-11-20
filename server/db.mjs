@@ -160,7 +160,7 @@ export function bootstrap(adminQQ) {
   if (!setting("site.intro"))
     setSetting(
       "site.intro",
-      "Memories 为学生打造专属的校园图片分享空间，上传、浏览、管理校园照片，让青春的每一帧都被温柔记录。",
+      "Memories 为学生打造专属的校园媒体分享空间，上传、浏览、管理校园照片，让青春的每一帧都被温柔记录。",
     );
   /* OAuth 只写非空值：部署时由 Secret 注入的凭据不该被空记录覆盖 */
   const seed = (key, value) => {
