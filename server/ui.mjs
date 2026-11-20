@@ -305,14 +305,27 @@ export function adminPage({ site, user, users, drives, settings, counters }) {
         <td><strong>${e(drive.name)}</strong><small>${e(DRIVERS[drive.driver]?.label || drive.driver)}</small></td>
         <td data-label="目录" class="m-mono">${e(drive.root || "/")}</td>
         <td data-label="状态">${drive.enabled ? "启用" : "停用"}</td>
-        <td data-label="可见">${e(drive.visibility)}</td>
+        <td data-label="可见">${drive.visibility === "public" ? "公开" : "成员"}</td>
+        <td data-label="隐藏">${drive.hidden?.length ? `${drive.hidden.length} 个目录` : "—"}</td>
         <td><div class="m-row-actions">
+          <button class="m-btn m-btn--tiny" data-drive-edit="${drive.id}">编辑</button>
           <button class="m-btn m-btn--tiny" data-drive-test="${drive.id}">测试</button>
           <button class="m-btn m-btn--tiny m-btn--danger" data-drive-del="${drive.id}">删除</button>
         </div></td>
       </tr>`,
     )
     .join("");
+
+  const drivesData = drives.map((drive) => ({
+    id: drive.id,
+    name: drive.name,
+    driver: drive.driver,
+    root: drive.root || "/",
+    visibility: drive.visibility,
+    enabled: Boolean(drive.enabled),
+    hidden: drive.hidden || [],
+    config: JSON.parse(drive.config || "{}"),
+  }));
 
   const userRows = users
     .map(
@@ -365,16 +378,24 @@ export function adminPage({ site, user, users, drives, settings, counters }) {
 </section>
 
 <section class="m-panel" data-panel="drives">
-  <form class="m-form m-form--row" data-add-drive>
+  <form class="m-form m-form--grid" data-add-drive data-drive-id="">
     <label><span>名称</span><input name="name" required placeholder="比如：移动云盘-新媒体" /></label>
     <label><span>类型</span><select name="driver">${Object.entries(DRIVERS)
       .map(([key, spec]) => `<option value="${key}">${e(spec.label)}</option>`)
       .join("")}</select></label>
-    <button class="m-btn m-btn--primary" type="submit">添加存储</button>
+    <label><span>根路径</span><input name="root" placeholder="/" value="/" /></label>
+    <label><span>可见性</span><select name="visibility"><option value="members">成员可见</option><option value="public">公开</option></select></label>
+    <label class="m-form__wide"><span>隐藏目录</span><textarea name="hidden" rows="3" spellcheck="false" placeholder="一行一个，如：&#10;/手机图片&#10;/私人/家人&#10;（目录名或完整路径都行；隐藏后成员与游客看不到该目录下的内容）"></textarea></label>
+    <label class="m-form__check"><input type="checkbox" name="enabled" checked /><span>启用</span></label>
+    <div class="m-form__actions">
+      <button class="m-btn m-btn--primary" type="submit" data-drive-submit>添加存储</button>
+      <button class="m-btn" type="button" data-drive-cancel hidden>取消编辑</button>
+    </div>
   </form>
   <div data-drive-fields></div>
-  <table class="m-table"><thead><tr><th>名称</th><th>根路径</th><th>状态</th><th>可见性</th><th></th></tr></thead><tbody>${driveRows}</tbody></table>
-  <p class="m-hint">WebDAV 填地址与账号即可；移动云盘填 Authorization（网页端抓的 <code>pc:账号:令牌</code> 的 base64）。</p>
+  <table class="m-table"><thead><tr><th>名称</th><th>根路径</th><th>状态</th><th>可见性</th><th>隐藏</th><th></th></tr></thead><tbody>${driveRows}</tbody></table>
+  <p class="m-hint">WebDAV 填地址与账号即可；移动云盘填整段 Cookie（含 <code>ORCHES-C-TOKEN</code>）。隐藏目录只对成员与游客生效，管理员始终能看到全部。</p>
+  <script type="application/json" id="drives-data">${JSON.stringify(drivesData).replace(/</g, "\\u003c")}</script>
 </section>
 
 <section class="m-panel" data-panel="settings">

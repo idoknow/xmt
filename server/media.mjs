@@ -12,6 +12,35 @@ import { ensuredUserFolder } from "./auth.mjs";
 const IMAGE_EXT = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif", ".heic", ".bmp", ".tiff"]);
 const VIDEO_EXT = new Set([".mp4", ".webm", ".mov", ".m4v", ".mkv", ".avi"]);
 
+/* ---------- 隐藏目录 ---------- */
+// drive_hidden 里存的是「路径前缀」，命中该目录及其所有子路径的记录对外不显示（管理员不受限）。
+export const HIDDEN_SQL =
+  "NOT EXISTS (SELECT 1 FROM drive_hidden h WHERE h.drive_id = m.drive_id AND (m.path = h.prefix OR m.path LIKE h.prefix || '/%'))";
+
+export const hiddenPrefixes = (driveId) =>
+  all("SELECT prefix FROM drive_hidden WHERE drive_id = ? ORDER BY prefix", driveId).map((row) => row.prefix);
+
+export const isHidden = (driveId, filePath) => {
+  if (!driveId || !filePath) return false;
+  const hit = get(
+    "SELECT 1 AS hit FROM drive_hidden WHERE drive_id = ? AND (prefix = ? OR ? LIKE prefix || '/%') LIMIT 1",
+    driveId,
+    filePath,
+    filePath,
+  );
+  return Boolean(hit);
+};
+
+export const setHidden = (driveId, prefixes) => {
+  const list = [...new Set((Array.isArray(prefixes) ? prefixes : String(prefixes || "").split(/\r?\n/))
+    .map((item) => String(item).trim().replace(/\/+$/, ""))
+    .filter((item) => item && item !== "/")
+    .map((item) => (item.startsWith("/") ? item : `/${item}`)))];
+  run("DELETE FROM drive_hidden WHERE drive_id = ?", driveId);
+  for (const prefix of list) run("INSERT INTO drive_hidden (drive_id, prefix) VALUES (?, ?)", driveId, prefix);
+  return list;
+};
+
 export const kindOf = (name) => {
   const ext = path.extname(name).toLowerCase();
   if (IMAGE_EXT.has(ext)) return "image";
@@ -123,7 +152,7 @@ export async function upload({ user, drive, folder, files }) {
 }
 
 /** 查询：默认全部；各过滤条件按需叠加 */
-export function queryMedia({ q, kind, owner, driveId, sort = "new", limit = 200, offset = 0 } = {}) {
+export function queryMedia({ q, kind, owner, driveId, sort = "new", limit = 200, offset = 0, excludeHidden = false } = {}) {
   const where = ["1 = 1"];
   const args = [];
   if (q) {
@@ -143,6 +172,7 @@ export function queryMedia({ q, kind, owner, driveId, sort = "new", limit = 200,
     where.push("m.drive_id = ?");
     args.push(driveId);
   }
+  if (excludeHidden) where.push(HIDDEN_SQL);
   const order =
     sort === "old" ? "m.created_at ASC" : sort === "name" ? "m.name COLLATE NOCASE ASC" : sort === "size" ? "m.size DESC" : "m.created_at DESC";
   return all(
@@ -155,7 +185,7 @@ export function queryMedia({ q, kind, owner, driveId, sort = "new", limit = 200,
   );
 }
 
-export const countMedia = ({ q, kind, owner } = {}) => {
+export const countMedia = ({ q, kind, owner, excludeHidden = false } = {}) => {
   const where = ["1 = 1"];
   const args = [];
   if (q) {
@@ -170,6 +200,7 @@ export const countMedia = ({ q, kind, owner } = {}) => {
     where.push("owner_id = ?");
     args.push(owner);
   }
+  if (excludeHidden) where.push(HIDDEN_SQL.replace(/m\./g, ""));
   return get(`SELECT COUNT(*) AS n, COALESCE(SUM(size), 0) AS bytes FROM media WHERE ${where.join(" AND ")}`, ...args);
 };
 

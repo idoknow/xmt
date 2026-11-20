@@ -671,6 +671,28 @@ html[data-view="list"] .m-card__name {
 .m-form__wide {
   grid-column: 1 / -1;
 }
+.m-form__check {
+  display: flex !important;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.45rem;
+  align-self: end;
+  padding-bottom: 0.35rem;
+}
+.m-form__check input {
+  width: auto;
+  margin: 0;
+}
+.m-form__actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.m-form.is-editing {
+  border-inline-start: 2px solid var(--vermilion);
+  padding-inline-start: 0.9rem;
+}
 .m-form textarea {
   width: 100%;
   padding: 0.45rem 0.55rem;

@@ -28,7 +28,7 @@ import {
   onlineCount,
 } from "./auth.mjs";
 import { DRIVERS, driverFor, forgetDriver } from "./drives.mjs";
-import { countMedia, duplicateMedia, moveMedia, queryMedia, removeMedia, renameMedia, stats, updateMeta, upload, userFolder } from "./media.mjs";
+import { countMedia, duplicateMedia, moveMedia, queryMedia, removeMedia, renameMedia, stats, updateMeta, upload, userFolder, hiddenPrefixes, isHidden, setHidden } from "./media.mjs";
 import { parseMultipart } from "./multipart.mjs";
 import {
   cookie,
@@ -139,7 +139,7 @@ function davXml(items, self) {
 
 function handleDav(req, res, subPath) {
   const decoded = decodeURIComponent(subPath || "/");
-  const items = queryMedia({ limit: 500 });
+  const items = queryMedia({ limit: 500, excludeHidden: true });
   if (req.method === "OPTIONS") {
     return send(res, 200, "", { dav: "1,2", allow: "OPTIONS, GET, HEAD, PROPFIND" });
   }
@@ -157,7 +157,7 @@ function handleDav(req, res, subPath) {
     const match = /^\/(\d+)-/.exec(decoded);
     if (!match) return send(res, 404, "Not Found");
     const item = get("SELECT * FROM media WHERE id = ?", Number(match[1]));
-    if (!item) return send(res, 404, "Not Found");
+    if (!item || isHidden(item.drive_id, item.path)) return send(res, 404, "Not Found");
     return streamMedia(req, res, item, { download: false });
   }
   return send(res, 403, "只读：游客不能修改", { allow: "OPTIONS, GET, HEAD, PROPFIND" });
@@ -204,8 +204,9 @@ function pageGallery(req, res, url) {
     q: url.searchParams.get("q") || "",
     sort: url.searchParams.get("sort") || "new",
   };
-  const items = queryMedia(query);
-  const total = countMedia(query);
+  const excludeHidden = !isAdmin(user);
+  const items = queryMedia({ ...query, excludeHidden });
+  const total = countMedia({ ...query, excludeHidden });
   html(res, 200, galleryPage({ site: siteOf(), user, items, total, query }));
 }
 
@@ -217,6 +218,9 @@ function pageDetail(req, res, id) {
     Number(id),
   );
   if (!item) return html(res, 404, loginPage({ site: siteOf(), error: "这张图不在了" }));
+  if (!isAdmin(user) && isHidden(item.drive_id, item.path)) {
+    return html(res, 404, loginPage({ site: siteOf(), error: "这张图不在了" }));
+  }
   const prev = get("SELECT id, name FROM media WHERE created_at < ? ORDER BY created_at DESC LIMIT 1", item.created_at);
   const next = get("SELECT id, name FROM media WHERE created_at > ? ORDER BY created_at ASC LIMIT 1", item.created_at);
   html(res, 200, detailPage({ site: siteOf(), user, item, neighbors: { prev, next } }));
@@ -226,7 +230,7 @@ function pageMy(req, res) {
   const user = currentUser(req);
   if (!user) return redirect(res, "/memories/login");
   userFolder(user);
-  const items = queryMedia({ owner: user.id });
+  const items = queryMedia({ owner: user.id, excludeHidden: !isAdmin(user) });
   const drives = all("SELECT * FROM drives WHERE enabled = 1 ORDER BY id");
   html(res, 200, myPage({ site: siteOf(), user, items, folder: user.drive_root, drives }));
 }
@@ -242,7 +246,7 @@ function pageAdmin(req, res) {
       site: siteOf(),
       user,
       users: allUsers(),
-      drives: all("SELECT * FROM drives ORDER BY id"),
+      drives: all("SELECT * FROM drives ORDER BY id").map((drive) => ({ ...drive, hidden: hiddenPrefixes(drive.id) })),
       settings: {
         adminQQ: setting("admin.qq", config.adminQQ),
         issuer: setting("oauth.issuer", config.oauth.issuer),
@@ -270,7 +274,8 @@ function pageShare(req, res, token) {
       )
     : [];
   const owner = get("SELECT name FROM users WHERE id = ?", share.created_by)?.name;
-  html(res, 200, sharePage({ site: siteOf(), share, items, owner }));
+  const visible = items.filter((item) => !isHidden(item.drive_id, item.path));
+  html(res, 200, sharePage({ site: siteOf(), share, items: visible, owner }));
 }
 
 /* ---------- API ---------- */
@@ -398,14 +403,18 @@ async function api(req, res, url) {
       const body = await readJson(req);
       if (!DRIVERS[body.driver]) throw Object.assign(new Error("未知存储类型"), { status: 400 });
       run(
-        "INSERT INTO drives (name, driver, config, root, visibility, created_at) VALUES (?, ?, ?, ?, 'public', ?)",
+        "INSERT INTO drives (name, driver, config, root, visibility, enabled, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
         String(body.name || DRIVERS[body.driver].label).slice(0, 40),
         body.driver,
         JSON.stringify(body.config || {}),
         String(body.root || "/"),
+        body.visibility === "public" ? "public" : "members",
+        body.enabled === false || body.enabled === 0 ? 0 : 1,
         now(),
       );
-      return json(res, { ok: true });
+      const created = get("SELECT id FROM drives ORDER BY id DESC LIMIT 1");
+      if (body.hidden != null) setHidden(created.id, body.hidden);
+      return json(res, { ok: true, id: created.id });
     }
     if (parts[1]) {
       const drive = get("SELECT * FROM drives WHERE id = ?", Number(parts[1]));
@@ -419,15 +428,17 @@ async function api(req, res, url) {
       if (method === "POST") {
         const body = await readJson(req);
         run(
-          "UPDATE drives SET name = COALESCE(?, name), config = COALESCE(?, config), root = COALESCE(?, root), enabled = COALESCE(?, enabled) WHERE id = ?",
+          "UPDATE drives SET name = COALESCE(?, name), config = COALESCE(?, config), root = COALESCE(?, root), enabled = COALESCE(?, enabled), visibility = COALESCE(?, visibility) WHERE id = ?",
           body.name ?? null,
           body.config ? JSON.stringify(body.config) : null,
           body.root ?? null,
           body.enabled == null ? null : body.enabled ? 1 : 0,
+          body.visibility ? (body.visibility === "public" ? "public" : "members") : null,
           drive.id,
         );
+        if (body.hidden != null) setHidden(drive.id, body.hidden);
         forgetDriver(drive.id);
-        return json(res, { ok: true });
+        return json(res, { ok: true, hidden: hiddenPrefixes(drive.id) });
       }
       if (method === "DELETE") {
         run("DELETE FROM drives WHERE id = ?", drive.id);
@@ -493,8 +504,9 @@ const server = http.createServer(async (req, res) => {
     if (pathname.startsWith("/memories/f/")) {
       const item = get("SELECT * FROM media WHERE id = ?", Number(pathname.slice("/memories/f/".length)));
       if (!item) return send(res, 404, "Not Found");
-      const wantDownload = url.searchParams.get("download") === "1";
       const viewer = currentUser(req);
+      if (!isAdmin(viewer) && isHidden(item.drive_id, item.path)) return send(res, 404, "Not Found");
+      const wantDownload = url.searchParams.get("download") === "1";
       return streamMedia(req, res, item, { download: wantDownload, shareAllows: Boolean(viewer) || !wantDownload });
     }
     if (pathname.startsWith("/memories/dav")) return handleDav(req, res, pathname.slice("/memories/dav".length));

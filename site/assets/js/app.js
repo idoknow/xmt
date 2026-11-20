@@ -277,8 +277,23 @@ $$("[data-tab]").forEach((tab) =>
 
 const fieldsHost = $("[data-drive-fields]");
 let fieldSpecs = {};
+const driveForm = $("[data-add-drive]");
+let drivesIndex = {};
+try {
+  const raw = document.getElementById("drives-data");
+  if (raw) for (const drive of JSON.parse(raw.textContent || "[]")) drivesIndex[String(drive.id)] = drive;
+} catch (error) {
+  drivesIndex = {};
+}
 
-const renderDriveFields = (driverKey) => {
+const setFieldValues = (config = {}) => {
+  for (const input of $$('[data-drive-fields] input, [data-drive-fields] textarea')) {
+    const key = input.name.replace("cfg.", "");
+    input.value = config[key] == null ? "" : String(config[key]);
+  }
+};
+
+const renderDriveFields = (driverKey, values = {}) => {
   if (!fieldsHost) return;
   const spec = fieldSpecs[driverKey];
   if (!spec) {
@@ -301,6 +316,37 @@ const renderDriveFields = (driverKey) => {
         })
         .join("")}
     </div></fieldset>`;
+  setFieldValues(values);
+};
+
+const setEditing = (drive) => {
+  if (!driveForm) return;
+  const submit = $("[data-drive-submit]", driveForm);
+  const cancel = $("[data-drive-cancel]", driveForm);
+  if (!drive) {
+    driveForm.dataset.driveId = "";
+    driveForm.classList.remove("is-editing");
+    driveForm.reset();
+    driveForm.root.value = "/";
+    driveForm.visibility.value = "members";
+    driveForm.enabled.checked = true;
+    if (submit) submit.textContent = "添加存储";
+    if (cancel) cancel.hidden = true;
+    renderDriveFields(driveForm.driver.value || "local");
+    return;
+  }
+  driveForm.dataset.driveId = String(drive.id);
+  driveForm.classList.add("is-editing");
+  driveForm.name.value = drive.name || "";
+  driveForm.driver.value = drive.driver;
+  driveForm.root.value = drive.root || "/";
+  driveForm.visibility.value = drive.visibility === "public" ? "public" : "members";
+  driveForm.hidden.value = (drive.hidden || []).join("\n");
+  driveForm.enabled.checked = Boolean(drive.enabled);
+  if (submit) submit.textContent = "保存修改";
+  if (cancel) cancel.hidden = false;
+  renderDriveFields(drive.driver, drive.config || {});
+  driveForm.scrollIntoView({ behavior: "smooth", block: "center" });
 };
 
 if (fieldsHost) {
@@ -315,7 +361,9 @@ if (fieldsHost) {
     .catch(() => {});
 }
 
-$("[data-add-drive]")?.addEventListener("submit", async (event) => {
+$("[data-drive-cancel]")?.addEventListener("click", () => setEditing(null));
+
+driveForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
   const config = {};
@@ -323,8 +371,19 @@ $("[data-add-drive]")?.addEventListener("submit", async (event) => {
     const key = input.name.replace("cfg.", "");
     if (input.value.trim()) config[key] = input.value.trim();
   }
+  const hidden = (form.hidden.value || "").split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
+  const body = {
+    name: form.name.value.trim(),
+    driver: form.driver.value,
+    root: form.root.value.trim() || "/",
+    visibility: form.visibility.value,
+    enabled: form.enabled.checked,
+    hidden,
+  };
+  if (Object.keys(config).length) body.config = config;
+  const id = form.dataset.driveId;
   try {
-    await api("/memories/api/drives", { name: form.name.value.trim(), driver: form.driver.value, config, root: "/" });
+    await api(id ? `/memories/api/drives/${id}` : "/memories/api/drives", body);
     location.reload();
   } catch (error) {
     alert(error.message);
@@ -332,6 +391,12 @@ $("[data-add-drive]")?.addEventListener("submit", async (event) => {
 });
 
 document.addEventListener("click", async (event) => {
+  const edit = event.target.closest("[data-drive-edit]");
+  if (edit) {
+    const drive = drivesIndex[edit.dataset.driveEdit];
+    if (drive) setEditing(drive);
+    return;
+  }
   const test = event.target.closest("[data-drive-test]");
   if (test) {
     test.textContent = "测试中…";
