@@ -26,7 +26,7 @@ const profile = (user) => {
   if (!user) return "";
   const initial = String(user.name || "?").slice(0, 1);
   const face = user.avatar
-    ? `<img class="m-user__img" src="${e(user.avatar)}" alt="" width="28" height="28" loading="lazy" decoding="async" />`
+    ? `<img class="m-user__img" src="${e(user.avatar)}" alt="" width="28" height="28" loading="lazy" decoding="async" referrerpolicy="no-referrer" />`
     : `<span class="m-user__img m-user__img--text" aria-hidden="true">${e(initial)}</span>`;
   return `<details class="m-user" data-profile>
       <summary class="m-user__btn"><span class="m-user__ava">${face}</span><span class="m-user__label">${e(user.name || "我")}</span></summary>

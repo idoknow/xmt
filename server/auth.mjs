@@ -138,6 +138,12 @@ export function findQQ(value, depth = 0) {
   return null;
 }
 
+/** QQ 头像：Campux 的 userinfo 不带头像时用它兜底（q1.qlogo.cn 公开接口） */
+export function qqAvatar(qq, size = 160) {
+  if (!isQQ(qq)) return "";
+  return `https://q1.qlogo.cn/g?b=qq&nk=${qq}&s=${size}`;
+}
+
 /** 昵称与头像同样从任意层级取，取不到就留空 */
 export function profileOf(value, depth = 0) {
   const out = { name: "", avatar: "" };
@@ -210,6 +216,7 @@ export async function finishOAuth(code, state, req) {
   }
   const profile = profileOf(info);
   const displayName = profile.name || `用户 ${qq}`;
+  const avatar = profile.avatar || qqAvatar(qq);
 
   const adminQQ = setting("admin.qq", config.adminQQ);
   const existing = get("SELECT * FROM users WHERE qq = ?", qq);
@@ -222,9 +229,9 @@ export async function finishOAuth(code, state, req) {
       run("UPDATE users SET name = ? WHERE id = ?", profile.name, existing.id);
       existing.name = profile.name;
     }
-    if (profile.avatar && profile.avatar !== existing.avatar) {
-      run("UPDATE users SET avatar = ? WHERE id = ?", profile.avatar, existing.id);
-      existing.avatar = profile.avatar;
+    if (avatar && avatar !== existing.avatar) {
+      run("UPDATE users SET avatar = ? WHERE id = ?", avatar, existing.id);
+      existing.avatar = avatar;
     }
     if (String(qq) === String(adminQQ) && existing.role !== "admin") {
       run("UPDATE users SET role = 'admin' WHERE id = ?", existing.id);
@@ -245,7 +252,7 @@ export async function finishOAuth(code, state, req) {
         "UPDATE users SET qq = ?, name = ?, avatar = COALESCE(NULLIF(?, ''), avatar), drive_root = COALESCE(drive_root, ?) WHERE id = ?",
         qq,
         displayName,
-        profile.avatar,
+        avatar,
         "u-admin",
         created.id,
       );
@@ -255,7 +262,7 @@ export async function finishOAuth(code, state, req) {
       "INSERT INTO users (qq, name, avatar, role, status, drive_root, created_at) VALUES (?, ?, ?, 'admin', 'active', 'u-admin', ?)",
       qq,
       displayName,
-      profile.avatar,
+      avatar,
       now(),
     );
     return get("SELECT * FROM users WHERE qq = ?", qq);
