@@ -123,14 +123,43 @@ $("[data-upload-form]")?.addEventListener("submit", (event) => {
   const drive = $("[data-folder-drive]")?.value;
   if (drive) form.append("drive", drive);
 
+  const upBox = $("[data-upload-progress]");
+  const upBar = $("[data-upload-bar]");
+  const upPct = $("[data-upload-pct]");
+  const upNote = $("[data-upload-note]");
+  const total = chosen.reduce((sum, file) => sum + file.size, 0);
+  const fmt = (bytes) => {
+    if (bytes >= 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
+    if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  };
+  const started = performance.now();
+
+  const setProgress = (loaded, done) => {
+    if (!upBox) return;
+    upBox.hidden = false;
+    const pct = done ? 100 : Math.min(99, Math.round((loaded / Math.max(1, total)) * 100));
+    if (upBar) upBar.style.width = `${pct}%`;
+    if (upPct) upPct.textContent = done ? "完成" : `${pct}%`;
+    if (upNote) {
+      const seconds = (performance.now() - started) / 1000;
+      const speed = seconds > 0.6 ? loaded / seconds : 0;
+      upNote.textContent = done
+        ? `${fmt(total)} · ${chosen.length} 个文件`
+        : speed
+          ? `${fmt(loaded)} / ${fmt(total)} · ${fmt(speed)}/s`
+          : `${fmt(total)} 待上传`;
+    }
+  };
+
   const xhr = new XMLHttpRequest();
   xhr.open("POST", "/memories/api/upload");
   xhr.upload.addEventListener("progress", (progressEvent) => {
     if (!progressEvent.lengthComputable) return;
-    progress.hidden = false;
-    progress.value = Math.round((progressEvent.loaded / progressEvent.total) * 100);
+    setProgress(progressEvent.loaded, false);
   });
   xhr.addEventListener("load", () => {
+    setProgress(total, true);
     let data = {};
     try {
       data = JSON.parse(xhr.responseText);
@@ -143,7 +172,19 @@ $("[data-upload-form]")?.addEventListener("submit", (event) => {
     alert(`上传完成：${data.saved.length} 个${rejected}`);
     location.reload();
   });
-  xhr.addEventListener("error", () => alert("上传中断了，再试一次"));
+  xhr.addEventListener("error", () => {
+    if (upPct) upPct.textContent = "中断";
+    if (upNote) upNote.textContent = "网络断了，再试一次";
+    if (upBar) upBar.classList.add("is-error");
+    alert("上传中断了，再试一次");
+  });
+  xhr.addEventListener("loadstart", () => {
+    if (upBar) {
+      upBar.classList.remove("is-error");
+      upBar.style.width = "0%";
+    }
+    setProgress(0, false);
+  });
   xhr.send(form);
 });
 

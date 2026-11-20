@@ -21,9 +21,31 @@ export const fmtDate = (iso) => {
 
 const roleLabel = { admin: "管理员", user: "成员" };
 
+/** 右上角头像 + 下拉：里面放「我的上传 / 后台 / 退出」 */
+const profile = (user) => {
+  if (!user) return "";
+  const initial = String(user.name || "?").slice(0, 1);
+  const face = user.avatar
+    ? `<img class="m-user__img" src="${e(user.avatar)}" alt="" width="28" height="28" loading="lazy" decoding="async" />`
+    : `<span class="m-user__img m-user__img--text" aria-hidden="true">${e(initial)}</span>`;
+  return `<details class="m-user" data-profile>
+      <summary class="m-user__btn"><span class="m-user__ava">${face}</span><span class="m-user__label">${e(user.name || "我")}</span></summary>
+      <div class="m-user__menu" role="menu">
+        <div class="m-user__head">
+          <span class="m-user__ava m-user__ava--lg">${face}</span>
+          <div><strong>${e(user.name || "未命名")}</strong><small>${e(roleLabel[user.role] || "成员")} · QQ ${e(user.qq || "—")}</small></div>
+        </div>
+        <a role="menuitem" href="/memories/my">我的上传</a>
+        <a role="menuitem" href="/memories">全部图片</a>
+        ${user.role === "admin" ? '<a role="menuitem" href="/memories/admin">后台管理</a>' : ""}
+        <a role="menuitem" class="m-user__out" href="/memories/logout">退出登录</a>
+      </div>
+    </details>`;
+};
+
 export function shell({ title, site, user, body, bodyClass = "", scripts = "", head = "" }) {
   const nav = user
-    ? `<a href="/memories">画廊</a><a href="/memories/my">我的</a>${user.role === "admin" ? '<a href="/memories/admin">后台</a>' : ""}<a href="/memories/logout">退出</a>`
+    ? `<a href="/memories">画廊</a>${profile(user)}`
     : `<a href="/memories">画廊</a><a href="/memories/login">登录</a>`;
 
   return `<!doctype html>
@@ -147,7 +169,10 @@ export function uploadDialog() {
       <button type="button" class="m-btn" data-upload-cancel>取消</button>
       <button type="submit" class="m-btn m-btn--primary" data-upload-submit disabled>开始上传</button>
     </div>
-    <progress class="m-progress" value="0" max="100" data-upload-progress hidden></progress>
+    <div class="m-up" data-upload-progress hidden>
+      <div class="m-up__bar"><i data-upload-bar></i></div>
+      <div class="m-up__meta"><span data-upload-pct>0%</span><span data-upload-note>准备上传…</span></div>
+    </div>
   </form>
 </dialog>`;
 }

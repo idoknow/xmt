@@ -288,13 +288,11 @@
 
   function updateThemeLabel() {
     const label = document.querySelector("[data-theme-label]");
-    const icon = document.querySelector("[data-theme-icon]");
+    const swatch = document.querySelector("[data-theme-swatch]");
     if (label) label.textContent = t(THEME_LABEL[theme]);
-    if (icon) icon.innerHTML = ICONS[theme];
+    if (swatch) swatch.dataset.swatch = theme;
     for (const item of document.querySelectorAll("[data-theme-menu] [data-value]")) {
       item.setAttribute("aria-checked", String(item.dataset.value === theme));
-      const mark = item.querySelector("[data-item-icon]");
-      if (mark) mark.innerHTML = ICONS[item.dataset.value];
       const text = item.querySelector("[data-item-text]");
       if (text) text.textContent = t(THEME_LABEL[item.dataset.value]);
     }
@@ -322,7 +320,7 @@
       themeBox.setAttribute("data-theme-box", "");
       themeBox.innerHTML =
         '<summary class="tools__btn" aria-label="切换配色">' +
-        `<span class="tools__icon" data-theme-icon aria-hidden="true">${ICONS[theme]}</span>` +
+        `<span class="tools__icon" aria-hidden="true"><i class="tools__swatch" data-theme-swatch data-swatch="${theme}"></i></span>` +
         '<span class="tools__label" data-theme-label>跟随系统</span>' +
         "</summary>" +
         '<div class="tools__menu" role="menu" data-theme-menu></div>';
@@ -337,7 +335,7 @@
         item.setAttribute("role", "menuitemradio");
         item.setAttribute("aria-checked", "false");
         item.innerHTML =
-          `<span class="tools__item-main"><i class="tools__ic" data-item-icon aria-hidden="true">${ICONS[value]}</i>` +
+          `<span class="tools__item-main"><i class="tools__ic tools__swatch" data-swatch="${value}" aria-hidden="true"></i>` +
           `<span data-item-text>${THEME_LABEL[value]}</span></span>`;
         item.addEventListener("click", () => {
           theme = value;

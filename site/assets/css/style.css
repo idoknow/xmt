@@ -370,6 +370,68 @@ blockquote {
   transform: rotate(-16deg) scale(1.05);
 }
 
+/* 配色预览：一枚小圆片 = 一张纸 + 一行字 */
+.tools__swatch {
+  position: relative;
+  display: block;
+  width: 1.05rem;
+  height: 1.05rem;
+  flex: none;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--ink) 20%, transparent);
+  background: #f6f3ec;
+  transition: transform 0.5s var(--ease);
+}
+
+.tools__swatch::before,
+.tools__swatch::after {
+  content: "";
+  position: absolute;
+  height: 15%;
+  border-radius: 1px;
+  background: #1f1e35;
+}
+
+.tools__swatch::before {
+  inset-inline: 20%;
+  inset-block-start: 32%;
+}
+
+.tools__swatch::after {
+  inset-inline: 20% 34%;
+  inset-block-start: 58%;
+}
+
+.tools__swatch[data-swatch="dark"] {
+  background: #14131b;
+}
+
+.tools__swatch[data-swatch="dark"]::before,
+.tools__swatch[data-swatch="dark"]::after {
+  background: #ece8de;
+}
+
+.tools__swatch[data-swatch="system"] {
+  background: linear-gradient(90deg, #f6f3ec 0 50%, #14131b 50% 100%);
+}
+
+.tools__swatch[data-swatch="system"]::before,
+.tools__swatch[data-swatch="system"]::after {
+  background: linear-gradient(90deg, #1f1e35 0 50%, #ece8de 50% 100%);
+}
+
+.tools__btn:hover .tools__swatch,
+.tools__drop[open] .tools__swatch {
+  transform: rotate(-12deg) scale(1.06);
+}
+
+.tools__menu .tools__ic.tools__swatch {
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 0.3rem;
+}
+
 .tools__drop {
   position: relative;
 }
@@ -904,6 +966,7 @@ html[dir="rtl"] :is(.page-head__lead, .prose p, .prose-lede, .prose-note, .notic
 
 .links {
   border-top: 1px solid var(--rule);
+  perspective: 1000px;
 }
 
 .link-row {
@@ -913,12 +976,21 @@ html[dir="rtl"] :is(.page-head__lead, .prose p, .prose-lede, .prose-note, .notic
   gap: 0.5rem 1rem;
   padding-block: 1.05rem;
   border-bottom: 1px solid var(--rule);
-  transition: background 0.3s var(--ease), padding-inline 0.35s var(--ease);
+  transition: background 0.3s var(--ease), padding-inline 0.35s var(--ease),
+    transform 0.4s var(--ease), box-shadow 0.4s var(--ease);
 }
 
 .link-row:hover {
   background: var(--paper-2);
   padding-inline: 0.55rem;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .link-row:hover,
+  .link-row:focus-visible {
+    transform: translateZ(16px);
+    box-shadow: 0 18px 30px -28px rgba(20, 19, 27, 0.7);
+  }
 }
 
 .link-row__name {

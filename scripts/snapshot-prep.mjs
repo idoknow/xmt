@@ -5,6 +5,15 @@ import path from "node:path";
 const root = process.cwd();
 const from = path.join(root, "dist");
 const to = path.join(root, ".tmp", "preview");
+const shot = process.env.SHOT || "";
+
+const shotScript = shot
+  ? `<script>addEventListener("load",()=>{${
+      shot === "theme" ? 'document.querySelectorAll("details[data-theme-box]").forEach((d)=>{d.open=true;});' : ""
+    }${
+      shot === "profile" ? 'document.querySelectorAll("details[data-profile]").forEach((d)=>{d.open=true;});' : ""
+    }});</script>\n</body>`
+  : "";
 
 async function copy(dir, base) {
   for (const entry of await readdir(dir, { withFileTypes: true })) {
@@ -28,7 +37,8 @@ async function copy(dir, base) {
           .toString("utf8")
           .replace(/\sloading="lazy"/g, "")
           .replace(/(\?v=)[a-f0-9]+/g, `$1${bust}`)
-          .replace("</head>", inject),
+          .replace("</head>", inject)
+          .replace("</body>", shotScript || "</body>"),
         "utf8",
       );
     }
