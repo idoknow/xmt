@@ -149,6 +149,11 @@
   align-items: center;
   gap: 0.6rem;
   flex-wrap: wrap;
+  flex: 1 1 auto;
+}
+/* 没有类型筛选后：搜索靠左，排序/视图/上传靠右 */
+.m-toolbar .m-search {
+  margin-inline-end: auto;
 }
 .m-chips {
   display: flex;

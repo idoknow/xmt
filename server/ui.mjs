@@ -125,11 +125,6 @@ const card = (item) => {
 };
 
 export function galleryPage({ site, user, items, total, query }) {
-  const chips = [
-    { key: "all", label: "全部", active: (query.kind || "all") === "all" },
-    { key: "image", label: "照片", active: query.kind === "image" },
-    { key: "video", label: "视频", active: query.kind === "video" },
-  ];
   const sorts = [
     ["new", "最新"],
     ["old", "最早"],
@@ -147,12 +142,6 @@ export function galleryPage({ site, user, items, total, query }) {
 </section>
 
 <form class="m-toolbar" method="get" action="/memories">
-  <div class="m-chips">${chips
-    .map(
-      (chip) =>
-        `<a class="m-chip${chip.active ? " is-on" : ""}" href="/memories?kind=${chip.key}${query.q ? `&q=${encodeURIComponent(query.q)}` : ""}">${chip.label}</a>`,
-    )
-    .join("")}</div>
   <div class="m-toolbar__right">
     <label class="m-search"><input type="search" name="q" value="${e(query.q || "")}" placeholder="搜索名称、备注、标签" /></label>
     <label class="m-select"><select name="sort">${sorts
