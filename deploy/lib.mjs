@@ -70,6 +70,8 @@ export async function applyObject(manifest) {
     Deployment: "deployments",
     Service: "services",
     Ingress: "ingresses",
+    PersistentVolumeClaim: "persistentvolumeclaims",
+    Secret: "secrets",
   }[kind];
   if (!collection) throw new Error(`不支持的资源类型：${kind}`);
 

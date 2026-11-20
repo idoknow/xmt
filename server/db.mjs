@@ -162,10 +162,15 @@ export function bootstrap(adminQQ) {
       "site.intro",
       "Memories 为学生打造专属的校园图片分享空间，上传、浏览、管理校园照片，让青春的每一帧都被温柔记录。",
     );
-  if (!setting("oauth.client_id")) setSetting("oauth.client_id", "");
-  if (!setting("oauth.client_secret")) setSetting("oauth.client_secret", "");
-  if (!setting("oauth.issuer")) setSetting("oauth.issuer", "https://gz.campux.top");
-  if (!setting("share.default_days")) setSetting("share.default_days", "7");
+  /* OAuth 只写非空值：部署时由 Secret 注入的凭据不该被空记录覆盖 */
+  const seed = (key, value) => {
+    if (!value) return;
+    if (!String(setting(key, "")).trim()) setSetting(key, value);
+  };
+  seed("oauth.client_id", process.env.OAUTH_CLIENT_ID);
+  seed("oauth.client_secret", process.env.OAUTH_CLIENT_SECRET);
+  seed("oauth.issuer", process.env.OAUTH_ISSUER || "https://gz.campux.top");
+  seed("share.default_days", "7");
 }
 
 export { now };

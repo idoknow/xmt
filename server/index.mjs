@@ -524,5 +524,5 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(config.port, config.host, () => {
   console.log(`Memories ▸ http://${config.host}:${config.port}/memories  (dist: ${DIST})`);
-  console.log(`OAuth ▸ ${setting("oauth.issuer", config.oauth.issuer)} · client ${setting("oauth.client_id", "") || "(未设置)"}`);
+  console.log(`OAuth ▸ ${setting("oauth.issuer", "") || config.oauth.issuer} · client ${config.oauth.clientId || "(未设置)"}`);
 });

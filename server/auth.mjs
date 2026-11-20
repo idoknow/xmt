@@ -6,17 +6,23 @@ import { cookie, parseCookies, redirect } from "./util.mjs";
 
 const b64url = (buf) => buf.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 
+/** settings 里的空串视为「没设置」，回落到环境变量，这样部署时给的值不会被早先的空记录盖掉 */
+const pick = (key, fallback = "") => {
+  const value = setting(key, "");
+  return typeof value === "string" && value.trim() ? value.trim() : fallback;
+};
+
 export const endpoints = () => {
-  const issuer = (setting("oauth.issuer", config.oauth.issuer) || "").replace(/\/+$/, "");
+  const issuer = (pick("oauth.issuer", config.oauth.issuer) || "").replace(/\/+$/, "");
   return {
     issuer,
     authorize: `${issuer}/oauth/authorize`,
     token: `${issuer}/oauth/token`,
     userinfo: `${issuer}/oauth/userinfo`,
-    clientId: setting("oauth.client_id", config.oauth.clientId) || "",
-    clientSecret: setting("oauth.client_secret", config.oauth.clientSecret) || "",
+    clientId: pick("oauth.client_id", config.oauth.clientId),
+    clientSecret: pick("oauth.client_secret", config.oauth.clientSecret),
     redirectUri: `${config.baseUrl}/memories/oauth/callback`,
-    scope: setting("oauth.scope", config.oauth.scope) || "profile",
+    scope: pick("oauth.scope", config.oauth.scope) || "profile",
   };
 };
 
