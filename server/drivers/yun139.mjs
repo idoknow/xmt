@@ -39,13 +39,21 @@ function calSign(body, ts, rand) {
 
 function parseCookies(raw) {
   const map = new Map();
+  const skipped = [];
   for (const part of String(raw).split(";")) {
     const index = part.indexOf("=");
     if (index < 0) continue;
     const name = part.slice(0, index).trim();
     if (!name) continue;
-    map.set(name, part.slice(index + 1).trim());
+    const value = part.slice(index + 1).trim();
+    // 网页复制常把长值截断成「…」，这种个别字段直接丢掉，不影响核心凭据。
+    if (/[^\x00-\x7f]/.test(value)) {
+      skipped.push(name);
+      continue;
+    }
+    map.set(name, value);
   }
+  map.skipped = skipped;
   return map;
 }
 
@@ -92,13 +100,6 @@ function credentialsOf(cfg) {
 
 export function yun139Driver(cfg = {}) {
   const rawCookie = String(cfg.cookie || "");
-  // 用户最常见的两种粘贴事故：整段被网页截断（中间出现 …），或粘进了中文。
-  if (/[^\x00-\x7f]/.test(rawCookie)) {
-    throw Object.assign(
-      new Error("Cookie 里出现了省略号「…」或中文，说明复制时被截断了：请重新复制完整的 Cookie（可以长，别手动截）"),
-      { status: 400 },
-    );
-  }
   if (rawCookie && !/ORCHES-C-TOKEN|ORCHES-I-ACCOUNT-ENCRYPT/i.test(rawCookie)) {
     throw Object.assign(
       new Error("Cookie 里没找到 ORCHES-C-TOKEN / ORCHES-I-ACCOUNT-ENCRYPT，请确认复制的是 yun.139.com 的整段 Cookie"),
@@ -113,7 +114,11 @@ export function yun139Driver(cfg = {}) {
   const rootFolderId = String(cfg.root_folder_id || "").trim();
 
   if (!authorization) {
-    throw Object.assign(new Error("139 缺少凭据：请填 Cookie，或填请求头里的 authorization"), { status: 400 });
+    const dropped = rawCookie ? parseCookies(rawCookie).skipped || [] : [];
+    const tail = dropped.length
+      ? `（Cookie 里被截断的字段：${dropped.join("、")}；核心的 ORCHES-C-TOKEN / ORCHES-I-ACCOUNT-ENCRYPT 需要完整）`
+      : "";
+    throw Object.assign(new Error(`139 缺少凭据：请填 Cookie，或填请求头里的 authorization${tail}`), { status: 400 });
   }
   if (!HEADER_SAFE.test(authorization)) {
     throw Object.assign(

@@ -27,10 +27,10 @@ export const DRIVERS = {
   },
   yun139: {
     label: "移动云盘 139",
-    hint: "电脑上打开 yun.139.com 登录后，任选一种：① 复制请求头里的 Authorization（Basic 后面那串）；② 复制整段 Cookie。",
+    hint: "推荐用 Authorization：在电脑上打开 yun.139.com 登录 → F12 打开 Network → 随便点开一条 personal-*.yun.139.com 的请求 → 复制 Request Headers 里 Authorization 的值（Basic 开头那一长串）。Cookie 只在能解出令牌时可用。",
     fields: [
-      { key: "cookie", label: "Cookie", type: "textarea", placeholder: "ORCHES-C-TOKEN=...; ORCHES-I-ACCOUNT-ENCRYPT=...; ..." },
-      { key: "authorization", label: "Authorization", type: "password", placeholder: "Basic cGM6MTc3…（可只填冒号后那串）" },
+      { key: "authorization", label: "Authorization", type: "password", placeholder: "Basic cGM6MTc3…（整串粘贴，含 Basic）" },
+      { key: "cookie", label: "Cookie（备用）", type: "textarea", placeholder: "ORCHES-C-TOKEN=...; ORCHES-I-ACCOUNT-ENCRYPT=..." },
       { key: "root_folder_id", label: "根目录 ID", placeholder: "留空 = 根目录" },
     ],
     build: (cfg) => yun139Driver(cfg),
