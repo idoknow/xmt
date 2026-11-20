@@ -843,6 +843,22 @@ html[dir="rtl"] :is(.page-head__lead, .prose p, .prose-lede, .prose-note, .notic
   width: auto;
 }
 
+/* 深底标识（如时光驿客的黑底彩墨）：单独给一块墨色底，图片不做 multiply */
+.org__mark--ink {
+  background: #121118;
+  border-color: rgba(236, 232, 222, 0.16);
+  padding: 0;
+}
+
+.org__mark--ink img {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  max-width: none;
+  object-fit: cover;
+  mix-blend-mode: normal;
+}
+
 .org__mark--pending {
   position: relative;
   color: var(--faint);
@@ -1363,6 +1379,22 @@ html[dir="rtl"] :is(.page-head__lead, .prose p, .prose-lede, .prose-note, .notic
   width: auto;
   object-fit: contain;
   mix-blend-mode: multiply;
+}
+
+.entry__mark--ink {
+  background: #121118;
+  border-color: rgba(236, 232, 222, 0.16);
+  padding: 0;
+  overflow: hidden;
+}
+
+.entry__mark--ink img {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  max-width: none;
+  object-fit: cover;
+  mix-blend-mode: normal;
 }
 
 .entry__body h2 {
