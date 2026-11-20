@@ -370,7 +370,7 @@ blockquote {
   transform: rotate(-16deg) scale(1.05);
 }
 
-/* 配色预览：一枚小圆片 = 一张纸 + 一行字 */
+/* 配色预览：一枚小圆片 = 纸色 / 墨色 / 各占一半 */
 .tools__swatch {
   position: relative;
   display: block;
@@ -379,35 +379,26 @@ blockquote {
   flex: none;
   border-radius: 999px;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--ink) 20%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ink) 22%, transparent);
   background: #f6f3ec;
   transition: transform 0.5s var(--ease);
 }
 
-.tools__swatch::before,
 .tools__swatch::after {
   content: "";
   position: absolute;
-  height: 15%;
-  border-radius: 1px;
+  inset: 0;
+  margin: auto;
+  width: 38%;
+  height: 38%;
+  border-radius: 50%;
   background: #1f1e35;
-}
-
-.tools__swatch::before {
-  inset-inline: 20%;
-  inset-block-start: 32%;
-}
-
-.tools__swatch::after {
-  inset-inline: 20% 34%;
-  inset-block-start: 58%;
 }
 
 .tools__swatch[data-swatch="dark"] {
   background: #14131b;
 }
 
-.tools__swatch[data-swatch="dark"]::before,
 .tools__swatch[data-swatch="dark"]::after {
   background: #ece8de;
 }
@@ -416,7 +407,6 @@ blockquote {
   background: linear-gradient(90deg, #f6f3ec 0 50%, #14131b 50% 100%);
 }
 
-.tools__swatch[data-swatch="system"]::before,
 .tools__swatch[data-swatch="system"]::after {
   background: linear-gradient(90deg, #1f1e35 0 50%, #ece8de 50% 100%);
 }
@@ -427,9 +417,9 @@ blockquote {
 }
 
 .tools__menu .tools__ic.tools__swatch {
-  width: 1.15rem;
-  height: 1.15rem;
-  border-radius: 0.3rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 999px;
 }
 
 .tools__drop {
@@ -459,7 +449,19 @@ blockquote {
   background: var(--paper);
   border: 1px solid var(--rule-strong);
   box-shadow: 0 26px 52px -34px rgba(20, 19, 27, 0.8);
-  animation: menu-in 0.22s var(--ease) both;
+  /* 不用 fill-mode：面板首次展开时动画可能一帧都不跑，留 both 会永远停在 opacity:0 */
+  animation: menu-in 0.22s var(--ease);
+}
+
+/* 暗色下把面板提亮一档，否则和纸面糊在一起 */
+:root[data-theme="dark"] .tools__menu {
+  background: var(--paper-3);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .tools__menu {
+    background: var(--paper-3);
+  }
 }
 
 @keyframes menu-in {

@@ -63,6 +63,18 @@ export function shell({ title, site, user, body, bodyClass = "", scripts = "", h
 <title>${e(title)} · ${e(site.title || "Memories")}</title>
 <meta name="description" content="${e(site.intro || "")}" />
 <meta name="theme-color" content="#f6f3ec" />
+<script>
+  // 进页面先把配色定下来，避免闪一下
+  (function () {
+    try {
+      var theme = localStorage.getItem("xmt-theme") || "system";
+      if (theme !== "system") document.documentElement.dataset.theme = theme;
+      var dark = theme === "dark" || (theme === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute("content", dark ? "#14131b" : "#f6f3ec");
+    } catch (error) {}
+  })();
+</script>
 <link rel="icon" href="/assets/img/school-emblem-336.webp" />
 <link rel="preload" href="/assets/fonts/newsreader-latin.woff2" as="font" type="font/woff2" crossorigin />
 <link rel="stylesheet" href="/assets/css/style.css" />
@@ -76,7 +88,17 @@ ${head}
       <img src="/assets/img/school-emblem-336.webp" alt="" width="32" height="32" />
       <span><strong>${e(site.title || "Memories")}</strong><small>桂中校园媒体库</small></span>
     </a>
-    <nav class="m-nav">${nav}<a href="/" class="m-nav__back">回站点</a></nav>
+    <nav class="m-nav">${nav}
+      <details class="tools__drop m-theme" data-theme-box>
+        <summary class="tools__btn" aria-label="配色"><span class="tools__icon"><i class="tools__swatch" data-theme-swatch data-swatch="system"></i></span></summary>
+        <div class="tools__menu" role="menu" data-theme-menu>
+          <button type="button" class="tools__item" role="menuitemradio" aria-checked="false" data-value="system"><span class="tools__item-main"><i class="tools__ic tools__swatch" data-swatch="system" aria-hidden="true"></i><span class="tools__name">跟随系统</span></span></button>
+          <button type="button" class="tools__item" role="menuitemradio" aria-checked="false" data-value="light"><span class="tools__item-main"><i class="tools__ic tools__swatch" data-swatch="light" aria-hidden="true"></i><span class="tools__name">浅色</span></span></button>
+          <button type="button" class="tools__item" role="menuitemradio" aria-checked="false" data-value="dark"><span class="tools__item-main"><i class="tools__ic tools__swatch" data-swatch="dark" aria-hidden="true"></i><span class="tools__name">深色</span></span></button>
+        </div>
+      </details>
+      <a href="/" class="m-nav__back">回站点</a>
+    </nav>
   </div>
 </header>
 <main class="m-main">${body}</main>
