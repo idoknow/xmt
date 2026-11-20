@@ -89,14 +89,6 @@ ${head}
       <span><strong>${e(site.title || "Memories")}</strong><small>桂中校园媒体库</small></span>
     </a>
     <nav class="m-nav">${nav}
-      <details class="tools__drop m-theme" data-theme-box>
-        <summary class="tools__btn" aria-label="配色"><span class="tools__icon"><i class="tools__swatch" data-theme-swatch data-swatch="system"></i></span></summary>
-        <div class="tools__menu" role="menu" data-theme-menu>
-          <button type="button" class="tools__item" role="menuitemradio" aria-checked="false" data-value="system"><span class="tools__item-main"><i class="tools__ic tools__swatch" data-swatch="system" aria-hidden="true"></i><span class="tools__name">跟随系统</span></span></button>
-          <button type="button" class="tools__item" role="menuitemradio" aria-checked="false" data-value="light"><span class="tools__item-main"><i class="tools__ic tools__swatch" data-swatch="light" aria-hidden="true"></i><span class="tools__name">浅色</span></span></button>
-          <button type="button" class="tools__item" role="menuitemradio" aria-checked="false" data-value="dark"><span class="tools__item-main"><i class="tools__ic tools__swatch" data-swatch="dark" aria-hidden="true"></i><span class="tools__name">深色</span></span></button>
-        </div>
-      </details>
       <a href="/" class="m-nav__back">回站点</a>
     </nav>
   </div>

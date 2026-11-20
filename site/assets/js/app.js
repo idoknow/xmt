@@ -13,11 +13,21 @@ const api = async (url, body, method = "POST") => {
   return data;
 };
 
-/* ---------- 配色 ---------- */
+/* ---------- 配色 ----------
+   媒体库页头不再提供切换入口：这里只负责把站点里选过的配色（localStorage["xmt-theme"]）
+   落到 <html data-theme> 上，并在「跟随系统」时跟着系统走。 */
 
 const THEME_KEY = "xmt-theme";
 const prefersDark = () => matchMedia("(prefers-color-scheme: dark)").matches;
-const themeMenu = $("[data-theme-menu]");
+
+const readTheme = () => {
+  try {
+    const saved = localStorage.getItem(THEME_KEY);
+    return saved === "light" || saved === "dark" ? saved : "system";
+  } catch (error) {
+    return "system";
+  }
+};
 
 const applyTheme = (theme) => {
   const root = document.documentElement;
@@ -26,47 +36,13 @@ const applyTheme = (theme) => {
   const dark = theme === "dark" || (theme === "system" && prefersDark());
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute("content", dark ? "#14131b" : "#f6f3ec");
-  for (const btn of $$("[data-value]", themeMenu || document)) {
-    btn.setAttribute("aria-checked", String(btn.dataset.value === theme));
-  }
-  for (const sw of $$("[data-theme-swatch]")) sw.dataset.swatch = theme;
-  try {
-    localStorage.setItem(THEME_KEY, theme);
-  } catch (error) {}
 };
 
-if (themeMenu) {
-  let saved = "system";
-  try {
-    saved = localStorage.getItem(THEME_KEY) || "system";
-  } catch (error) {}
-  applyTheme(saved);
+applyTheme(readTheme());
 
-  themeMenu.addEventListener("click", (event) => {
-    const btn = event.target.closest("[data-value]");
-    if (!btn) return;
-    applyTheme(btn.dataset.value);
-    btn.closest("details")?.removeAttribute("open");
-  });
-
-  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
-    let now = "system";
-    try {
-      now = localStorage.getItem(THEME_KEY) || "system";
-    } catch (error) {}
-    if (now === "system") applyTheme("system");
-  });
-
-  document.addEventListener("click", (event) => {
-    for (const box of $$("[data-theme-box][open]")) {
-      if (!box.contains(event.target)) box.removeAttribute("open");
-    }
-  });
-
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") $("[data-theme-box][open]")?.removeAttribute("open");
-  });
-}
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+  if (readTheme() === "system") applyTheme("system");
+});
 
 /* ---------- 视图切换 ---------- */
 

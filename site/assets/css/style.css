@@ -370,56 +370,11 @@ blockquote {
   transform: rotate(-16deg) scale(1.05);
 }
 
-/* 配色预览：一枚小圆片 = 纸色 / 墨色 / 各占一半 */
-.tools__swatch {
-  position: relative;
+/* 配色/语言菜单内的图标（太阳、月亮、设备、地球） */
+.tools__ic svg {
+  width: 1rem;
+  height: 1rem;
   display: block;
-  width: 1.05rem;
-  height: 1.05rem;
-  flex: none;
-  border-radius: 999px;
-  overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--ink) 22%, transparent);
-  background: #f6f3ec;
-  transition: transform 0.5s var(--ease);
-}
-
-.tools__swatch::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  margin: auto;
-  width: 38%;
-  height: 38%;
-  border-radius: 50%;
-  background: #1f1e35;
-}
-
-.tools__swatch[data-swatch="dark"] {
-  background: #14131b;
-}
-
-.tools__swatch[data-swatch="dark"]::after {
-  background: #ece8de;
-}
-
-.tools__swatch[data-swatch="system"] {
-  background: linear-gradient(90deg, #f6f3ec 0 50%, #14131b 50% 100%);
-}
-
-.tools__swatch[data-swatch="system"]::after {
-  background: linear-gradient(90deg, #1f1e35 0 50%, #ece8de 50% 100%);
-}
-
-.tools__btn:hover .tools__swatch,
-.tools__drop[open] .tools__swatch {
-  transform: rotate(-12deg) scale(1.06);
-}
-
-.tools__menu .tools__ic.tools__swatch {
-  width: 1.05rem;
-  height: 1.05rem;
-  border-radius: 999px;
 }
 
 .tools__drop {

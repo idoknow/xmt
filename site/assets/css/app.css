@@ -870,21 +870,6 @@ html[data-view="list"] .m-card__name {
 
 /* ---------- 头像与下拉 ---------- */
 
-/* 媒体库页头里的配色下拉：只有一个小圆片，没有文字 */
-.m-theme {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-}
-.m-theme .tools__btn {
-  padding: 0.3rem;
-  gap: 0;
-}
-.m-theme .tools__menu {
-  font-family: var(--sans);
-  text-align: start;
-}
-
 .m-user {
   position: relative;
 }
