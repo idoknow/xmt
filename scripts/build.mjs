@@ -1,9 +1,9 @@
 // 构建：site/ → dist/
-// 做四件事：给资源加内容指纹、注入构建信息、校验站内链接、生成 .gz 供 nginx gzip_static 直出。
-// 不做压缩混淆：静态站的体积靠 gzip 与缓存解决，不靠删空格。
+// 做五件事：给资源加内容指纹、压掉 CSS/JS 的多余空白、注入构建信息、校验站内链接、生成 .gz 供 nginx gzip_static 直出。
+// 不做混淆：源码仍可读，收益来自去注释/缩进与 gzip。
 
 import { createHash } from "node:crypto";
-import { mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { gzipSync } from "node:zlib";
 import path from "node:path";
 
@@ -54,13 +54,35 @@ function stampCss(css, versions) {
   });
 }
 
+/** CSS：去注释、并空白。只动结构性空白，不碰字符串与 calc 里的运算符 */
+function minifyCss(css) {
+  return css
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\s+/g, " ")
+    .replace(/\s*([{};:,>])\s*/g, "$1")
+    .replace(/;}/g, "}")
+    .trim();
+}
+
+/** JS：去掉整行注释与行尾空白、合并空行；不做行内压缩（避免碰坏正则与字符串） */
+function minifyJs(js) {
+  return js
+    .split("\n")
+    .map((line) => line.replace(/\s+$/, ""))
+    .filter((line) => !/^\s*\/\//.test(line))
+    .join("\n")
+    .replace(/\n{2,}/g, "\n");
+}
+
 /** 站内链接与资源存在性校验 */
 function validate(file, html, filesSet) {
   const problems = [];
   const targets = [...html.matchAll(/\b(?:href|src)="(\/[^"#?]*)/g)].map((m) => m[1]);
+  /* 由 Node 服务端直接处理的路径，不产生静态文件 */
+  const dynamic = /^\/(memories|healthz\.txt|build\.txt)(\/|$)/;
 
   for (const target of targets) {
-    if (target === "/") continue;
+    if (target === "/" || dynamic.test(target)) continue;
     const clean = target.replace(/\/+$/, "");
     const candidates = [clean.slice(1), `${clean.slice(1)}.html`, `${clean.slice(1)}/index.html`];
     if (!candidates.some((c) => filesSet.has(c))) {
@@ -99,7 +121,9 @@ async function main() {
       );
       buf = Buffer.from(html, "utf8");
     } else if (rel.endsWith(".css")) {
-      buf = Buffer.from(stampCss(buf.toString("utf8"), versions), "utf8");
+      buf = Buffer.from(minifyCss(stampCss(buf.toString("utf8"), versions)), "utf8");
+    } else if (rel.endsWith(".js")) {
+      buf = Buffer.from(minifyJs(buf.toString("utf8")), "utf8");
     }
 
     await writeFile(outPath, buf);

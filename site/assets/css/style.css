@@ -325,21 +325,49 @@ blockquote {
   background: transparent;
   border: 1px solid var(--rule);
   border-radius: 999px;
-  padding: 0.32rem 0.62rem;
+  padding: 0.3rem 0.66rem 0.3rem 0.34rem;
   cursor: pointer;
   white-space: nowrap;
-  transition: color 0.25s var(--ease), border-color 0.25s var(--ease), background 0.25s var(--ease);
+  transition: color 0.25s var(--ease), border-color 0.25s var(--ease), background 0.25s var(--ease),
+    box-shadow 0.3s var(--ease), transform 0.3s var(--ease);
 }
 
 .tools__btn:hover {
   color: var(--ink);
   border-color: var(--rule-strong);
+  background: var(--paper-2);
+  box-shadow: 0 10px 22px -20px rgba(20, 19, 27, 0.9);
 }
 
+.tools__drop[open] > .tools__btn {
+  color: var(--ink);
+  border-color: var(--rule-strong);
+  background: var(--paper-2);
+}
+
+/* 图标：细线 SVG，放在一个小圆盘里；悬停时轻轻转一下 */
 .tools__icon {
-  font-family: var(--mono);
-  font-size: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: none;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--vermilion) 10%, transparent);
   color: var(--vermilion);
+}
+
+.tools__icon svg {
+  width: 0.9rem;
+  height: 0.9rem;
+  display: block;
+  transition: transform 0.55s var(--ease);
+}
+
+.tools__btn:hover .tools__icon svg,
+.tools__drop[open] .tools__icon svg {
+  transform: rotate(-16deg) scale(1.05);
 }
 
 .tools__drop {
@@ -369,6 +397,14 @@ blockquote {
   background: var(--paper);
   border: 1px solid var(--rule-strong);
   box-shadow: 0 26px 52px -34px rgba(20, 19, 27, 0.8);
+  animation: menu-in 0.22s var(--ease) both;
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.985);
+  }
 }
 
 .tools__menu--wide {
@@ -377,6 +413,7 @@ blockquote {
 
 .tools__item {
   appearance: none;
+  position: relative;
   width: 100%;
   display: flex;
   align-items: center;
@@ -390,15 +427,18 @@ blockquote {
   border: 0;
   padding: 0.42rem 0.55rem;
   cursor: pointer;
+  transition: background 0.2s var(--ease), color 0.2s var(--ease);
 }
 
-.tools__item:hover {
-  background: rgba(194, 53, 43, 0.07);
+.tools__item:hover,
+.tools__item:focus-visible {
+  background: color-mix(in srgb, var(--vermilion) 8%, transparent);
   color: var(--ink);
 }
 
 .tools__item[aria-checked="true"] {
   color: var(--vermilion-ink);
+  background: color-mix(in srgb, var(--vermilion) 6%, transparent);
 }
 
 .tools__item-main {
@@ -406,14 +446,43 @@ blockquote {
   align-items: center;
   gap: 0.5rem;
   white-space: nowrap;
+  transition: transform 0.22s var(--ease);
+}
+
+.tools__item:hover .tools__item-main {
+  transform: translateX(2px);
 }
 
 .tools__ic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-style: normal;
-  font-family: var(--mono);
+  width: 1.05rem;
+  height: 1.05rem;
   color: var(--vermilion);
-  width: 1em;
-  text-align: center;
+}
+
+.tools__ic svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  display: block;
+}
+
+.tools__name::before {
+  content: "";
+  display: inline-block;
+  width: 0.3rem;
+  height: 0.3rem;
+  margin-inline-end: 0.42rem;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0;
+  transition: opacity 0.2s var(--ease);
+}
+
+.tools__item[aria-checked="true"] .tools__name::before {
+  opacity: 1;
 }
 
 .tools__item small {
@@ -514,6 +583,7 @@ html[dir="rtl"] :is(.page-head__lead, .prose p, .prose-lede, .prose-note, .notic
   letter-spacing: 0.01em;
   margin-top: clamp(1.1rem, 3vw, 1.75rem);
   text-wrap: balance;
+  animation: title-in 1s 0.04s var(--ease) both;
 }
 
 .hero__title em {
@@ -526,6 +596,7 @@ html[dir="rtl"] :is(.page-head__lead, .prose p, .prose-lede, .prose-note, .notic
   max-width: 34em;
   color: var(--ink-soft);
   text-wrap: pretty;
+  animation: fade-rise 0.9s 0.2s var(--ease) both;
 }
 
 .hero__lead b {
@@ -543,6 +614,22 @@ html[dir="rtl"] :is(.page-head__lead, .prose p, .prose-lede, .prose-note, .notic
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--muted);
+  animation: fade-rise 0.9s 0.32s var(--ease) both;
+}
+
+@keyframes title-in {
+  from {
+    opacity: 0;
+    translate: 0 0.24em;
+    clip-path: inset(0 0 26% 0);
+  }
+}
+
+@keyframes fade-rise {
+  from {
+    opacity: 0;
+    translate: 0 0.55rem;
+  }
 }
 
 .hero__aside {
@@ -584,22 +671,6 @@ html[dir="rtl"] :is(.page-head__lead, .prose p, .prose-lede, .prose-note, .notic
   border-style: dashed;
   border-color: rgba(31, 30, 53, 0.1);
   animation: ring-in 1.6s 0.3s var(--ease) both, ring-spin 84s linear infinite;
-}
-
-.hero__aside-note {
-  font-size: 0.8125rem;
-  line-height: 1.7;
-  color: var(--muted);
-  max-width: 15em;
-}
-
-.hero__aside-note strong {
-  display: block;
-  font-family: var(--serif);
-  font-weight: 500;
-  font-size: 1.0625rem;
-  color: var(--ink);
-  letter-spacing: 0.02em;
 }
 
 @keyframes emblem-in {
@@ -716,7 +787,8 @@ html[dir="rtl"] :is(.page-head__lead, .prose p, .prose-lede, .prose-note, .notic
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--paper-2);
+  /* 标识多是白底图，底版固定用纸色：深色主题下 multiply 也融得进去 */
+  background: var(--tile);
   border: 1px solid var(--rule);
   aspect-ratio: 4 / 3;
   padding: 1rem;
@@ -768,7 +840,7 @@ html[dir="rtl"] :is(.page-head__lead, .prose p, .prose-lede, .prose-note, .notic
   position: relative;
   font-family: var(--serif-cn);
   font-size: clamp(1.9rem, 4vw, 2.5rem);
-  color: rgba(31, 30, 53, 0.28);
+  color: color-mix(in srgb, var(--ink) 30%, transparent);
   letter-spacing: 0.2em;
 }
 
@@ -1244,7 +1316,7 @@ html[dir="rtl"] :is(.page-head__lead, .prose p, .prose-lede, .prose-note, .notic
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--paper-2);
+  background: var(--tile);
   border: 1px solid var(--rule);
   aspect-ratio: 3 / 1.5;
   padding: 0.8rem;
@@ -1352,7 +1424,6 @@ html[dir="rtl"] :is(.page-head__lead, .prose p, .prose-lede, .prose-note, .notic
   transform: translateY(14px);
   transition: opacity 0.8s var(--ease), transform 0.8s var(--ease);
   transition-delay: var(--d, 0ms);
-  will-change: opacity, transform;
 }
 
 .reveal.is-in {
@@ -1377,6 +1448,95 @@ html[dir="rtl"] :is(.page-head__lead, .prose p, .prose-lede, .prose-note, .notic
   to {
     opacity: 1;
     transform: none;
+  }
+}
+
+/* ---------- 章节细线：进入视口时从左展开 ----------
+   区块本身不做整块淡入（大块一起淡会显得晃），只让顶线拉出来。 */
+
+.section:not([style]) {
+  border-top: 0;
+}
+
+.section::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 1px;
+  background: var(--rule);
+  transform: scaleX(1);
+  transform-origin: left center;
+  transition: transform 1.1s var(--ease);
+}
+
+.section.reveal {
+  opacity: 1;
+  transform: none;
+  animation: none;
+  transition: none;
+}
+
+.section.reveal::before {
+  transform: scaleX(0);
+}
+
+.section.reveal.is-in::before {
+  transform: scaleX(1);
+}
+
+/* 支持滚动驱动动画的浏览器直接按滚动进度画线，不依赖脚本加的 class */
+@supports (animation-timeline: view()) {
+  .section.reveal::before {
+    animation: rule-draw linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 55%;
+  }
+}
+
+@keyframes rule-draw {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* 列表行：悬停时左侧立起一条朱红短线 */
+.link-row {
+  position: relative;
+}
+
+.link-row::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 2px;
+  background: var(--vermilion);
+  opacity: 0.85;
+  transform: scaleY(0);
+  transform-origin: top center;
+  transition: transform 0.35s var(--ease);
+}
+
+.link-row:hover::before,
+.link-row:focus-visible::before {
+  transform: scaleY(1);
+}
+
+.brand__mark {
+  transition: transform 0.6s var(--ease);
+}
+
+.brand:hover .brand__mark {
+  transform: rotate(-6deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .section.reveal::before {
+    transform: scaleX(1);
   }
 }
 

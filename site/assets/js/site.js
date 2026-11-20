@@ -4,8 +4,43 @@
 (() => {
   const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const supportsViewTimeline = CSS.supports("animation-timeline: view()");
+  const fine = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+
+  /* ---------- 0) 图标 ---------- */
+
+  const SVG = (body) =>
+    `<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${body}</svg>`;
+
+  const ICONS = {
+    system: SVG(
+      '<circle cx="8" cy="8" r="6.1" /><path d="M8 1.9a6.1 6.1 0 0 1 0 12.2Z" fill="currentColor" stroke="none" />',
+    ),
+    light: SVG(
+      '<circle cx="8" cy="8" r="3.05" /><path d="M8 1.3v1.8M8 12.9v1.8M1.3 8h1.8M12.9 8h1.8M3.4 3.4l1.25 1.25M11.35 11.35l1.25 1.25M12.6 3.4l-1.25 1.25M4.65 11.35 3.4 12.6" />',
+    ),
+    dark: SVG(
+      '<path d="M9.85 1.75a6.2 6.2 0 1 0 4.4 9.9A5.15 5.15 0 0 1 9.85 1.75Z" fill="currentColor" stroke="none" />',
+    ),
+    lang: SVG(
+      '<circle cx="8" cy="8" r="6.1" /><path d="M1.9 8h12.2" /><path d="M8 1.9c1.85 1.95 2.85 3.9 2.85 6.1S9.85 12.05 8 14.1C6.15 12.05 5.15 10.1 5.15 8S6.15 3.85 8 1.9Z" />',
+    ),
+  };
 
   /* ---------- 1) 滚动进入 ---------- */
+  // 章节、列表行、时间线条目也参与进入动画；没有脚本时它们照常显示。
+
+  for (const [selector, step] of [
+    [".section", 0],
+    [".link-row", 55],
+    [".timeline__item", 65],
+    [".entry", 70],
+  ]) {
+    document.querySelectorAll(selector).forEach((el, index) => {
+      if (el.classList.contains("reveal")) return;
+      el.classList.add("reveal");
+      if (step) el.style.setProperty("--d", `${index * step}ms`);
+    });
+  }
 
   const items = document.querySelectorAll(".reveal");
   if (items.length && !reduce && !supportsViewTimeline) {
@@ -235,7 +270,6 @@
   /* ---------- 3) 配色 ---------- */
 
   const THEMES = ["system", "light", "dark"];
-  const THEME_ICON = { system: "◐", light: "☀", dark: "☾" };
   const THEME_LABEL = { system: "跟随系统", light: "浅色", dark: "深色" };
   let theme = (params.get("theme") && THEMES.includes(params.get("theme"))) ? params.get("theme") : localStorage.getItem("xmt-theme") || "system";
 
@@ -256,11 +290,11 @@
     const label = document.querySelector("[data-theme-label]");
     const icon = document.querySelector("[data-theme-icon]");
     if (label) label.textContent = t(THEME_LABEL[theme]);
-    if (icon) icon.textContent = THEME_ICON[theme];
+    if (icon) icon.innerHTML = ICONS[theme];
     for (const item of document.querySelectorAll("[data-theme-menu] [data-value]")) {
       item.setAttribute("aria-checked", String(item.dataset.value === theme));
       const mark = item.querySelector("[data-item-icon]");
-      if (mark) mark.textContent = THEME_ICON[item.dataset.value];
+      if (mark) mark.innerHTML = ICONS[item.dataset.value];
       const text = item.querySelector("[data-item-text]");
       if (text) text.textContent = t(THEME_LABEL[item.dataset.value]);
     }
@@ -288,7 +322,7 @@
       themeBox.setAttribute("data-theme-box", "");
       themeBox.innerHTML =
         '<summary class="tools__btn" aria-label="切换配色">' +
-        '<span class="tools__icon" data-theme-icon aria-hidden="true">◐</span>' +
+        `<span class="tools__icon" data-theme-icon aria-hidden="true">${ICONS[theme]}</span>` +
         '<span class="tools__label" data-theme-label>跟随系统</span>' +
         "</summary>" +
         '<div class="tools__menu" role="menu" data-theme-menu></div>';
@@ -303,7 +337,7 @@
         item.setAttribute("role", "menuitemradio");
         item.setAttribute("aria-checked", "false");
         item.innerHTML =
-          `<span class="tools__item-main"><i class="tools__ic" data-item-icon aria-hidden="true">${THEME_ICON[value]}</i>` +
+          `<span class="tools__item-main"><i class="tools__ic" data-item-icon aria-hidden="true">${ICONS[value]}</i>` +
           `<span data-item-text>${THEME_LABEL[value]}</span></span>`;
         item.addEventListener("click", () => {
           theme = value;
@@ -321,7 +355,7 @@
       lang.setAttribute("data-lang", "");
       lang.innerHTML =
         '<summary class="tools__btn" aria-label="切换语言">' +
-        '<span class="tools__icon" aria-hidden="true">文</span>' +
+        `<span class="tools__icon" aria-hidden="true">${ICONS.lang}</span>` +
         '<span class="tools__label" data-lang-label>简体中文</span>' +
         "</summary>" +
         '<div class="tools__menu tools__menu--wide" role="menu" data-lang-menu></div>';
@@ -337,7 +371,7 @@
         item.dataset.code = locale.code;
         item.setAttribute("role", "menuitemradio");
         item.setAttribute("aria-checked", "false");
-        item.innerHTML = `<span>${locale.name}</span><small>${locale.code}</small>`;
+        item.innerHTML = `<span class="tools__name">${locale.name}</span><small>${locale.code}</small>`;
         item.addEventListener("click", () => {
           setLanguage(locale.code);
           item.closest("details").open = false;
@@ -377,6 +411,79 @@
 
   for (const el of document.querySelectorAll("[data-year]")) {
     el.textContent = String(new Date().getFullYear());
+  }
+
+  /* ---------- 7) 阅读进度 / 首屏视差 / 卡片倾斜 ---------- */
+
+  const progress = document.createElement("div");
+  progress.className = "progress";
+  progress.setAttribute("aria-hidden", "true");
+  progress.innerHTML = '<div class="progress__bar"></div>';
+  document.body.prepend(progress);
+
+  const bar = progress.firstElementChild;
+  let queued = false;
+  const drawProgress = () => {
+    queued = false;
+    const doc = document.documentElement;
+    const max = doc.scrollHeight - window.innerHeight;
+    const value = max > 0 ? Math.min(1, Math.max(0, doc.scrollTop / max)) : 0;
+    bar.style.setProperty("--read", value.toFixed(4));
+  };
+  window.addEventListener(
+    "scroll",
+    () => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(drawProgress);
+    },
+    { passive: true },
+  );
+  window.addEventListener("resize", drawProgress, { passive: true });
+  drawProgress();
+
+  if (fine && !reduce) {
+    const hero = document.querySelector(".hero");
+    const title = document.querySelector(".hero__title");
+    const emblem = document.querySelector(".hero__aside .emblem");
+
+    if (hero && (title || emblem)) {
+      const rest = () => {
+        for (const el of [title, emblem]) {
+          if (!el) continue;
+          el.style.setProperty("--sx", "0px");
+          el.style.setProperty("--sy", "0px");
+        }
+      };
+      hero.addEventListener("pointermove", (event) => {
+        const box = hero.getBoundingClientRect();
+        const nx = (event.clientX - box.left) / box.width - 0.5;
+        const ny = (event.clientY - box.top) / box.height - 0.5;
+        if (title) {
+          title.style.setProperty("--sx", `${(nx * 7).toFixed(2)}px`);
+          title.style.setProperty("--sy", `${(ny * 5).toFixed(2)}px`);
+        }
+        if (emblem) {
+          emblem.style.setProperty("--sx", `${(nx * -5).toFixed(2)}px`);
+          emblem.style.setProperty("--sy", `${(ny * -4).toFixed(2)}px`);
+        }
+      });
+      hero.addEventListener("pointerleave", rest);
+    }
+
+    for (const card of document.querySelectorAll(".org")) {
+      card.addEventListener("pointermove", (event) => {
+        const box = card.getBoundingClientRect();
+        const nx = (event.clientX - box.left) / box.width - 0.5;
+        const ny = (event.clientY - box.top) / box.height - 0.5;
+        card.style.setProperty("--ty", `${(nx * 3.2).toFixed(2)}deg`);
+        card.style.setProperty("--tx", `${(ny * -2.4).toFixed(2)}deg`);
+      });
+      card.addEventListener("pointerleave", () => {
+        card.style.setProperty("--tx", "0deg");
+        card.style.setProperty("--ty", "0deg");
+      });
+    }
   }
 
   /* ---------- 启动 ---------- */
