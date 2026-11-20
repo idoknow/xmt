@@ -27,7 +27,7 @@ const avatarTag = (user, className = "m-user__img", textClass = "m-user__text") 
   const letter = String(user?.name || "").trim() ? displayName(user).slice(0, 1) : String(user?.qq || "?").slice(-2);
   const fallback = `<span class="${textClass}" aria-hidden="true">${e(letter)}</span>`;
   if (!src) return fallback;
-  return `${fallback}<img class="${className}" src="${e(src)}" alt="" width="28" height="28" loading="lazy" decoding="async" referrerpolicy="no-referrer" />`;
+  return `${fallback}<img class="${className}" src="${e(src)}" alt="" width="28" height="28" decoding="async" referrerpolicy="no-referrer" />`;
 };
 
 /** 右上角头像 + 下拉：里面放「我的上传 / 后台 / 退出」 */
@@ -288,10 +288,10 @@ export function adminPage({ site, user, users, drives, settings, counters }) {
         <td class="m-mono">${e(drive.root || "/")}</td>
         <td>${drive.enabled ? "启用" : "停用"}</td>
         <td>${e(drive.visibility)}</td>
-        <td class="m-row-actions">
+        <td><div class="m-row-actions">
           <button class="m-btn m-btn--tiny" data-drive-test="${drive.id}">测试</button>
           <button class="m-btn m-btn--tiny m-btn--danger" data-drive-del="${drive.id}">删除</button>
-        </td>
+        </div></td>
       </tr>`,
     )
     .join("");
@@ -299,16 +299,16 @@ export function adminPage({ site, user, users, drives, settings, counters }) {
   const userRows = users
     .map(
       (row) => `<tr data-user="${row.id}">
-        <td class="m-member">
+        <td><div class="m-member">
           <span class="m-ava">${avatarTag(row, "m-ava__img", "m-ava__text")}</span>
           <span class="m-member__text"><strong>${e(displayName(row))}</strong><small>QQ ${e(row.qq || "未绑定")}${
             row.note ? ` · ${e(row.note)}` : ""
           }</small></span>
-        </td>
+        </div></td>
         <td>${e(roleLabel[row.role] || row.role)}</td>
         <td>${row.status === "active" ? "正常" : "停用"}</td>
         <td>${fmtDate(row.last_login_at)}</td>
-        <td class="m-row-actions">
+        <td><div class="m-row-actions">
           <select data-role="${row.id}" class="m-select m-select--tiny">
             <option value="user"${row.role === "user" ? " selected" : ""}>成员</option>
             <option value="admin"${row.role === "admin" ? " selected" : ""}>管理员</option>
@@ -316,7 +316,7 @@ export function adminPage({ site, user, users, drives, settings, counters }) {
           <button class="m-btn m-btn--tiny" data-toggle-user="${row.id}" data-status="${row.status}">${
             row.status === "active" ? "停用" : "启用"
           }</button>
-        </td>
+        </div></td>
       </tr>`,
     )
     .join("");
