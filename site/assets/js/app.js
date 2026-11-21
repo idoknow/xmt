@@ -79,8 +79,9 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") $("[data-sort][open]")?.removeAttribute("open");
 });
 
-/* ---------- 多选与分享 ---------- */
+/* ---------- 多选与分享（只在画廊里生效，后台文件页有自己的选中逻辑）---------- */
 
+const galleryRoot = document.querySelector("[data-gallery]") || document.querySelector(".m-grid");
 const picks = new Set();
 const bar = document.createElement("div");
 bar.className = "m-pickbar";
@@ -88,17 +89,18 @@ bar.hidden = true;
 bar.innerHTML = `<span data-pick-count>已选 0 项</span>
   <button class="m-btn m-btn--tiny" data-pick-share>生成分享链接</button>
   <button class="m-btn m-btn--tiny" data-pick-clear>取消</button>`;
-document.body.append(bar);
+if (galleryRoot) document.body.append(bar);
 
 const syncBar = () => {
+  if (!galleryRoot) return;
   bar.hidden = picks.size === 0;
   $("[data-pick-count]", bar).textContent = `已选 ${picks.size} 项`;
-  $$("[data-pick]").forEach((btn) => btn.classList.toggle("is-on", picks.has(Number(btn.dataset.pick))));
+  $$("[data-pick]", galleryRoot).forEach((btn) => btn.classList.toggle("is-on", picks.has(Number(btn.dataset.pick))));
 };
 
 document.addEventListener("click", async (event) => {
   const pick = event.target.closest("[data-pick]");
-  if (pick) {
+  if (pick && galleryRoot?.contains(pick)) {
     event.preventDefault();
     event.stopPropagation();
     const id = Number(pick.dataset.pick);
@@ -106,6 +108,7 @@ document.addEventListener("click", async (event) => {
     syncBar();
     return;
   }
+  if (!galleryRoot) return;
   if (event.target.closest("[data-pick-clear]")) {
     picks.clear();
     syncBar();
