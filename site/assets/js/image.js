@@ -11,11 +11,46 @@ let total = Number($("[data-total]")?.dataset.total || 0);
 // 只有失控图床支持输出格式 / CDN 线路 / 存储位置
 const PROVIDERS = { scdn: { opts: true } };
 const optsBox = $("[data-opts]");
+const optValue = (key) => $(`[data-select="${key}"]`)?.dataset.value || "";
 const opts = () => ({
-  format: $('[data-opt="format"]')?.value || "",
-  cdn: $('[data-opt="cdn"]')?.value || "",
-  storage: $('[data-opt="storage"]')?.value || "",
+  format: optValue("format"),
+  cdn: optValue("cdn"),
+  storage: optValue("storage"),
 });
+
+function initSelect(box) {
+  const button = $("[data-select-btn]", box);
+  const menu = $("[data-select-menu]", box);
+  const text = $("[data-select-text]", box);
+  if (!button || !menu || !text) return;
+  const close = () => {
+    box.classList.remove("is-open");
+    button.setAttribute("aria-expanded", "false");
+  };
+  button.addEventListener("click", (event) => {
+    event.stopPropagation();
+    $$(".im-select.is-open").forEach((other) => other !== box && other.classList.remove("is-open"));
+    const open = box.classList.toggle("is-open");
+    button.setAttribute("aria-expanded", String(open));
+  });
+  $$("[data-option]", menu).forEach((option) => {
+    option.addEventListener("click", () => {
+      box.dataset.value = option.dataset.option || "";
+      text.textContent = option.textContent.trim();
+      $$("[data-option]", menu).forEach((item) => item.setAttribute("aria-selected", String(item === option)));
+      close();
+      button.focus();
+    });
+  });
+  document.addEventListener("click", (event) => {
+    if (!box.contains(event.target)) close();
+  });
+  box.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") close();
+  });
+}
+
+$$("[data-select]").forEach(initSelect);
 function syncOpts() {
   if (!optsBox) return;
   optsBox.hidden = !PROVIDERS[provider]?.opts;
@@ -29,6 +64,91 @@ const barFill = $("[data-bar-fill]");
 const status = $("[data-status]");
 const results = $("[data-results]");
 const template = $("[data-template]");
+
+const escapeAttr = (value) =>
+  String(value).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+
+let dialogEl = null;
+
+function dialogNode() {
+  if (dialogEl) return dialogEl;
+  const el = document.createElement("dialog");
+  el.className = "im-dialog";
+  el.innerHTML = `
+    <form method="dialog" class="im-dialog__inner">
+      <header class="im-dialog__head">
+        <h3 data-dialog-title></h3>
+        <button type="button" class="im-dialog__x" data-dialog-close aria-label="关闭">×</button>
+      </header>
+      <div class="im-dialog__body" data-dialog-body></div>
+      <label class="im-dialog__field" data-dialog-field hidden>
+        <span data-dialog-label>备注</span>
+        <input type="text" maxlength="200" data-dialog-input autocomplete="off" />
+      </label>
+      <footer class="im-dialog__foot">
+        <button type="button" class="im-btn" data-dialog-cancel>取消</button>
+        <button type="button" class="im-btn im-btn--primary" data-dialog-ok>确定</button>
+      </footer>
+    </form>`;
+  document.body.appendChild(el);
+  dialogEl = el;
+  return el;
+}
+
+function openDialog({ title = "", body = "", rows = [], input = null, okText = "确定", cancelText = "取消", danger = false, onlyOk = false }) {
+  const el = dialogNode();
+  const form = el.querySelector("form");
+  $("[data-dialog-title]", el).textContent = title;
+
+  const bodyBox = $("[data-dialog-body]", el);
+  const list = Array.isArray(rows) ? rows.filter((row) => row && row.value != null && row.value !== "") : [];
+  bodyBox.innerHTML = `${body}${list.length ? `<dl class="im-dialog__rows">${list.map((row) => `<dt>${escapeAttr(row.label)}</dt><dd>${escapeAttr(row.value)}</dd>`).join("")}</dl>` : ""}`;
+
+  const field = $("[data-dialog-field]", el);
+  const inputEl = $("[data-dialog-input]", el);
+  if (input) {
+    field.hidden = false;
+    $("[data-dialog-label]", el).textContent = input.label || "内容";
+    inputEl.value = input.value || "";
+    inputEl.maxLength = input.maxLength || 200;
+  } else {
+    field.hidden = true;
+    inputEl.value = "";
+  }
+
+  const okButton = $("[data-dialog-ok]", el);
+  const cancelButton = $("[data-dialog-cancel]", el);
+  okButton.textContent = okText;
+  okButton.classList.toggle("im-btn--danger", Boolean(danger));
+  cancelButton.textContent = cancelText;
+  cancelButton.hidden = onlyOk;
+  form.classList.toggle("im-dialog__inner--single", onlyOk);
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (value) => {
+      if (settled) return;
+      settled = true;
+      el.close();
+      resolve(value);
+    };
+    const onOk = () => finish({ ok: true, value: inputEl.value });
+    const onCancel = () => finish(null);
+    okButton.addEventListener("click", onOk, { once: true });
+    cancelButton.addEventListener("click", onCancel, { once: true });
+    $("[data-dialog-close]", el).addEventListener("click", onCancel, { once: true });
+    el.addEventListener("close", () => { if (!settled) { settled = true; resolve(null); } }, { once: true });
+    el.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") onCancel();
+    }, { once: true });
+    el.showModal();
+    if (input) setTimeout(() => { inputEl.focus(); inputEl.select(); }, 30);
+    else okButton.focus();
+  });
+}
+
+const showDialog = (options) => openDialog({ ...options, onlyOk: true });
+const askText = (options) => openDialog(options);
 
 const fmt = (bytes) => {
   const value = Number(bytes) || 0;
@@ -56,23 +176,38 @@ const formats = (item) => {
 };
 
 async function copy(text, button) {
+  let ok = false;
   try {
-    await navigator.clipboard.writeText(text);
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      ok = true;
+    }
   } catch {
+    ok = false;
+  }
+  if (!ok) {
     const helper = document.createElement("textarea");
     helper.value = text;
+    helper.setAttribute("readonly", "");
+    helper.style.position = "fixed";
+    helper.style.top = "-1000px";
     document.body.appendChild(helper);
     helper.select();
-    document.execCommand("copy");
+    try {
+      ok = document.execCommand("copy");
+    } catch {
+      ok = false;
+    }
     helper.remove();
   }
   const original = button.textContent;
-  button.textContent = "已复制";
-  button.classList.add("is-done");
+  button.textContent = ok ? "已复制" : "请手动复制";
+  button.classList.add(ok ? "is-done" : "is-fail");
   setTimeout(() => {
     button.textContent = original;
-    button.classList.remove("is-done");
-  }, 1200);
+    button.classList.remove("is-done", "is-fail");
+  }, 1400);
+  if (!ok) showDialog({ title: "没能自动复制", body: `<p>浏览器不允许写剪贴板，请手动选中复制：</p><textarea class="im-dialog__code" readonly>${escapeAttr(text)}</textarea>` });
 }
 
 function setHint() {
@@ -89,7 +224,7 @@ function renderResult(item) {
   const input = node.querySelector("[data-url]");
   input.value = item.url;
   input.addEventListener("focus", () => input.select());
-  $$("[data-copy-format]").forEach((button) => {
+  $$("[data-copy-format]", node).forEach((button) => {
     button.addEventListener("click", () => copy(formats(item)[button.dataset.copyFormat] || item.url, button));
   });
   if (item.note) node.querySelector("[data-note]").textContent = item.note;
@@ -256,25 +391,45 @@ function formatList(items) {
             const data = await response.json();
             if (!data.ok) throw new Error(data.error || "没有信息");
             const info = data.info || {};
-            alert(`文件名：${info.filename || "-"}\n大小：${info.size_display || "-"}\n上传：${info.upload_date || "-"}\n存储：${info.storage_location || info.storage_backend || "-"}\n标签：${info.tags || "-"}\n描述：${info.content_description || "-"}`);
+            await showDialog({
+              title: "图片信息",
+              rows: [
+                { label: "文件名", value: info.filename },
+                { label: "大小", value: info.size_display },
+                { label: "上传时间", value: info.upload_date },
+                { label: "存储", value: info.storage_location || info.storage_backend },
+                { label: "标签", value: info.tags },
+                { label: "描述", value: info.content_description },
+              ],
+            });
           } catch (error) {
-            alert(error.message);
+            await showDialog({ title: "查不到信息", body: `<p>${escapeAttr(error.message)}</p>` });
           }
         });
       }
       add("备注", async () => {
-        const note = prompt("备注（最多 200 字）", item.note || "");
-        if (note == null) return;
+        const result = await askText({
+          title: "备注",
+          input: { label: "备注（最多 200 字）", value: item.note || "", maxLength: 200 },
+          okText: "保存",
+        });
+        if (!result) return;
         await fetch(`/memories/api/images/${item.id}/note`, {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ note }),
+          body: JSON.stringify({ note: result.value }),
         });
-        item.note = note;
+        item.note = result.value;
         renderHistory();
       });
       add("删除", async () => {
-        if (!confirm("删除这条记录？图片本身仍留在图床服务上。")) return;
+        const result = await openDialog({
+          title: "删除这条记录",
+          body: "<p>记录会从「我的图片」里移除，图片本身仍留在图床服务上，已经用出去的链接不会失效。</p>",
+          okText: "删除",
+          danger: true,
+        });
+        if (!result) return;
         await fetch(`/memories/api/images/${item.id}`, { method: "DELETE" });
         mineCache = mineCache.filter((entry) => entry.id !== item.id);
         renderHistory();

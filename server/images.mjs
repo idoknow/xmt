@@ -202,37 +202,56 @@ export function imagePage({ site, user, total }) {
     <div class="im-providers">${chips}</div>
 
     <div class="im-opts" data-opts hidden>
-      <label class="im-opt"><span>输出格式</span>
-        <select data-opt="format">
-          <option value="">自动（静态转 WebP）</option>
-          <option value="webp">WebP</option>
-          <option value="jpg">JPG</option>
-          <option value="png">PNG</option>
-          <option value="gif">GIF</option>
-          <option value="webp_animated">动态 WebP</option>
-        </select>
-      </label>
-      <label class="im-opt"><span>CDN 线路</span>
-        <select data-opt="cdn">
-          <option value="">自动选择</option>
-          <option value="img.scdn.io">海外 · 失控的防御系统</option>
-          <option value="cloudflareimg.cdn.sn">海外 · Cloudflare</option>
-          <option value="cloudflarecnimg.scdn.io">海外 · Cloudflare CN 优选</option>
-          <option value="anycastimg.scdn.io">海外 · Anycast</option>
-          <option value="edgeoneimg.cdn.sn">海外 · EdgeOne</option>
-          <option value="esaimg.cdn1.vip">大陆 · ESA</option>
-          <option value="edgeoneimg.cdn1.vip">大陆 · EdgeOne</option>
-        </select>
-      </label>
-      <label class="im-opt"><span>存储位置</span>
-        <select data-opt="storage">
-          <option value="">默认（本站服务器）</option>
-          <option value="local">本站服务器</option>
-          <option value="telegram">Telegram</option>
-          <option value="r2">Cloudflare R2</option>
-        </select>
-      </label>
+      <div class="im-opt">
+        <span>输出格式</span>
+        <div class="im-select" data-select="format" data-value="">
+          <button type="button" class="im-select__btn" data-select-btn aria-haspopup="listbox" aria-expanded="false">
+            <span data-select-text>自动（静态转 WebP）</span><i aria-hidden="true"></i>
+          </button>
+          <ul class="im-select__menu" data-select-menu role="listbox">
+            <li><button type="button" role="option" data-option="" aria-selected="true">自动（静态转 WebP）</button></li>
+            <li><button type="button" role="option" data-option="webp">WebP</button></li>
+            <li><button type="button" role="option" data-option="jpg">JPG</button></li>
+            <li><button type="button" role="option" data-option="png">PNG</button></li>
+            <li><button type="button" role="option" data-option="gif">GIF</button></li>
+            <li><button type="button" role="option" data-option="webp_animated">动态 WebP</button></li>
+          </ul>
+        </div>
+      </div>
+      <div class="im-opt">
+        <span>CDN 线路</span>
+        <div class="im-select" data-select="cdn" data-value="">
+          <button type="button" class="im-select__btn" data-select-btn aria-haspopup="listbox" aria-expanded="false">
+            <span data-select-text>自动选择</span><i aria-hidden="true"></i>
+          </button>
+          <ul class="im-select__menu" data-select-menu role="listbox">
+            <li><button type="button" role="option" data-option="" aria-selected="true">自动选择</button></li>
+            <li><button type="button" role="option" data-option="img.scdn.io">海外 · 失控的防御系统</button></li>
+            <li><button type="button" role="option" data-option="cloudflareimg.cdn.sn">海外 · Cloudflare</button></li>
+            <li><button type="button" role="option" data-option="cloudflarecnimg.scdn.io">海外 · Cloudflare CN 优选</button></li>
+            <li><button type="button" role="option" data-option="anycastimg.scdn.io">海外 · Anycast</button></li>
+            <li><button type="button" role="option" data-option="edgeoneimg.cdn.sn">海外 · EdgeOne</button></li>
+            <li><button type="button" role="option" data-option="esaimg.cdn1.vip">大陆 · ESA</button></li>
+            <li><button type="button" role="option" data-option="edgeoneimg.cdn1.vip">大陆 · EdgeOne</button></li>
+          </ul>
+        </div>
+      </div>
+      <div class="im-opt">
+        <span>存储位置</span>
+        <div class="im-select" data-select="storage" data-value="">
+          <button type="button" class="im-select__btn" data-select-btn aria-haspopup="listbox" aria-expanded="false">
+            <span data-select-text>默认（本站服务器）</span><i aria-hidden="true"></i>
+          </button>
+          <ul class="im-select__menu" data-select-menu role="listbox">
+            <li><button type="button" role="option" data-option="" aria-selected="true">默认（本站服务器）</button></li>
+            <li><button type="button" role="option" data-option="local">本站服务器</button></li>
+            <li><button type="button" role="option" data-option="telegram">Telegram</button></li>
+            <li><button type="button" role="option" data-option="r2">Cloudflare R2</button></li>
+          </ul>
+        </div>
+      </div>
       <p class="im-opts__hint">这三项只对失控图床生效；其他图床不支持选参数。</p>
+    </div>
     </div>
 
     <div class="im-drop" data-drop>

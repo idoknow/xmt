@@ -345,25 +345,6 @@
   letter-spacing: 0.04em;
 }
 
-.im-opt select {
-  width: 100%;
-  height: 2.15rem;
-  padding: 0 0.5rem;
-  border: 1px solid var(--rule);
-  border-radius: 5px;
-  background: var(--paper);
-  color: var(--ink);
-  font-family: var(--sans);
-  font-size: 0.85rem;
-  letter-spacing: 0;
-  cursor: pointer;
-}
-
-.im-opt select:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--vermilion) 45%, transparent);
-  outline-offset: 1px;
-}
-
 .im-opts__hint {
   grid-column: 1 / -1;
   margin: 0;
@@ -376,4 +357,251 @@
     grid-template-columns: 1fr;
     padding: 0.8rem 0.85rem 0.9rem;
   }
+}
+
+/* ---------- 图床：自绘下拉 ---------- */
+.im-select {
+  position: relative;
+}
+
+.im-select__btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  height: 2.15rem;
+  padding: 0 0.55rem 0 0.6rem;
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 0.85rem;
+  letter-spacing: 0;
+  text-align: start;
+  cursor: pointer;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.im-select__btn:hover {
+  border-color: color-mix(in srgb, var(--ink) 30%, var(--rule));
+}
+
+.im-select__btn:focus-visible {
+  outline: none;
+  border-color: var(--vermilion);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--vermilion) 22%, transparent);
+}
+
+.im-select__btn i {
+  flex: none;
+  width: 0.42rem;
+  height: 0.42rem;
+  border-right: 1.4px solid currentColor;
+  border-bottom: 1.4px solid currentColor;
+  rotate: 45deg;
+  translate: 0 -2px;
+  opacity: 0.6;
+  transition: rotate 0.16s ease, translate 0.16s ease;
+}
+
+.im-select.is-open .im-select__btn i {
+  rotate: 225deg;
+  translate: 0 2px;
+}
+
+.im-select__menu {
+  position: absolute;
+  z-index: 30;
+  inset-inline: 0;
+  top: calc(100% + 0.3rem);
+  max-height: 16rem;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0.28rem;
+  list-style: none;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--paper);
+  box-shadow: 0 18px 34px -26px rgba(20, 19, 27, 0.55);
+  display: none;
+}
+
+.im-select.is-open .im-select__menu {
+  display: block;
+}
+
+.im-select__menu button {
+  display: block;
+  width: 100%;
+  padding: 0.42rem 0.5rem;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 0.84rem;
+  text-align: start;
+  cursor: pointer;
+}
+
+.im-select__menu button:hover {
+  background: color-mix(in srgb, var(--ink) 7%, transparent);
+}
+
+.im-select__menu button[aria-selected="true"] {
+  color: var(--vermilion);
+}
+
+/* ---------- 图床：自绘弹窗 ---------- */
+.im-dialog {
+  width: min(30rem, calc(100vw - 2rem));
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 40px 80px -50px rgba(20, 19, 27, 0.7);
+}
+
+.im-dialog::backdrop {
+  background: color-mix(in srgb, #14131b 55%, transparent);
+  backdrop-filter: blur(2px);
+}
+
+.im-dialog__inner {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1.1rem 1.15rem 1rem;
+}
+
+.im-dialog__head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.im-dialog__head h3 {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 1.15rem;
+  font-weight: 500;
+}
+
+.im-dialog__x {
+  flex: none;
+  width: 1.7rem;
+  height: 1.7rem;
+  border: 1px solid var(--rule);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.im-dialog__x:hover {
+  color: var(--vermilion);
+  border-color: color-mix(in srgb, var(--vermilion) 45%, var(--rule));
+}
+
+.im-dialog__body {
+  font-size: 0.88rem;
+  line-height: 1.65;
+  color: var(--ink-soft);
+}
+
+.im-dialog__body p {
+  margin: 0;
+}
+
+.im-dialog__rows {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+  gap: 0.35rem 0.8rem;
+  margin: 0;
+  font-size: 0.84rem;
+}
+
+.im-dialog__rows dt {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  letter-spacing: 0.04em;
+  padding-block-start: 0.1rem;
+}
+
+.im-dialog__rows dd {
+  margin: 0;
+  word-break: break-word;
+}
+
+.im-dialog__code {
+  width: 100%;
+  min-height: 4.5rem;
+  margin-block-start: 0.6rem;
+  padding: 0.55rem 0.6rem;
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--ink) 3%, transparent);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 0.76rem;
+  word-break: break-all;
+  resize: vertical;
+}
+
+.im-dialog__field {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-family: var(--mono);
+  letter-spacing: 0.03em;
+}
+
+.im-dialog__field input {
+  height: 2.2rem;
+  padding: 0 0.6rem;
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 0.88rem;
+  letter-spacing: 0;
+}
+
+.im-dialog__field input:focus-visible {
+  outline: none;
+  border-color: var(--vermilion);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--vermilion) 22%, transparent);
+}
+
+.im-dialog__foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.im-dialog__inner--single .im-dialog__foot {
+  justify-content: flex-end;
+}
+
+.im-btn--danger {
+  border-color: color-mix(in srgb, var(--vermilion) 55%, var(--rule)) !important;
+  background: var(--vermilion) !important;
+  color: #fff !important;
+}
+
+.im-btn--danger:hover {
+  background: color-mix(in srgb, var(--vermilion) 88%, #000) !important;
+}
+
+.im-copy.is-fail {
+  border-color: color-mix(in srgb, var(--vermilion) 55%, var(--rule));
+  color: var(--vermilion);
 }
