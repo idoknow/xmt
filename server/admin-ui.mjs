@@ -137,9 +137,9 @@ export function adminFilesPage({
              entry.name,
            )}">删除</button>`;
       return `<tr data-path="${e(entry.path)}" data-dir="${entry.isDir ? "1" : "0"}" data-kind="${kind}">
-        <td class="a-cell-name"><label class="a-pickbox"><input type="checkbox" data-pick value="${e(entry.path)}" aria-label="${e(
-          entry.name,
-        )}" /></label>${name}</td>
+        <td class="a-cell-name"><button type="button" class="a-tick" data-pick data-value="${e(entry.path)}" ${
+          entry.isDir ? 'data-dir="1"' : ""
+        } aria-pressed="false" aria-label="选择 ${e(entry.name)}"></button>${name}</td>
         <td class="a-cell-path a-mono" hidden>${e(entry.display || entry.path)}</td>
         <td class="a-num">${entry.isDir ? "—" : fmtSize(entry.size)}</td>
         <td class="a-mono">${entry.modified ? e(String(entry.modified).slice(0, 16).replace("T", " ")) : "—"}</td>
@@ -200,7 +200,7 @@ const cards = entries
     <button class="a-view" type="button" data-view="detail">详情</button>
   </div>
   <table class="a-table a-table--files" data-table>
-    <thead><tr><th><span class="a-th-name"><input type="checkbox" data-pick-all aria-label="全选" />名称</span></th><th class="a-cell-path" hidden>路径</th><th>大小</th><th>修改时间</th><th></th></tr></thead>
+    <thead><tr><th><span class="a-th-name"><button type="button" class="a-tick a-tick--all" data-pick-all aria-pressed="false" aria-label="全选"></button>名称</span></th><th class="a-cell-path" hidden>路径</th><th>大小</th><th>修改时间</th><th></th></tr></thead>
     <tbody>${rows || `<tr><td class="a-empty" colspan="6">这个目录是空的。</td></tr>`}</tbody>
   </table>
   <div class="a-grid" data-grid hidden>${cards || '<p class="a-empty">这个目录是空的。</p>'}</div>

@@ -52,14 +52,22 @@ matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
 
 /* ---------- 视图切换 ---------- */
 
+const viewButtons = () => $$(".m-views [data-view]");
+
 const setView = (view) => {
-  document.documentElement.dataset.view = view;
-  localStorage.setItem("mem-view", view);
-  $$("[data-view]").forEach((btn) => btn.classList.toggle("is-on", btn.dataset.view === view));
+  document.documentElement.dataset.galleryView = view;
+  try {
+    localStorage.setItem("mem-view", view);
+  } catch {
+    /* 隐私模式忽略 */
+  }
+  viewButtons().forEach((btn) => btn.classList.toggle("is-on", btn.dataset.view === view));
+  const grid = $("[data-grid]");
+  if (grid) grid.classList.toggle("is-list", view === "list");
 };
 
 setView(localStorage.getItem("mem-view") || "grid");
-$$("[data-view]").forEach((btn) => btn.addEventListener("click", () => setView(btn.dataset.view)));
+viewButtons().forEach((btn) => btn.addEventListener("click", () => setView(btn.dataset.view)));
 
 /* 排序菜单：点外面收起来，Esc 也收 */
 document.addEventListener("click", (event) => {

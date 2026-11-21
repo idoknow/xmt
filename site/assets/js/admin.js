@@ -149,63 +149,74 @@ document.addEventListener("click", (event) => {
   busy(true);
 });
 document.addEventListener("submit", () => busy(true), true);
-const picked = () => boxes().filter((box) => box.checked).map((box) => box.value);
+const isOn = (box) => box?.dataset.on === "1";
+
+const setOn = (box, value) => {
+  if (!box) return;
+  const on = Boolean(value);
+  box.dataset.on = on ? "1" : "0";
+  box.classList.toggle("is-on", on);
+  box.setAttribute("aria-pressed", on ? "true" : "false");
+};
+
+const picked = () => boxes().filter(isOn).map((box) => box.dataset.value);
 
 function syncSelection() {
   const all = boxes();
-  const chosen = all.filter((box) => box.checked);
+  const chosen = all.filter(isOn);
   if (pickAll) {
-    pickAll.checked = all.length > 0 && chosen.length === all.length;
-    pickAll.indeterminate = chosen.length > 0 && chosen.length < all.length;
+    const whole = all.length > 0 && chosen.length === all.length;
+    setOn(pickAll, whole);
+    pickAll.classList.toggle("is-partial", chosen.length > 0 && !whole);
   }
   all.forEach((box) => {
     const row = box.closest("tr");
-    if (row) row.classList.toggle("is-picked", box.checked);
+    if (row) row.classList.toggle("is-picked", isOn(box));
   });
   $$(".a-grid__card").forEach((card) => {
-    const box = $('[data-pick][value="' + CSS.escape(card.dataset.path || "") + '"]');
-    card.classList.toggle("is-picked", Boolean(box?.checked));
+    const box = $('[data-pick][data-value="' + CSS.escape(card.dataset.path || "") + '"]');
+    card.classList.toggle("is-picked", isOn(box));
   });
   if (selbar) selbar.hidden = chosen.length === 0;
-  if (selCount) selCount.textContent = `已选 ${chosen.length} 项`;
+  if (selCount) selCount.textContent = "已选 " + chosen.length + " 项";
 }
 
-pickAll?.addEventListener("change", () => {
-  boxes().forEach((box) => {
-    box.checked = pickAll.checked;
-  });
+pickAll?.addEventListener("click", () => {
+  const all = boxes();
+  const next = !(all.length > 0 && all.every(isOn));
+  all.forEach((box) => setOn(box, next));
   lastIndex = -1;
   syncSelection();
 });
 
-boxes().forEach((box, index) =>
+boxes().forEach((box, index) => {
   box.addEventListener("click", (event) => {
+    setOn(box, !isOn(box));
     if (event.shiftKey && lastIndex >= 0) {
       const all = boxes();
       const [from, to] = lastIndex < index ? [lastIndex, index] : [index, lastIndex];
-      const value = all[index].checked;
-      for (let i = from; i <= to; i += 1) all[i].checked = value;
+      for (let i = from; i <= to; i += 1) setOn(all[i], isOn(box));
     }
     lastIndex = index;
+    syncSelection();
+  });
+});
+
+$$("[data-clear]").forEach((button) =>
+  button.addEventListener("click", () => {
+    boxes().forEach((box) => setOn(box, false));
+    lastIndex = -1;
     syncSelection();
   }),
 );
 
-$("[data-clear]")?.addEventListener("click", () => {
-  boxes().forEach((box) => {
-    box.checked = false;
-  });
-  lastIndex = -1;
-  syncSelection();
-});
-
-// 点行选中（不抢链接、按钮、输入框的点击）
+// 点行选中（不抢链接、按钮、勾选框的点击）
 document.addEventListener("click", (event) => {
   const row = event.target.closest("tr[data-path]");
   if (!row || event.target.closest("a, button, input, label")) return;
   const box = $("[data-pick]", row);
   if (!box) return;
-  box.checked = !box.checked;
+  setOn(box, !isOn(box));
   const all = boxes();
   lastIndex = all.indexOf(box);
   syncSelection();
@@ -509,7 +520,7 @@ async function doBatch(mode) {
   }
 
   if (mode === "download") {
-    const files = paths.filter((path) => !$(`[data-pick][value="${CSS.escape(path)}"]`)?.dataset.isDir);
+    const files = paths.filter((path) => !$(`[data-pick][data-value="${CSS.escape(path)}"]`)?.dataset.dir === "1");
     files.forEach((path, index) => {
       setTimeout(() => {
         const link = document.createElement("a");
@@ -878,7 +889,7 @@ if (fileGrid) {
     if (!card) return;
     const box = $('[data-pick][value="' + CSS.escape(card.dataset.path || "") + '"]');
     if (!box) return;
-    box.checked = !box.checked;
+    setOn(box, !isOn(box));
     lastIndex = -1;
     syncSelection();
   });
