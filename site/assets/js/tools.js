@@ -97,12 +97,22 @@ function show(container, items) {
 
 const status = (tool, text) => {
   const node = $(`[data-status="${tool}"]`);
-  if (node) node.textContent = text || "";
+  if (!node) return;
+  node.textContent = text || "";
+  node.classList.toggle("is-busy", /正在|处理中|读取|压缩/.test(text || ""));
+  node.classList.toggle("is-done", /完成|已生成|已下载|已导出|共 \d+/.test(text || ""));
+  node.classList.toggle("is-error", /失败|错误|不支持|超出/.test(text || ""));
+};
+
+const markPicked = (tool, files) => {
+  const node = $(`[data-picked="${tool}"]`);
+  if (node) node.classList.toggle("is-ready", Boolean(files?.length));
 };
 
 const picked = (tool, files) => {
   const node = $(`[data-picked="${tool}"]`);
   if (!node) return;
+  markPicked(tool, files);
   if (!files?.length) node.textContent = "还没有选择文件";
   else if (files.length === 1) node.textContent = `${files[0].name} · ${fmtSize(files[0].size)}`;
   else node.textContent = `已选 ${files.length} 个文件`;

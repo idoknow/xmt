@@ -38,10 +38,13 @@ const linkRows = (rows) =>
   rows
     .map(
       (row) => `<tr>
-      <td><strong>${e(row.name)}</strong><small class="a-mono">${e(row.url)}</small></td>
+      <td><div class="a-name-cell"><strong>${e(row.name)}</strong><small class="a-mono">${e(row.url)}</small></div></td>
       <td data-label="说明">${e(row.note || "—")}</td>
-      <td data-label="分类">${e(row.category || "—")}</td>
+      <td data-label="分类">${row.category ? `<span class="a-chip">${e(row.category)}</span>` : "—"}</td>
       <td data-label="排序" class="a-mono">${row.sort_order}</td>
+      <td data-label="状态"><span class="a-pill ${row.enabled ? "a-pill--on" : "a-pill--off"}">${
+        row.enabled ? "展示中" : "已隐藏"
+      }</span></td>
       <td><div class="a-actions__row">
         <button class="a-btn a-btn--tiny" type="button" data-edit-link="${row.id}">编辑</button>
         <button class="a-btn a-btn--tiny" type="button" data-toggle-link="${row.id}" data-enabled="${row.enabled}">${
@@ -53,41 +56,18 @@ const linkRows = (rows) =>
     )
     .join("");
 
-export function adminToolsPage({ site, user }) {
-  const rows = all("SELECT * FROM tool_links ORDER BY sort_order, id");
-  const body = `
-  <form class="a-form" data-link-form>
-    <input type="hidden" name="id" value="" />
-    <div class="a-form__grid">
-      <label><span>名称</span><input name="name" required maxlength="40" placeholder="Squoosh" /></label>
-      <label><span>链接</span><input name="url" required type="url" placeholder="https://squoosh.app/" /></label>
-      <label><span>分类</span><input name="category" maxlength="20" placeholder="压缩 / 转换 / 抠图" /></label>
-      <label><span>排序</span><input name="sort_order" type="number" value="0" step="1" /></label>
-      <label class="a-form__wide"><span>说明</span><input name="note" maxlength="80" placeholder="一行说明，展示在链接右侧" /></label>
-      <div class="a-form__actions"><button class="a-btn a-btn--primary" type="submit" data-link-submit>添加链接</button><button class="a-btn" type="button" data-link-cancel hidden>取消</button></div>
-    </div>
-  </form>
-  <p class="a-hint">这里的条目显示在前台 <a href="/tools" target="_blank" rel="noopener">在线工具</a> 页的「在线图片工具」清单里。</p>
-  <div class="a-card">
-    <table class="a-table" data-link-table>
-      <thead><tr><th>名称</th><th>说明</th><th>分类</th><th>排序</th><th>操作</th></tr></thead>
-      <tbody>${rows.length ? linkRows(rows) : '<tr><td colspan="5" class="a-empty">还没有条目。</td></tr>'}</tbody>
-    </table>
-  </div>`;
-  return layout({ site, user, section: "tools", title: "在线工具", body, scripts: toolsScript() });
-}
-
-/* ---------- 后台：软件 ---------- */
-
 const softwareRows = (rows) =>
   rows
     .map((row) => {
       const links = decodeLinks(row.links);
       return `<tr>
-      <td><strong>${e(row.name)}</strong><small class="a-mono">${links.length} 条下载线路</small></td>
-      <td data-label="分类">${e(row.category || "—")}</td>
+      <td><div class="a-name-cell"><strong>${e(row.name)}</strong><small class="a-mono">${links.length} 条下载线路</small></div></td>
+      <td data-label="分类">${row.category ? `<span class="a-chip">${e(row.category)}</span>` : "—"}</td>
       <td data-label="适配">${e(row.devices || "—")}</td>
       <td data-label="大小">${e(row.size || "—")}</td>
+      <td data-label="状态"><span class="a-pill ${row.enabled ? "a-pill--on" : "a-pill--off"}">${
+        row.enabled ? "展示中" : "已隐藏"
+      }</span></td>
       <td><div class="a-actions__row">
         <button class="a-btn a-btn--tiny" type="button" data-edit-soft="${row.id}">编辑</button>
         <button class="a-btn a-btn--tiny" type="button" data-toggle-soft="${row.id}" data-enabled="${row.enabled}">${
@@ -99,38 +79,93 @@ const softwareRows = (rows) =>
     })
     .join("");
 
+export function adminToolsPage({ site, user }) {
+  const rows = all("SELECT * FROM tool_links ORDER BY sort_order, id");
+  const enabled = rows.filter((row) => row.enabled).length;
+  const body = `
+  <header class="a-page__head">
+    <div>
+      <p class="a-sub">这里的条目显示在前台「在线图片工具」里，按排序值从小到大排列；隐藏的条目在前台不出现。</p>
+    </div>
+    <div class="a-page__aside">
+      <span class="a-pill">共 ${rows.length} 条 · 展示 ${enabled}</span>
+      <a class="a-btn a-btn--tiny" href="/tools#links" target="_blank" rel="noopener">前台预览</a>
+    </div>
+  </header>
+
+  <section class="a-card a-card--pad">
+    <header class="a-card__head"><h3>添加条目</h3><p class="a-hint">点表格里的「编辑」可直接改这一条。</p></header>
+    <form class="a-form" data-link-form>
+      <input type="hidden" name="id" value="" />
+      <div class="a-form__grid">
+        <label><span>名称</span><input name="name" required maxlength="40" placeholder="Squoosh" /></label>
+        <label><span>链接</span><input name="url" required type="url" placeholder="https://squoosh.app/" /></label>
+        <label><span>分类</span><input name="category" maxlength="20" placeholder="压缩 / 转换 / 抠图" /></label>
+        <label><span>排序</span><input name="sort_order" type="number" value="0" step="1" /></label>
+        <label class="a-form__wide"><span>说明</span><input name="note" maxlength="80" placeholder="一行说明，展示在链接右侧" /></label>
+      </div>
+      <div class="a-form__actions"><button class="a-btn a-btn--primary" type="submit" data-link-submit>添加链接</button><button class="a-btn" type="button" data-link-cancel hidden>取消编辑</button></div>
+    </form>
+  </section>
+
+  <section class="a-card">
+    <header class="a-card__head a-card__head--row"><h3>全部条目</h3><p class="a-hint">排序值相同则按添加顺序。</p></header>
+    <table class="a-table" data-link-table>
+      <thead><tr><th>名称</th><th>说明</th><th>分类</th><th>排序</th><th>状态</th><th>操作</th></tr></thead>
+      <tbody>${rows.length ? linkRows(rows) : '<tr><td colspan="6" class="a-empty">还没有条目。上面填一条试试，例如 <strong>Squoosh</strong> → https://squoosh.app/</td></tr>'}</tbody>
+    </table>
+  </section>`;
+  return layout({ site, user, section: "tools", title: "在线工具清单", body, scripts: toolsScript() });
+}
+
 export function adminSoftwarePage({ site, user }) {
   const rows = all("SELECT * FROM software ORDER BY sort_order, id");
+  const enabled = rows.filter((row) => row.enabled).length;
   const body = `
-  <form class="a-form" data-soft-form>
-    <input type="hidden" name="id" value="" />
-    <div class="a-form__grid">
-      <label><span>名称</span><input name="name" required maxlength="40" placeholder="Photoshop 2024" /></label>
-      <label><span>分类</span><input name="category" maxlength="20" placeholder="图像 / 视频 / 工具" /></label>
-      <label><span>适配设备</span><input name="devices" maxlength="60" placeholder="Windows 10/11 · macOS 12+" /></label>
-      <label><span>大小</span><input name="size" maxlength="20" placeholder="2.1 GB" /></label>
-      <label><span>排序</span><input name="sort_order" type="number" value="0" step="1" /></label>
-      <label class="a-form__wide"><span>说明</span><input name="note" maxlength="120" placeholder="一句话说明，可写授权方式" /></label>
+  <header class="a-page__head">
+    <div>
+      <p class="a-sub">每条软件可以挂多条下载线路（网盘、官网、校内镜像都行），前台按卡片列出。</p>
     </div>
-    <div class="a-form__wide">
-      <span class="a-hint">下载线路（名称 + 链接，可以多条）</span>
-      <div data-soft-links></div>
-      <button class="a-btn a-btn--tiny" type="button" data-soft-add>＋ 加一条线路</button>
+    <div class="a-page__aside">
+      <span class="a-pill">共 ${rows.length} 条 · 展示 ${enabled}</span>
+      <a class="a-btn a-btn--tiny" href="/tools#software" target="_blank" rel="noopener">前台预览</a>
     </div>
-    <div class="a-form__actions"><button class="a-btn a-btn--primary" type="submit" data-soft-submit>添加软件</button><button class="a-btn" type="button" data-soft-cancel hidden>取消</button></div>
-  </form>
-  <p class="a-hint">显示在前台 <a href="/tools#software" target="_blank" rel="noopener">在线工具</a> 页的「常用软件」。</p>
-  <div class="a-card">
+  </header>
+
+  <section class="a-card a-card--pad">
+    <header class="a-card__head"><h3>添加软件</h3><p class="a-hint">适配设备与大小可留空，前台会自动省略这两项。</p></header>
+    <form class="a-form" data-soft-form>
+      <input type="hidden" name="id" value="" />
+      <div class="a-form__grid">
+        <label><span>名称</span><input name="name" required maxlength="40" placeholder="Photoshop 2024" /></label>
+        <label><span>分类</span><input name="category" maxlength="20" placeholder="图像 / 视频 / 工具" /></label>
+        <label><span>适配设备</span><input name="devices" maxlength="60" placeholder="Windows 10/11 · macOS 12+" /></label>
+        <label><span>大小</span><input name="size" maxlength="20" placeholder="2.1 GB" /></label>
+        <label><span>排序</span><input name="sort_order" type="number" value="0" step="1" /></label>
+        <label class="a-form__wide"><span>说明</span><input name="note" maxlength="120" placeholder="一句话说明，可写授权方式" /></label>
+      </div>
+      <div class="a-form__wide">
+        <span class="a-fieldset__title">下载线路</span>
+        <p class="a-hint">名称写「百度网盘」「官网直链」之类，前台会把它做成按钮。</p>
+        <div class="a-link-editor" data-soft-links></div>
+        <button class="a-btn a-btn--tiny" type="button" data-soft-add>＋ 加一条线路</button>
+      </div>
+      <div class="a-form__actions"><button class="a-btn a-btn--primary" type="submit" data-soft-submit>添加软件</button><button class="a-btn" type="button" data-soft-cancel hidden>取消编辑</button></div>
+    </form>
+  </section>
+
+  <section class="a-card">
+    <header class="a-card__head a-card__head--row"><h3>全部软件</h3><p class="a-hint">隐藏后前台不显示，但数据保留。</p></header>
     <table class="a-table" data-soft-table>
-      <thead><tr><th>名称</th><th>分类</th><th>适配</th><th>大小</th><th>操作</th></tr></thead>
-      <tbody>${rows.length ? softwareRows(rows) : '<tr><td colspan="5" class="a-empty">还没有条目。</td></tr>'}</tbody>
+      <thead><tr><th>名称</th><th>分类</th><th>适配</th><th>大小</th><th>状态</th><th>操作</th></tr></thead>
+      <tbody>${rows.length ? softwareRows(rows) : '<tr><td colspan="6" class="a-empty">还没有软件。上面加一条，例如 <strong>Photoshop 2024</strong>。</td></tr>'}</tbody>
     </table>
-  </div>
+  </section>
   <script type="application/json" id="tools-data">${JSON.stringify({
     links: all("SELECT * FROM tool_links ORDER BY sort_order, id"),
     software: all("SELECT * FROM software ORDER BY sort_order, id").map((row) => ({ ...row, links: decodeLinks(row.links) })),
   }).replace(/</g, "\\u003c")}</script>`;
-  return layout({ site, user, section: "software", title: "软件", body, scripts: toolsScript() });
+  return layout({ site, user, section: "software", title: "软件下载", body, scripts: toolsScript() });
 }
 
 const toolsScript = () =>

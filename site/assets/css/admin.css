@@ -1507,3 +1507,253 @@ html.is-busy {
 }
 
 
+
+/* ---------- 工具 / 软件 清单页 ---------- */
+
+.a-page__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem 1.4rem;
+  padding-block-end: 1.1rem;
+  border-block-end: 1px solid var(--rule);
+  margin-block-end: 1.3rem;
+}
+
+.a-kicker {
+  margin: 0 0 0.35rem;
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.a-title {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: clamp(1.25rem, 2.4vw, 1.6rem);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.a-sub {
+  margin: 0.4rem 0 0;
+  max-width: 46rem;
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.7;
+}
+
+.a-page__aside {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.a-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.16rem 0.6rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.a-pill--on {
+  color: #2f8f57;
+  border-color: color-mix(in srgb, #2f8f57 45%, var(--rule));
+  background: color-mix(in srgb, #2f8f57 8%, transparent);
+}
+
+.a-pill--off {
+  color: var(--muted);
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
+}
+
+.a-card__head {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.95rem 1.1rem 0.6rem;
+}
+
+.a-card__head h3 {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.a-card__head--row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.3rem 1rem;
+}
+
+.a-card__head .a-hint,
+.a-card__head p {
+  margin: 0;
+}
+
+.a-card--pad {
+  margin-block-end: 1.2rem;
+}
+
+.a-card--pad .a-form {
+  border: 0;
+  padding: 0 1.1rem 1.1rem;
+}
+
+.a-name-cell {
+  display: grid;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.a-name-cell strong {
+  font-weight: 600;
+}
+
+.a-name-cell .a-mono {
+  overflow-wrap: anywhere;
+}
+
+.a-table .a-chip {
+  cursor: default;
+  border-color: var(--rule);
+  background: transparent;
+  color: var(--ink-soft, var(--ink));
+}
+
+.a-fieldset__title {
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-block-end: 0.3rem;
+}
+
+.a-link-editor {
+  display: grid;
+  gap: 0.4rem;
+  margin-block: 0.45rem 0.5rem;
+}
+
+.a-link-editor .a-link-editor__row {
+  display: grid;
+  grid-template-columns: minmax(6rem, 0.4fr) minmax(0, 1fr) auto;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.a-link-editor input {
+  height: 2.05rem;
+  padding-inline: 0.55rem;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.82rem;
+  min-width: 0;
+}
+
+.a-link-editor input:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--vermilion) 55%, transparent);
+  outline-offset: 1px;
+}
+
+@media (max-width: 720px) {
+  .a-page__head {
+    flex-direction: column;
+  }
+
+  .a-link-editor .a-link-editor__row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .a-link-editor .a-link-editor__row input:nth-child(2) {
+    grid-column: 1 / -1;
+  }
+}
+
+.a-link-editor .a-link-row {
+  display: grid;
+  grid-template-columns: minmax(6rem, 0.4fr) minmax(0, 1fr) auto;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.a-link-editor .a-link-row input {
+  height: 2.05rem;
+  padding-inline: 0.55rem;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.82rem;
+  min-width: 0;
+}
+
+@media (max-width: 720px) {
+  .a-link-editor .a-link-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .a-link-editor .a-link-row input:nth-child(2) {
+    grid-column: 1 / -1;
+  }
+}
+
+/* 表单控件统一外观（type=url / number 等也覆盖） */
+.a-form input,
+.a-form select,
+.a-form textarea {
+  width: 100%;
+  min-width: 0;
+  height: 2.15rem;
+  padding-inline: 0.6rem;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.a-form textarea {
+  height: auto;
+  padding-block: 0.5rem;
+  line-height: 1.6;
+}
+
+.a-form input::placeholder,
+.a-form textarea::placeholder {
+  color: color-mix(in srgb, var(--muted) 80%, transparent);
+}
+
+.a-form input:hover,
+.a-form select:hover,
+.a-form textarea:hover {
+  border-color: color-mix(in srgb, var(--ink) 26%, var(--rule));
+}
+
+.a-form input:focus-visible,
+.a-form select:focus-visible,
+.a-form textarea:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--vermilion) 50%, transparent);
+  outline-offset: 1px;
+  border-color: color-mix(in srgb, var(--vermilion) 60%, var(--rule));
+}

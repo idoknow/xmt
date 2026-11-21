@@ -1,13 +1,89 @@
-/* 在线工具页：只放这一页用得到的样式，其余沿用 style.css 的纸面/墨色令牌。 */
+﻿/* 在线工具页：纸面/墨色令牌沿用 style.css，这里只放这一页用得到的结构与细节。 */
+
+/* ---------- 页头与索引 ---------- */
 
 .page-tools .page-head {
-  padding-block-end: 0.5rem;
+  padding-block-end: clamp(1rem, 3vw, 1.8rem);
+}
+
+.page-tools .page-head__lead {
+  max-width: 46rem;
+}
+
+.tool-index {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-block-start: 1.6rem;
+  padding-block-end: 0.1rem;
+}
+
+.tool-index a {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  padding: 0.34rem 0.75rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  color: var(--ink);
+  font-size: 0.82rem;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  transition:
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    translate 0.18s ease;
+}
+
+.tool-index a span {
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  color: var(--vermilion);
+}
+
+.tool-index a:hover,
+.tool-index a:focus-visible {
+  border-color: color-mix(in srgb, var(--vermilion) 55%, var(--rule));
+  background: color-mix(in srgb, var(--vermilion) 5%, transparent);
+  translate: 0 -1px;
+}
+
+/* ---------- 工具卡 ---------- */
+
+.page-tools .section {
+  padding-block: clamp(1.4rem, 3.4vw, 2.4rem);
 }
 
 .tool {
+  position: relative;
   border: 1px solid var(--rule);
   background: var(--paper);
   padding: clamp(1.1rem, 3vw, 2rem);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.tool::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 2px;
+  background: var(--vermilion);
+  scale: 1 0;
+  transform-origin: top;
+  transition: scale 0.36s var(--ease, cubic-bezier(0.22, 0.61, 0.36, 1));
+}
+
+.tool:focus-within {
+  border-color: color-mix(in srgb, var(--ink) 22%, var(--rule));
+  box-shadow: 0 18px 32px -30px rgba(20, 19, 27, 0.55);
+}
+
+.tool:focus-within::before {
+  scale: 1 1;
 }
 
 .tool__head {
@@ -54,36 +130,42 @@
   align-items: start;
 }
 
-@media (max-width: 860px) {
-  .tool__body--split {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-.tool__side {
-  display: grid;
-  gap: 0.9rem;
-}
+/* ---------- 选择文件 ---------- */
 
 .tool__drop {
   position: relative;
   display: grid;
   justify-items: center;
-  gap: 0.3rem;
-  padding: 1.4rem 1rem;
-  border: 1px dashed color-mix(in srgb, var(--ink) 26%, transparent);
+  align-content: center;
+  gap: 0.35rem;
+  min-height: 8.5rem;
+  padding: 1.2rem;
+  border: 1px dashed color-mix(in srgb, var(--ink) 28%, transparent);
+  background:
+    repeating-linear-gradient(
+      -45deg,
+      transparent 0 10px,
+      color-mix(in srgb, var(--ink) 2.5%, transparent) 10px 20px
+    );
   text-align: center;
   cursor: pointer;
-  transition: border-color 0.2s ease, background 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease;
 }
 
 .tool__drop:hover,
-.tool__drop.is-over {
-  border-color: var(--vermilion);
-  background: color-mix(in srgb, var(--vermilion) 4%, transparent);
+.tool__drop:focus-within {
+  border-color: color-mix(in srgb, var(--vermilion) 60%, transparent);
+  background-color: color-mix(in srgb, var(--vermilion) 4%, transparent);
 }
 
-.tool__drop input {
+.tool__drop.is-over,\n.tool__drop.is-drag {
+  border-color: var(--vermilion);
+  background-color: color-mix(in srgb, var(--vermilion) 8%, transparent);
+}
+
+.tool__drop input[type="file"] {
   position: absolute;
   inset: 0;
   opacity: 0;
@@ -93,156 +175,150 @@
 .tool__drop-ico {
   display: grid;
   place-items: center;
-  width: 2rem;
-  height: 2rem;
+  width: 2.1rem;
+  height: 2.1rem;
+  border: 1px solid color-mix(in srgb, var(--ink) 22%, transparent);
   border-radius: 50%;
-  border: 1px solid var(--rule);
   color: var(--vermilion);
-  font-family: var(--mono);
+  font-size: 1rem;
+  line-height: 1;
 }
 
 .tool__drop-text {
-  font-size: 0.9rem;
+  font-family: var(--serif);
+  font-size: 0.98rem;
 }
 
 .tool__drop-hint {
   font-family: var(--mono);
   font-size: 0.7rem;
+  letter-spacing: 0.04em;
   color: var(--muted);
-  overflow-wrap: anywhere;
 }
+
+.tool__drop-hint.is-ready {
+  color: var(--vermilion);
+}
+
+/* ---------- 选项 ---------- */
 
 .tool__opts {
   display: grid;
-  gap: 0.7rem;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.8rem 1rem;
+  align-items: start;
 }
 
 .tool__opts--grid {
   grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
-  align-items: end;
 }
 
 .field {
   display: grid;
-  gap: 0.25rem;
+  gap: 0.34rem;
+  min-width: 0;
 }
 
 .field__label {
   font-family: var(--mono);
   font-size: 0.68rem;
-  letter-spacing: 0.06em;
-  color: var(--muted);
+  letter-spacing: 0.1em;
   text-transform: uppercase;
+  color: var(--muted);
 }
 
 .field__label b {
-  color: var(--ink);
-  font-weight: 500;
+  color: var(--vermilion);
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .field__input,
-.field input[type="text"],
-.field input[type="number"],
 .field select {
-  font: inherit;
-  font-size: 0.88rem;
-  padding: 0.45rem 0.6rem;
-  border: 1px solid var(--rule);
-  border-radius: 3px;
-  background: var(--paper-2);
-  color: var(--ink);
   width: 100%;
+  height: 2.2rem;
+  padding-inline: 0.6rem;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  background: var(--paper-2, var(--paper));
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.86rem;
 }
 
-.field__input:focus,
-.field select:focus,
-.field input:focus {
-  outline: 2px solid color-mix(in srgb, var(--vermilion) 45%, transparent);
+.field__input:focus-visible,
+.field select:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--vermilion) 55%, transparent);
   outline-offset: 1px;
 }
 
 .field__row {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.5rem;
 }
 
 .field__unit {
   font-family: var(--mono);
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   color: var(--muted);
-}
-
-.field__color {
-  width: 100%;
-  height: 2.1rem;
-  padding: 0.1rem;
-  border: 1px solid var(--rule);
-  border-radius: 3px;
-  background: var(--paper-2);
 }
 
 .field--check {
   display: flex;
   align-items: center;
   gap: 0.45rem;
-  font-size: 0.82rem;
+  font-size: 0.84rem;
 }
 
-.field input[type="range"] {
+.field__color {
+  width: 2.4rem;
+  height: 2.2rem;
+  padding: 0.1rem;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  background: var(--paper);
+}
+
+input[type="range"] {
   width: 100%;
+  height: 1.5rem;
   accent-color: var(--vermilion);
 }
 
+/* ---------- 动作与状态 ---------- */
+
 .tool__actions {
   display: flex;
-  align-items: center;
-  gap: 0.8rem;
   flex-wrap: wrap;
-}
-
-.btn {
-  font: inherit;
-  font-size: 0.86rem;
-  padding: 0.5rem 1.1rem;
-  border-radius: 999px;
-  border: 1px solid var(--rule);
-  background: transparent;
-  color: var(--ink);
-  cursor: pointer;
-  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
-}
-
-.btn:hover {
-  border-color: var(--vermilion);
-  color: var(--vermilion);
-}
-
-.btn--primary {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--paper);
-}
-
-.btn--primary:hover {
-  background: var(--vermilion);
-  border-color: var(--vermilion);
-  color: #fff;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .tool__status {
-  font-family: var(--mono);
-  font-size: 0.74rem;
+  font-size: 0.8rem;
   color: var(--muted);
+  min-height: 1.2rem;
+}
+
+.tool__status.is-busy {
+  color: var(--vermilion);
+}
+
+.tool__status.is-done {
+  color: #2f8f57;
 }
 
 .tool__note {
   margin: 0;
+  padding-block-start: 0.7rem;
+  border-top: 1px solid var(--rule);
   font-size: 0.76rem;
+  line-height: 1.7;
   color: var(--muted);
-  border-inline-start: 2px solid var(--rule);
-  padding-inline-start: 0.7rem;
 }
+
+/* ---------- 结果 ---------- */
 
 .results {
   list-style: none;
@@ -252,100 +328,146 @@
   gap: 0.4rem;
 }
 
-.results__item {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  align-items: center;
-  gap: 0.7rem;
-  padding: 0.55rem 0.2rem;
-  border-bottom: 1px solid var(--rule);
-  font-size: 0.84rem;
+.results:empty {
+  display: none;
 }
 
-.results__name {
-  overflow-wrap: anywhere;
+.results li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.4rem 1rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--rule);
+  background: var(--paper-2, transparent);
+  font-size: 0.82rem;
 }
 
-.results__meta {
+.results li a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--vermilion) 55%, transparent);
+  text-underline-offset: 0.2em;
+}
+
+.results li a:hover {
+  color: var(--vermilion);
+}
+
+.results li span {
   font-family: var(--mono);
   font-size: 0.7rem;
   color: var(--muted);
 }
 
-.results__save {
-  font-size: 0.76rem;
-  text-decoration: none;
-  color: var(--ink);
-  border: 1px solid var(--rule);
-  border-radius: 999px;
-  padding: 0.15rem 0.7rem;
-}
+/* ---------- 预览区（裁剪 / 水印） ---------- */
 
-.results__save:hover {
-  color: #fff;
-  background: var(--vermilion);
-  border-color: var(--vermilion);
-}
-
-.results__empty {
-  font-family: var(--mono);
-  font-size: 0.72rem;
-  color: var(--muted);
-}
-
-/* 裁剪 / 水印舞台 */
 .crop-stage,
 .wm-stage {
   position: relative;
   display: grid;
   place-items: center;
-  min-height: 12rem;
+  min-height: 15rem;
   padding: 0.6rem;
   border: 1px solid var(--rule);
   background:
-    repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--ink) 4%, transparent) 0deg 90deg, transparent 90deg 180deg) 0 0 / 16px 16px,
-    var(--paper-2);
+    linear-gradient(45deg, color-mix(in srgb, var(--ink) 4%, transparent) 25%, transparent 25%) 0 0 / 16px 16px,
+    linear-gradient(-45deg, color-mix(in srgb, var(--ink) 4%, transparent) 25%, transparent 25%) 0 8px / 16px 16px,
+    var(--paper-2, var(--paper));
   overflow: hidden;
 }
 
 .crop-stage img,
-.wm-stage img {
-  max-width: 100%;
-  max-height: 26rem;
+.wm-stage img,
+.wm-stage canvas {
   display: block;
-}
-
-.crop-stage img:not([src]),
-.wm-stage img:not([src]) {
-  display: none;
+  max-width: 100%;
+  height: auto;
 }
 
 .crop-box {
   position: absolute;
   border: 1px solid var(--vermilion);
-  box-shadow: 0 0 0 9999px color-mix(in srgb, #000 42%, transparent);
-  cursor: grab;
-  touch-action: none;
+  box-shadow: 0 0 0 9999px rgba(20, 19, 27, 0.42);
+  cursor: move;
 }
 
-.crop-box:active {
-  cursor: grabbing;
+.crop-box::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, transparent 33.2%, rgba(255, 255, 255, 0.5) 33.2% 33.4%, transparent 33.4% 66.4%, rgba(255, 255, 255, 0.5) 66.4% 66.6%, transparent 66.6%),
+    linear-gradient(to bottom, transparent 33.2%, rgba(255, 255, 255, 0.5) 33.2% 33.4%, transparent 33.4% 66.4%, rgba(255, 255, 255, 0.5) 66.4% 66.6%, transparent 66.6%);
+  pointer-events: none;
 }
 
-/* 软件清单 */
+/* ---------- 清单：工具链接 / 常用软件 ---------- */
+
+.page-tools .link-list {
+  border-top: 1px solid var(--rule);
+}
+
+.page-tools .link-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.16rem 1rem;
+  align-items: baseline;
+  padding-block: 0.75rem;
+}
+
+.page-tools .link-row__go {
+  grid-column: 2;
+  grid-row: 1;
+  color: var(--muted);
+  font-size: 0.85rem;
+  transition:
+    color 0.18s ease,
+    translate 0.18s ease;
+}
+
+.page-tools .link-row:hover .link-row__go {
+  color: var(--vermilion);
+  translate: 1px -1px;
+}
+
+.page-tools .link-row__name {
+  font-family: var(--serif);
+  font-size: 1rem;
+}
+
+.page-tools .link-row__meta {
+  grid-column: 1;
+  grid-row: 2;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.6;
+}
+
 .soft-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
-  gap: 1rem;
-  margin-block-start: 1.2rem;
+  gap: 0.9rem;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
 }
 
 .soft {
-  border: 1px solid var(--rule);
-  padding: 1rem 1.1rem;
   display: grid;
-  gap: 0.6rem;
+  gap: 0.5rem;
+  align-content: start;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--rule);
   background: var(--paper);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    translate 0.2s ease;
+}
+
+.soft:hover {
+  border-color: color-mix(in srgb, var(--vermilion) 45%, var(--rule));
+  box-shadow: 0 16px 28px -28px rgba(20, 19, 27, 0.55);
+  translate: 0 -2px;
 }
 
 .soft__head {
@@ -369,14 +491,14 @@
   color: var(--vermilion);
   border: 1px solid color-mix(in srgb, var(--vermilion) 40%, transparent);
   border-radius: 999px;
-  padding: 0.05rem 0.45rem;
+  padding: 0.06rem 0.45rem;
   white-space: nowrap;
 }
 
 .soft__meta {
   margin: 0;
   display: grid;
-  gap: 0.2rem;
+  gap: 0.18rem;
   font-size: 0.78rem;
 }
 
@@ -388,39 +510,44 @@
 .soft__meta dt {
   font-family: var(--mono);
   font-size: 0.66rem;
-  color: var(--muted);
-  min-width: 2.4rem;
   letter-spacing: 0.06em;
+  color: var(--muted);
+  min-width: 3.2rem;
 }
 
 .soft__meta dd {
   margin: 0;
-  color: var(--ink-soft);
+  color: var(--ink-soft, var(--ink));
 }
 
 .soft__note {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: 0.79rem;
+  line-height: 1.65;
   color: var(--muted);
-  line-height: 1.6;
 }
 
 .soft__links {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
+  margin-block-start: 0.15rem;
 }
 
 .soft__link {
-  font-size: 0.76rem;
-  text-decoration: none;
+  padding: 0.24rem 0.6rem;
   border: 1px solid var(--rule);
-  border-radius: 999px;
-  padding: 0.2rem 0.75rem;
+  font-size: 0.78rem;
   color: var(--ink);
+  text-decoration: none;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease;
 }
 
-.soft__link:hover {
+.soft__link:hover,
+.soft__link:focus-visible {
   background: var(--vermilion);
   border-color: var(--vermilion);
   color: #fff;
@@ -431,17 +558,153 @@
   font-size: 0.7rem;
   color: var(--muted);
 }
-
 .m-empty {
-  font-family: var(--mono);
-  font-size: 0.76rem;
+  padding: 1.4rem 0.2rem;
   color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.m-empty strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* ---------- 响应式 ---------- */
+
+@media (max-width: 860px) {
+  .tool__body--split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .tool__head {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.35rem;
+  }
+
+  .tool__no {
+    grid-row: auto;
+    justify-self: start;
+  }
+
+  .tool-index {
+    gap: 0.3rem;
+  }
+
+  .tool-index a {
+    font-size: 0.78rem;
+    padding: 0.3rem 0.6rem;
+  }
+
+  .page-tools .link-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .tool-index a,
+  .tool,
+  .tool::before,
   .tool__drop,
-  .btn,
-  .results__save {
+  .soft-card__links a {
     transition: none;
   }
+}
+
+
+
+/* ---------- 按钮（本页自绘，避免依赖全局 .btn） ---------- */
+
+.page-tools .btn {
+  font: inherit;
+  font-size: 0.86rem;
+  padding: 0.5rem 1.1rem;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.page-tools .btn:hover,
+.page-tools .btn:focus-visible {
+  border-color: var(--vermilion);
+  color: var(--vermilion);
+}
+
+.page-tools .btn--primary {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+.page-tools .btn--primary:hover,
+.page-tools .btn--primary:focus-visible {
+  background: var(--vermilion);
+  border-color: var(--vermilion);
+  color: #fff;
+}
+
+.page-tools .tool__status {
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+
+.page-tools .tool__status.is-error {
+  color: var(--vermilion);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-tools .btn {
+    transition: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .page-tools .nav {
+    flex-wrap: wrap;
+    row-gap: 0.15rem;
+  }
+
+  .tool__opts,
+  .tool__opts--grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .field select,
+  .field__input {
+    height: 2.35rem;
+  }
+}
+
+/* 颜色选择器与勾选项：在本页里也做得像卡片的一部分 */
+.page-tools .field__color {
+  width: 100%;
+  height: 2.35rem;
+  padding: 0.2rem;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  background: var(--paper);
+  cursor: pointer;
+}
+
+.page-tools .field--check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+  color: var(--ink-soft, var(--ink));
+  cursor: pointer;
+}
+
+.page-tools .field--check input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--vermilion);
 }
