@@ -14,5 +14,9 @@
   "engines": {
     "node": ">=22.5"
   },
-  "license": "UNLICENSED"
+  "license": "UNLICENSED",
+  "dependencies": {
+    "linkedom": "^0.18.15",
+    "playwright-core": "^1.65.1"
+  }
 }

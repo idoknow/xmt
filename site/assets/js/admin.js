@@ -112,7 +112,7 @@ const selbar = $("[data-selbar]");
 const selCount = $("[data-sel-count]");
 let lastIndex = -1;
 
-const boxes = () => $("[data-pick]");
+const boxes = () => $$("[data-pick]");
 
 /* ---------- 加载提示 ---------- */
 
