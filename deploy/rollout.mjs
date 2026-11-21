@@ -19,14 +19,27 @@ async function switchImage(image) {
     console.log(`镜像已是 ${image}，跳过切换`);
     return;
   }
-  target.image = image;
 
-  const body = { ...current, status: undefined };
-  body.metadata = { ...current.metadata };
-  delete body.metadata.managedFields;
+  // 用 strategic merge patch：按容器名合并，只改 image，不碰别的字段，
+  // 也不会因 resourceVersion 过期而 409（先前 PUT 整对象会在控制器写 status 后必然撞 409）。
+  const patch = {
+    spec: { template: { spec: { containers: [{ name: target.name, image }] } } },
+  };
 
-  await k8s("PUT", DEPLOYMENT_PATH, body);
-  console.log(`镜像 ${target.image} → ${image}`);
+  let lastError;
+  for (let attempt = 1; attempt <= 5; attempt += 1) {
+    try {
+      await k8s("PATCH", DEPLOYMENT_PATH, patch, "application/strategic-merge-patch+json");
+      console.log(`镜像 ${target.image} → ${image}`);
+      return;
+    } catch (error) {
+      lastError = error;
+      const conflict = /→ 409/.test(String(error.message));
+      console.log(`切换失败（第 ${attempt} 次）：${error.message.split("\n")[0]}${conflict ? "（版本冲突，重试）" : ""}`);
+      await sleep(2000 * attempt);
+    }
+  }
+  throw lastError;
 }
 
 async function waitReady() {
