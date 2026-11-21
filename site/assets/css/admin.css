@@ -1061,7 +1061,21 @@
   letter-spacing: 0.05em;
   color: var(--muted);
 }
-.a-grid__ico--dir { font-size: 1.5rem; }
+.a-grid__ico svg {
+  width: 2.2rem;
+  height: 2.2rem;
+  display: block;
+}
+
+.a-grid__ico--dir {
+  font-size: 1.5rem;
+  color: var(--vermilion);
+}
+
+.a-grid__ico--dir svg {
+  width: 2.6rem;
+  height: 2.6rem;
+}
 .a-grid__name {
   font-size: 0.8rem;
   line-height: 1.35;
@@ -1227,7 +1241,18 @@ html.is-busy {
 .a-cell-name {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.5rem;
+}
+
+.a-cell-name__main {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  min-width: 0;
+}
+
+.a-cell-name__main .a-ico {
+  margin-inline-end: 0;
 }
 
 /* ---------- 带单位的输入框 ---------- */

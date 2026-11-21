@@ -163,9 +163,9 @@ export function adminFilesPage({
              entry.name,
            )}">删除</button>`;
       return `<tr data-path="${e(entry.path)}" data-dir="${entry.isDir ? "1" : "0"}" data-kind="${kind}">
-        <td class="a-cell-name">${iconOf(kind)}<button type="button" class="a-tick" data-pick data-value="${e(entry.path)}" ${
+        <td class="a-cell-name"><button type="button" class="a-tick" data-pick data-value="${e(entry.path)}" ${
           entry.isDir ? 'data-dir="1"' : ""
-        } aria-pressed="false" aria-label="选择 ${e(entry.name)}"></button>${name}</td>
+        } aria-pressed="false" aria-label="选择 ${e(entry.name)}"></button><span class="a-cell-name__main">${iconOf(kind)}${name}</span></td>
         <td class="a-cell-path a-mono" hidden>${e(entry.display || entry.path)}</td>
         <td class="a-num">${entry.isDir ? "—" : fmtSize(entry.size)}</td>
         <td class="a-mono">${entry.modified ? e(String(entry.modified).slice(0, 16).replace("T", " ")) : "—"}</td>
@@ -182,7 +182,7 @@ const cards = entries
       const thumb =
         kind === "image"
           ? `<img src="${raw}" alt="${e(entry.name)}" loading="lazy" decoding="async" />`
-          : `<span class="a-grid__ico a-grid__ico--${kind}">${iconKind(entry.name) === "dir" ? ICON.dir : ICON[iconKind(entry.name)] || ICON.file}</span>`;
+          : `<span class="a-grid__ico a-grid__ico--${kind}">${kind === "dir" ? ICON.dir : ICON[kind] || ICON.file}</span>`;
       return `<div class="a-grid__card" data-path="${e(entry.path)}" data-dir="${entry.isDir ? "1" : "0"}" data-kind="${kind}" data-name="${e(
         entry.name,
       )}" data-size="${entry.size || 0}">
