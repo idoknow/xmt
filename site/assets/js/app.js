@@ -13,6 +13,12 @@ const api = async (url, body, method = "POST") => {
   return data;
 };
 
+const fmt = (bytes) => {
+  if (bytes >= 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
+  if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+};
+
 /* ---------- 配色 ----------
    媒体库页头不再提供切换入口：这里只负责把站点里选过的配色（localStorage["xmt-theme"]）
    落到 <html data-theme> 上，并在「跟随系统」时跟着系统走。 */
@@ -169,11 +175,6 @@ $("[data-upload-form]")?.addEventListener("submit", (event) => {
   const upPct = $("[data-upload-pct]");
   const upNote = $("[data-upload-note]");
   const total = chosen.reduce((sum, file) => sum + file.size, 0);
-  const fmt = (bytes) => {
-    if (bytes >= 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
-    if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-  };
   const started = performance.now();
 
   const setProgress = (loaded, done) => {
