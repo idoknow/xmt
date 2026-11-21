@@ -47,7 +47,8 @@ export const PROVIDERS = {
   },
   tc360: {
     name: "360 图床",
-    hint: "速度快，不保留原文件名",
+    hint: "上游接口暂时不可用",
+    offline: true,
     endpoint: "https://api.xinyew.cn/api/360tc",
     field: "file",
     max: 8 * 1024 * 1024,
@@ -62,7 +63,8 @@ export const PROVIDERS = {
   },
   psbctc: {
     name: "中国邮政图床",
-    hint: "单张不超过 2 MB",
+    hint: "上游接口暂时不可用",
+    offline: true,
     endpoint: "https://api.xinyew.cn/api/psbctc",
     field: "file",
     max: 2 * 1024 * 1024,
@@ -175,7 +177,7 @@ export function imagePage({ site, user, total }) {
   const chips = Object.entries(PROVIDERS)
     .map(
       ([key, item], index) =>
-        `<button class="im-provider${index === 0 ? " is-on" : ""}" type="button" data-provider="${key}">
+        `<button class="im-provider${index === 0 ? " is-on" : ""}${item.offline ? " is-off" : ""}" type="button" data-provider="${key}"${item.offline ? ' data-offline="1" aria-disabled="true"' : ""}>
           <strong>${e(item.name)}</strong><small>${e(item.hint)}</small>
         </button>`,
     )
@@ -314,6 +316,9 @@ export async function handleImages(req, res, url, user) {
     if (!file) throw Object.assign(new Error("没有收到文件"), { status: 400 });
     const provider = String(uploaded.fields.provider || "scdn");
     if (!PROVIDERS[provider]) throw Object.assign(new Error("未知的图床"), { status: 400 });
+    if (PROVIDERS[provider].offline) {
+      throw Object.assign(new Error(`${PROVIDERS[provider].name}的上游接口暂时不可用（对方返回“未找到图片链接”），换一个图床试试`), { status: 503 });
+    }
     if (file.size > PROVIDERS[provider].max) {
       fs.rmSync(file.path, { force: true });
       throw Object.assign(new Error(`这套图床单张不能超过 ${fmtSize(PROVIDERS[provider].max)}`), { status: 413 });

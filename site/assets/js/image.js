@@ -313,6 +313,16 @@ async function handleFiles(files) {
 
 $$("[data-provider]").forEach((button) => {
   button.addEventListener("click", () => {
+    if (button.dataset.offline === "1") {
+      const name = button.querySelector("strong")?.textContent || "这套图床";
+      status.textContent = `${name} 暂时不可用，换一个试试`;
+      status.classList.add("is-error");
+      setTimeout(() => {
+        status.classList.remove("is-error");
+        if (status.textContent.includes("暂时不可用")) status.textContent = "";
+      }, 2800);
+      return;
+    }
     provider = button.dataset.provider;
     $$("[data-provider]").forEach((item) => item.classList.toggle("is-on", item === button));
     setHint();

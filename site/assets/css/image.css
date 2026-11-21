@@ -605,3 +605,28 @@
   border-color: color-mix(in srgb, var(--vermilion) 55%, var(--rule));
   color: var(--vermilion);
 }
+
+/* ---------- 图床：上游不可用的供应商 ---------- */
+.im-provider.is-off {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent 0 6px,
+    color-mix(in srgb, var(--ink) 3%, transparent) 6px 12px
+  );
+}
+
+.im-provider.is-off strong::after {
+  content: "·暂停";
+  margin-inline-start: 0.35rem;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  color: var(--vermilion);
+}
+
+.im-provider.is-off:hover {
+  border-color: var(--rule);
+  transform: none;
+}
