@@ -205,7 +205,10 @@ function pageGallery(req, res, url) {
     sort: url.searchParams.get("sort") || "new",
   };
   const excludeHidden = !isAdmin(user);
-  const items = queryMedia({ ...query, excludeHidden });
+  const admin = isAdmin(user);
+  const items = queryMedia({ ...query, excludeHidden }).map((item) =>
+    admin ? { ...item, is_hidden: isHidden(item.drive_id, item.path) } : item,
+  );
   const total = countMedia({ ...query, excludeHidden });
   html(res, 200, galleryPage({ site: siteOf(), user, items, total, query }));
 }
@@ -221,6 +224,7 @@ function pageDetail(req, res, id) {
   if (!isAdmin(user) && isHidden(item.drive_id, item.path)) {
     return html(res, 404, loginPage({ site: siteOf(), error: "这张图不在了" }));
   }
+  if (isAdmin(user)) item.is_hidden = isHidden(item.drive_id, item.path);
   const prev = get("SELECT id, name FROM media WHERE created_at < ? ORDER BY created_at DESC LIMIT 1", item.created_at);
   const next = get("SELECT id, name FROM media WHERE created_at > ? ORDER BY created_at ASC LIMIT 1", item.created_at);
   html(res, 200, detailPage({ site: siteOf(), user, item, neighbors: { prev, next } }));
@@ -419,6 +423,29 @@ async function api(req, res, url) {
     if (parts[1]) {
       const drive = get("SELECT * FROM drives WHERE id = ?", Number(parts[1]));
       if (!drive) throw Object.assign(new Error("存储不存在"), { status: 404 });
+      if (parts[2] === "browse" && method === "GET") {
+        const url = new URL(req.url, "http://localhost");
+        const dir = url.searchParams.get("path") || "/";
+        const driver = driverFor(drive);
+        const started = Date.now();
+        const list = await driver.list(dir);
+        const hidden = hiddenPrefixes(drive.id);
+        const mark = (item) => ({
+          name: item.name,
+          path: item.path,
+          isDir: Boolean(item.isDir),
+          size: item.size || 0,
+          hidden: hidden.some((prefix) => item.path === prefix || String(item.path).startsWith(`${prefix}/`)),
+        });
+        const entries = list.map(mark);
+        return json(res, {
+          ok: true,
+          path: dir,
+          ms: Date.now() - started,
+          hidden,
+          entries,
+        });
+      }
       if (parts[2] === "test" && method === "POST") {
         const driver = driverFor(drive);
         const started = Date.now();

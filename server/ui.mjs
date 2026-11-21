@@ -116,7 +116,7 @@ const card = (item) => {
         item.width && item.height ? `width="${item.width}" height="${item.height}"` : ""
       } />`;
   return `<a class="m-card" href="/memories/a/${item.id}" data-id="${item.id}" data-kind="${item.kind}">
-    <figure>${media}</figure>
+    <figure>${media}${item.is_hidden ? `<span class="m-card__flag">已隐藏</span>` : ""}</figure>
     <div class="m-card__meta">
       <span class="m-card__name">${e(item.name)}</span>
       <span class="m-card__sub">${e(item.owner_name || "—")} · ${fmtSize(item.size)}</span>
@@ -217,6 +217,7 @@ export function detailPage({ site, user, item, neighbors }) {
   <aside class="m-detail__side">
     <p class="m-kicker">${item.kind === "video" ? "视频" : "照片"} · ${e(item.drive_name || "")}</p>
     <h1 class="m-detail__name">${e(item.name)}</h1>
+    ${item.is_hidden ? `<p class="m-alert m-alert--soft">这条内容在隐藏目录里，成员与游客看不到；管理员仍可查看和管理。</p>` : ""}
     <dl class="m-meta">
       <div><dt>上传者</dt><dd>${e(item.owner_name || "—")}</dd></div>
       <div><dt>时间</dt><dd>${fmtDate(item.created_at)}</dd></div>
@@ -309,6 +310,7 @@ export function adminPage({ site, user, users, drives, settings, counters }) {
         <td data-label="隐藏">${drive.hidden?.length ? `${drive.hidden.length} 个目录` : "—"}</td>
         <td><div class="m-row-actions">
           <button class="m-btn m-btn--tiny" data-drive-edit="${drive.id}">编辑</button>
+          <button class="m-btn m-btn--tiny" data-drive-browse="${drive.id}">浏览</button>
           <button class="m-btn m-btn--tiny" data-drive-test="${drive.id}">测试</button>
           <button class="m-btn m-btn--tiny m-btn--danger" data-drive-del="${drive.id}">删除</button>
         </div></td>
@@ -385,7 +387,17 @@ export function adminPage({ site, user, users, drives, settings, counters }) {
       .join("")}</select></label>
     <label><span>根路径</span><input name="root" placeholder="/" value="/" /></label>
     <label><span>可见性</span><select name="visibility"><option value="members">成员可见</option><option value="public">公开</option></select></label>
-    <label class="m-form__wide"><span>隐藏目录</span><textarea name="hidden" rows="3" spellcheck="false" placeholder="一行一个，如：&#10;/手机图片&#10;/私人/家人&#10;（目录名或完整路径都行；隐藏后成员与游客看不到该目录下的内容）"></textarea></label>
+    <label class="m-form__wide"><span>隐藏目录</span>
+      <div class="m-pick" data-hidden-box>
+        <p class="m-pick__empty" data-hidden-empty>还没有隐藏任何目录。</p>
+        <ul class="m-pick__chips" data-hidden-chips></ul>
+        <div class="m-pick__row">
+          <button class="m-btn m-btn--tiny" type="button" data-hidden-open>选择目录</button>
+          <span class="m-hint">从存储里点选目录加入列表；成员与游客看不到这些目录下的内容，管理员不受影响。</span>
+        </div>
+        <input type="hidden" name="hidden" data-hidden-input value="" />
+      </div>
+    </label>
     <label class="m-form__check"><input type="checkbox" name="enabled" checked /><span>启用</span></label>
     <div class="m-form__actions">
       <button class="m-btn m-btn--primary" type="submit" data-drive-submit>添加存储</button>
@@ -393,6 +405,21 @@ export function adminPage({ site, user, users, drives, settings, counters }) {
     </div>
   </form>
   <div data-drive-fields></div>
+
+  <dialog class="m-dialog m-pick-dialog" data-drive-dialog>
+    <div class="m-dialog__head">
+      <strong data-dialog-title>选择目录</strong>
+      <button class="m-btn m-btn--tiny" type="button" data-dialog-close>关闭</button>
+    </div>
+    <div class="m-pick__bar">
+      <button class="m-btn m-btn--tiny" type="button" data-pick-up>← 上一级</button>
+      <code class="m-pick__path" data-pick-path>/</code>
+      <button class="m-btn m-btn--tiny" type="button" data-pick-hide-here hidden>隐藏此目录</button>
+    </div>
+    <div class="m-pick__list" data-pick-list></div>
+    <p class="m-hint" data-pick-note></p>
+  </dialog>
+
   <table class="m-table"><thead><tr><th>名称</th><th>根路径</th><th>状态</th><th>可见性</th><th>隐藏</th><th></th></tr></thead><tbody>${driveRows}</tbody></table>
   <p class="m-hint">WebDAV 填地址与账号即可；移动云盘填整段 Cookie（含 <code>ORCHES-C-TOKEN</code>）。隐藏目录只对成员与游客生效，管理员始终能看到全部。</p>
   <script type="application/json" id="drives-data">${JSON.stringify(drivesData).replace(/</g, "\\u003c")}</script>

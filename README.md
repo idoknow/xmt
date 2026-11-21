@@ -85,7 +85,8 @@ node deploy/rollout.mjs   # 只切镜像并校验
 - 登录：Campux 校园墙 OAuth（PKCE，S256），回调 `https://xmt.idoknow.top/memories/oauth/callback`。**不开放注册**，管理员在后台手动加 QQ（只填号码即可，昵称与头像等他第一次登录时从 Campux 同步，头像按 QQ 号取 `q1.qlogo.cn`）；没开通的 QQ 登录会直接被拒。
 - 角色：游客只读（能浏览、能看分享链接）；成员能上传、改名、移动、新建文件夹、删除，但**只能动自己上传的**；管理员不限文件类型、能管存储、管成员、改站点设置。管理员 QQ 由 `ADMIN_QQ` 决定，默认 `1692138502`。
 - 每人一个文件夹（`u-<id>/<YYYY-MM>/`）；管理员默认落在 `admin/<YYYY-MM>/`。
-- 存储：`local`（容器磁盘）、`webdav`（任意 WebDAV，地址/账号/密码/根目录）、`139`（移动云盘）。后台「存储」页可加多个、可测试连通性。
+- 存储：`local`（容器磁盘）、`webdav`（任意 WebDAV，地址/账号/密码/根目录）、`139`（移动云盘）。后台「存储」页可加多个、可测试连通性；每行的「编辑」改名字/凭据/根目录/可见性，「浏览」直接看该存储里的目录与文件。
+- 隐藏目录：在「编辑」里点「选择目录」，从存储里逐层点选要藏的目录（支持加多个、可移除）。隐藏只对成员与游客生效——他们的画廊、详情、直链、分享页里都看不到；管理员始终能看到全部，画廊里会带「已隐藏」角标。
 - 139 的凭据两种填法，任选其一：① 整段 `yun.139.com` 的 Cookie（含 `ORCHES-C-TOKEN`、`ORCHES-I-ACCOUNT-ENCRYPT`）。服务端会用它解出账号，并按网页端的规则（AES-128-ECB + 前端常量 `C_ENCRYPT_CODE`）把 `ORCHES-C-TOKEN` 解成接口认可的 `authToken`；② 直接填 `Authorization`（`Basic` + `pc:<账号>:<authToken>` 的 base64）。根目录固定用个人云的 `root`。
 - WebDAV 出口：`https://xmt.idoknow.top/memories/dav/`，游客只读（`PROPFIND`/`GET`/`HEAD`）。
 - OAuth 凭据不写进仓库：集群 Secret `xmt-memories`（`oauth-client-id`、`oauth-client-secret`、`admin-qq`），也可以在后台「设置」里改，改完写回 settings 表。

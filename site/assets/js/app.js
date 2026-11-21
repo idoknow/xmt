@@ -321,33 +321,186 @@ const renderDriveFields = (driverKey, values = {}) => {
 
 const setEditing = (drive) => {
   if (!driveForm) return;
+  const field = (name) => driveForm.querySelector(`[name="${name}"]`);
   const submit = $("[data-drive-submit]", driveForm);
   const cancel = $("[data-drive-cancel]", driveForm);
   if (!drive) {
     driveForm.dataset.driveId = "";
     driveForm.classList.remove("is-editing");
     driveForm.reset();
-    driveForm.root.value = "/";
-    driveForm.visibility.value = "members";
-    driveForm.enabled.checked = true;
+    if (field("root")) field("root").value = "/";
+    if (field("visibility")) field("visibility").value = "members";
+    if (field("enabled")) field("enabled").checked = true;
     if (submit) submit.textContent = "添加存储";
     if (cancel) cancel.hidden = true;
-    renderDriveFields(driveForm.driver.value || "local");
+    renderDriveFields(field("driver")?.value || "local");
+    syncHiddenInput();
     return;
   }
   driveForm.dataset.driveId = String(drive.id);
   driveForm.classList.add("is-editing");
-  driveForm.name.value = drive.name || "";
-  driveForm.driver.value = drive.driver;
-  driveForm.root.value = drive.root || "/";
-  driveForm.visibility.value = drive.visibility === "public" ? "public" : "members";
-  driveForm.hidden.value = (drive.hidden || []).join("\n");
-  driveForm.enabled.checked = Boolean(drive.enabled);
+  if (field("name")) field("name").value = drive.name || "";
+  if (field("driver")) field("driver").value = drive.driver;
+  if (field("root")) field("root").value = drive.root || "/";
+  if (field("visibility")) field("visibility").value = drive.visibility === "public" ? "public" : "members";
+  if (field("hidden")) field("hidden").value = (drive.hidden || []).join("\n");
+  if (field("enabled")) field("enabled").checked = Boolean(drive.enabled);
   if (submit) submit.textContent = "保存修改";
   if (cancel) cancel.hidden = false;
   renderDriveFields(drive.driver, drive.config || {});
+  syncHiddenInput();
   driveForm.scrollIntoView({ behavior: "smooth", block: "center" });
 };
+
+/* ---------- 存储：目录选择（隐藏目录 / 浏览） ---------- */
+
+const esc = (value) =>
+  String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
+
+const driveDialog = $("[data-drive-dialog]");
+const pickList = $("[data-pick-list]");
+const pickPathEl = $("[data-pick-path]");
+const pickNote = $("[data-pick-note]");
+const hideHereBtn = $("[data-pick-hide-here]");
+const hiddenInput = $("[data-hidden-input]");
+const hiddenChips = $("[data-hidden-chips]");
+const hiddenEmpty = $("[data-hidden-empty]");
+const pickState = { mode: "hide", driveId: "", path: "/", hidden: new Set() };
+
+const renderHiddenChips = () => {
+  const paths = [...pickState.hidden];
+  if (hiddenInput) hiddenInput.value = paths.join("\n");
+  if (hiddenEmpty) hiddenEmpty.hidden = paths.length > 0;
+  if (hiddenChips) {
+    hiddenChips.innerHTML = paths
+      .map(
+        (path) =>
+          `<li><code>${esc(path)}</code><button class="m-pick__x" type="button" data-hidden-remove="${esc(
+            path,
+          )}" aria-label="移除 ${esc(path)}">×</button></li>`,
+      )
+      .join("");
+  }
+};
+
+function syncHiddenInput() {
+  pickState.hidden = new Set(
+    (hiddenInput?.value || "")
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean),
+  );
+  renderHiddenChips();
+}
+
+const toggleHidden = (path) => {
+  if (pickState.hidden.has(path)) pickState.hidden.delete(path);
+  else pickState.hidden.add(path);
+  renderHiddenChips();
+};
+
+const loadDir = async (path) => {
+  if (!pickState.driveId) return;
+  if (pickNote) pickNote.textContent = "读取中…";
+  try {
+    const data = await api(
+      `/memories/api/drives/${pickState.driveId}/browse?path=${encodeURIComponent(path)}`,
+      null,
+      "GET",
+    );
+    pickState.path = data.path || "/";
+    if (pickPathEl) pickPathEl.textContent = pickState.path;
+    const entries = data.entries || [];
+    if (pickList) {
+      pickList.innerHTML = entries.length
+        ? entries
+            .map((entry) => {
+              const path = entry.path;
+              const mark =
+                pickState.mode === "hide"
+                  ? `<button class="m-pick__toggle${entry.hidden ? " is-on" : ""}" type="button" data-pick-toggle="${esc(
+                      path,
+                    )}">${entry.hidden ? "已隐藏" : "隐藏"}</button>`
+                  : entry.hidden
+                    ? `<span class="m-pick__tag">已隐藏</span>`
+                    : "";
+              const main = entry.isDir
+                ? `<button class="m-pick__go" type="button" data-pick-enter="${esc(path)}"><span class="m-pick__name">${esc(
+                    entry.name,
+                  )}</span><span class="m-pick__kind">目录</span></button>`
+                : `<div class="m-pick__go"><span class="m-pick__name">${esc(entry.name)}</span><span class="m-pick__kind">${fmt(
+                    entry.size,
+                  )}</span></div>`;
+              return `<div class="m-pick__item">${main}${mark}</div>`;
+            })
+            .join("")
+        : `<p class="m-empty">这个目录里没有东西。</p>`;
+    }
+    if (pickNote) pickNote.textContent = `${entries.length} 项 · ${data.ms ?? 0}ms`;
+  } catch (error) {
+    if (pickNote) pickNote.textContent = error.message;
+    if (pickList) pickList.innerHTML = "";
+  }
+};
+
+const openDriveDialog = (mode, driveId, path = "/") => {
+  if (!driveId) {
+    alert("先保存这份存储，再选择目录。");
+    return;
+  }
+  pickState.mode = mode;
+  pickState.driveId = driveId;
+  const title = $("[data-dialog-title]");
+  if (title) title.textContent = mode === "browse" ? "浏览存储内容" : "选择要隐藏的目录";
+  if (hideHereBtn) hideHereBtn.hidden = mode !== "hide";
+  syncHiddenInput();
+  if (driveDialog?.showModal) driveDialog.showModal();
+  else driveDialog?.setAttribute("open", "");
+  loadDir(path);
+};
+
+document.addEventListener("click", (event) => {
+  const open = event.target.closest("[data-hidden-open]");
+  if (open) {
+    openDriveDialog("hide", driveForm?.dataset.driveId || "");
+    return;
+  }
+  const browse = event.target.closest("[data-drive-browse]");
+  if (browse) {
+    openDriveDialog("browse", browse.dataset.driveBrowse);
+    return;
+  }
+  const remove = event.target.closest("[data-hidden-remove]");
+  if (remove) {
+    toggleHidden(remove.dataset.hiddenRemove);
+    return;
+  }
+  const enter = event.target.closest("[data-pick-enter]");
+  if (enter) {
+    loadDir(enter.dataset.pickEnter);
+    return;
+  }
+  const toggle = event.target.closest("[data-pick-toggle]");
+  if (toggle) {
+    toggleHidden(toggle.dataset.pickToggle);
+    loadDir(pickState.path);
+    return;
+  }
+  if (event.target.closest("[data-pick-hide-here]")) {
+    toggleHidden(pickState.path);
+    loadDir(pickState.path);
+    return;
+  }
+  if (event.target.closest("[data-pick-up]")) {
+    const parts = pickState.path.split("/").filter(Boolean);
+    parts.pop();
+    loadDir(`/${parts.join("/")}`);
+    return;
+  }
+  if (event.target.closest("[data-dialog-close]")) {
+    driveDialog?.close?.();
+  }
+});
 
 if (fieldsHost) {
   fetch("/memories/api/state")
@@ -366,18 +519,22 @@ $("[data-drive-cancel]")?.addEventListener("click", () => setEditing(null));
 driveForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
+  const field = (name) => form.querySelector(`[name="${name}"]`);
   const config = {};
   for (const input of $$('[data-drive-fields] input, [data-drive-fields] textarea')) {
     const key = input.name.replace("cfg.", "");
     if (input.value.trim()) config[key] = input.value.trim();
   }
-  const hidden = (form.hidden.value || "").split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
+  const hidden = (field("hidden")?.value || "")
+    .split(/\r?\n/)
+    .map((item) => item.trim())
+    .filter(Boolean);
   const body = {
-    name: form.name.value.trim(),
-    driver: form.driver.value,
-    root: form.root.value.trim() || "/",
-    visibility: form.visibility.value,
-    enabled: form.enabled.checked,
+    name: field("name")?.value.trim() || "",
+    driver: field("driver")?.value || "local",
+    root: field("root")?.value.trim() || "/",
+    visibility: field("visibility")?.value || "members",
+    enabled: Boolean(field("enabled")?.checked),
     hidden,
   };
   if (Object.keys(config).length) body.config = config;
