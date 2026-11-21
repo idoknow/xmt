@@ -1362,3 +1362,18 @@ html.is-busy {
 .a-cell-name .a-tick {
   margin-inline-end: 0.55rem;
 }
+
+.a-toolbar .a-limit {
+  font-family: var(--mono);
+  font-size: .72rem;
+  color: var(--muted);
+  letter-spacing: .02em;
+  align-self: center;
+}
+
+@media (max-width: 720px) {
+  .a-toolbar .a-limit {
+    order: 3;
+    inline-size: 100%;
+  }
+}

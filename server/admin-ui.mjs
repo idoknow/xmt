@@ -77,6 +77,8 @@ export function adminFilesPage({
   notice,
   error,
   quota,
+  limit = "",
+  limitBytes = 0,
   sortKey = "name",
   sortDir = "asc",
 }) {
@@ -179,6 +181,7 @@ const cards = entries
   <div class="a-toolbar">
     <label class="a-btn a-btn--primary"><input type="file" multiple data-upload hidden />上传</label>
     <button class="a-btn" type="button" data-mkdir>新建文件夹</button>
+    ${limit ? `<span class="a-hint a-limit" data-upload-limit data-max-bytes="${Number(limitBytes) || 0}">${e(limit)}</span>` : ""}
     <span class="a-toolbar__spacer"></span>
     <span class="a-sorts">${sortLabel("name", "名称")}${sortLabel("size", "大小")}${sortLabel("time", "时间")}</span>
   </div>

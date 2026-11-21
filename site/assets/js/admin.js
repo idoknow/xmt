@@ -341,11 +341,24 @@ async function chunkedUpload(file) {
 
 async function uploadFiles(files) {
   if (!files.length || !DRIVE) return;
+  const maxBytes = Number($("[data-upload-limit]")?.dataset.maxBytes) || 0;
+  const allowed = [];
+  const tooBig = [];
+  for (const file of files) {
+    if (maxBytes > 0 && file.size > maxBytes) tooBig.push(file.name);
+    else allowed.push(file);
+  }
+  if (tooBig.length) {
+    setProgress(0, `跳过 ${tooBig.length} 个超出上限的文件：${tooBig.slice(0, 2).join("、")}${tooBig.length > 2 ? " 等" : ""}`);
+    uploadBar.classList.add("is-error");
+  }
+  if (!allowed.length) return;
+
   let saved = 0;
   try {
-    for (const [index, file] of files.entries()) {
-      const label = `（${index + 1}/${files.length}）`;
-      if (files.length > 1) setProgress(0, `${label} 准备 ${file.name}`);
+    for (const [index, file] of allowed.entries()) {
+      const label = `（${index + 1}/${allowed.length}）`;
+      if (allowed.length > 1) setProgress(0, `${label} 准备 ${file.name}`);
       saved += file.size > SMALL ? await chunkedUpload(file) : await simpleUpload(file);
     }
     setProgress(100, `已上传 ${saved} 个文件`);

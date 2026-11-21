@@ -20,6 +20,20 @@ import { adminFilesPage, adminSettingsPage, adminStoragesPage, adminUsersPage } 
 
 const siteOf = () => ({ title: setting("site.title", "Memories"), intro: setting("site.intro", "") });
 
+const readable = (bytes) => {
+  const mb = Number(bytes) / 1024 / 1024;
+  if (!Number.isFinite(mb) || mb <= 0) return "不限";
+  if (mb >= 1024) return `${(mb / 1024).toFixed(mb / 1024 >= 10 ? 0 : 1)} GB`;
+  return `${mb >= 10 ? Math.round(mb) : mb.toFixed(1)} MB`;
+};
+
+function limitHint(user, drive) {
+  const own = Number(drive?.max_file_bytes) || 0;
+  if (own > 0) return `单个文件 ≤ ${readable(own)}（这份存储单独设的上限）`;
+  if (user?.role === "admin") return `单个文件 ≤ ${readable(config.limits?.admin)}（默认上限，存储里没设）`;
+  return `图片 ≤ ${readable(config.limits?.userImage)}、视频 ≤ ${readable(config.limits?.userVideo)}（默认上限，存储里没设）`;
+}
+
 const drivesAll = () => all("SELECT * FROM drives ORDER BY sort_order, id").map((drive) => ({ ...drive, hidden: hiddenPrefixes(drive.id) }));
 
 const driveOf = (id) => {
@@ -93,7 +107,7 @@ function pageFiles(req, res, url) {
     return html(
       res,
       200,
-      adminFilesPage({ site: siteOf(), user, drives, drive: null, path: "/", entries: [], notice, error, sortKey, sortDir }),
+      adminFilesPage({ site: siteOf(), user, drives, drive: null, path: "/", entries: [], notice, error, sortKey, sortDir, limit: limitHint(user, null), limitBytes: config.limits.admin }),
     );
   }
 
@@ -121,6 +135,8 @@ function pageFiles(req, res, url) {
           error,
           sortKey,
           sortDir,
+          limit: limitHint(user, drive),
+          limitBytes: Number(drive?.max_file_bytes) || config.limits.admin,
         }),
       );
     })
@@ -140,6 +156,8 @@ function pageFiles(req, res, url) {
           error: `读取目录失败：${problem.message}`,
           sortKey,
           sortDir,
+          limit: limitHint(user, drive),
+          limitBytes: Number(drive?.max_file_bytes) || config.limits.admin,
         }),
       );
     });
