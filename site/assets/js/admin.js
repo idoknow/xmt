@@ -564,13 +564,15 @@ const TYPE_NAMES = [
 ];
 
 const typeText = (info) => {
-  if (info.isDir) return "目录";
+  if (info.isDir) return "文件夹";
   const mime = String(info.mime || "");
   const hit = TYPE_NAMES.find(([rule]) => rule.test(mime));
   if (hit) return mime ? hit[1] + " · " + mime : hit[1];
-  const ext = String(info.name || "").split(".").pop()?.toLowerCase() || "";
-  if (ext) return ext.toUpperCase() + " 文件" + (mime ? " · " + mime : "");
-  return mime || "未知";
+  const name = String(info.name || "");
+  const dot = name.lastIndexOf(".");
+  const ext = dot > 0 ? name.slice(dot + 1).toLowerCase() : "";
+  if (ext && ext.length <= 6) return ext.toUpperCase() + " 文件" + (mime ? " · " + mime : "");
+  return mime || "文件";
 };
 
 const infoRows = (info) => {

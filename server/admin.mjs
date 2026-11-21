@@ -315,15 +315,16 @@ async function collectEntries(drive, driver, targets) {
 export async function fileInfoOf(drive, driver, target) {
   const info = await driver.stat(target);
   if (!info) throw Object.assign(new Error("文件不存在"), { status: 404 });
+  const displayNameOf = info.name || nameOf(target);
   const out = {
     drive: drive.id,
     driveName: drive.name,
     path: target,
-    name: nameOf(target),
+    name: displayNameOf,
     isDir: Boolean(info.isDir),
     size: Number(info.size) || 0,
     modified: info.modified || null,
-    mime: info.isDir ? "inode/directory" : mimeOf(target),
+    mime: info.isDir ? "inode/directory" : info.mime || mimeOf(displayNameOf),
     width: null,
     height: null,
     duration: null,

@@ -221,13 +221,30 @@ export function yun139Driver(cfg = {}) {
     return data?.data ?? data;
   };
 
-  const idOf = (target) => String(target || "").replace(/^\//, "");
+  // 路径形如 /<父目录id>/<文件id>，取最后一段才是 139 的 fileId
+  const idOf = (target) => {
+    const parts = String(target || "").split("/").filter(Boolean);
+    return parts.length ? parts[parts.length - 1] : rootFolderId;
+  };
+
+  const joinPath = (dir, fileId) => `${dir === "/" || dir === "" ? "" : dir.replace(/\/+$/, "")}/${fileId}`;
+
+  // 列目录会被 stat() 反复用到（详情/预览），给个很短的缓存
+  const listCache = new Map();
+  const CACHE_MS = 3000;
+  const forget = (dir) => {
+    if (dir == null) listCache.clear();
+    else listCache.delete(dir);
+  };
 
   return {
     name: "yun139",
 
     async list(dir = "/") {
-      const parentFileId = dir === "/" ? rootFolderId : idOf(dir);
+      const cleanDir = dir === "" ? "/" : dir;
+      const cached = listCache.get(cleanDir);
+      if (cached && Date.now() - cached.at < CACHE_MS) return cached.items;
+      const parentFileId = cleanDir === "/" ? rootFolderId : idOf(cleanDir);
       const items = [];
       let cursor = "";
       for (let page = 0; page < 200; page += 1) {
@@ -242,7 +259,8 @@ export function yun139Driver(cfg = {}) {
           const isDir = item.type === "folder";
           items.push({
             name: item.name || item.fileName || "",
-            path: `/${item.fileId}`,
+            // 目录里每一项的路径都带上它所在的目录，否则子目录里的文件会被当成根目录文件
+            path: joinPath(cleanDir, item.fileId),
             fileId: item.fileId,
             isDir,
             size: Number(item.size || 0),
@@ -253,6 +271,7 @@ export function yun139Driver(cfg = {}) {
         cursor = data?.nextPageCursor || "";
         if (!cursor) break;
       }
+      listCache.set(cleanDir, { at: Date.now(), items });
       return items;
     },
 
@@ -353,8 +372,9 @@ export function yun139Driver(cfg = {}) {
 
     async rename(target, newName) {
       await call("/file/update", { fileId: idOf(target), name: newName });
-      const dir = String(target).replace(/\/[^/]+$/, "");
-      return `${dir}/${newName}`;
+      const dir = String(target).replace(/\/[^/]+$/, "") || "/";
+      forget(dir);
+      return `${dir === "/" ? "" : dir}/${idOf(target)}`;
     },
 
     async move(target, destinationDir) {
@@ -362,11 +382,14 @@ export function yun139Driver(cfg = {}) {
         fileIds: [idOf(target)],
         toParentFileId: idOf(destinationDir) || rootFolderId,
       });
-      return `${destinationDir}/${String(target).split("/").pop()}`;
+      forget(String(target).replace(/\/[^/]+$/, "") || "/");
+      forget(destinationDir);
+      return `${destinationDir === "/" ? "" : destinationDir}/${idOf(target)}`;
     },
 
     async remove(target) {
       await call("/recyclebin/batchTrash", { fileIds: [idOf(target)] });
+      forget(String(target).replace(/\/[^/]+$/, "") || "/");
       return true;
     },
 
