@@ -80,7 +80,7 @@
             "volumeMounts": [{ "name": "data", "mountPath": "/data" }]
           }
         ],
-        "volumes": [{ "name": "data", "persistentVolumeClaim": { "claimName": "xmt-data" } }]
+        "volumes": [{ "name": "data", "persistentVolumeClaim": { "claimName": "xmt-data-v2" } }]
       }
     }
   }

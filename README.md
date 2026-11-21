@@ -80,7 +80,10 @@ node deploy/rollout.mjs   # 只切镜像并校验
 
 ## Memories（媒体库）
 
-`https://xmt.idoknow.top/memories`。同一个进程提供，数据在 PVC `xmt-data`（`/data`：`memories.db` + `files/`）。
+`https://xmt.idoknow.top/memories`。同一个进程提供，数据在 PVC `xmt-data-v2`（40Gi，`/data`：`memories.db` + `files/` + `tmp/uploads/` 分块暂存）。
+
+- 上传上限：成员单张图片 250MB、单个视频 10GB（`LIMIT_IMAGE`/`LIMIT_VIDEO` 可改）；管理员不限类型，上限 10GB（`LIMIT_ADMIN`）。超过 4MB 的文件自动走**分块上传**：8MB 一块、4 路并发、进度条显示「已传/总量 · n/m 块 · 并行 k」，中断后再点一次上传会从已传的块接着传（`localStorage` 记 `uploadId` 与已完成块，服务端按 `drive+folder+name+size+user` 指纹找回未完成的会话）。
+- 容量提醒：`local-path` 不校验 claim 大小，实际能写多少取决于节点磁盘（`/data` 所在盘 316GB，留了 59GB 可用）。10GB 视频落盘时需要「暂存块 + 拼好的成品」两份空间，建议长期保持 ≥30GB 空闲。2026-11-21 从旧的 `xmt-data`（5Gi）迁到 `xmt-data-v2`（40Gi）：旧卷连同数据先留着当备份，确认没问题后可 `DELETE /api/v1/namespaces/idoknow/persistentvolumeclaims/xmt-data`。
 
 - 登录：Campux 校园墙 OAuth（PKCE，S256），回调 `https://xmt.idoknow.top/memories/oauth/callback`。**不开放注册**，管理员在后台手动加 QQ（只填号码即可，昵称与头像等他第一次登录时从 Campux 同步，头像按 QQ 号取 `q1.qlogo.cn`）；没开通的 QQ 登录会直接被拒。
 - 角色：游客只读（能浏览、能看分享链接）；成员能上传、改名、移动、新建文件夹、删除，但**只能动自己上传的**；管理员不限文件类型、能管存储、管成员、改站点设置。管理员 QQ 由 `ADMIN_QQ` 决定，默认 `1692138502`。
@@ -91,11 +94,11 @@ node deploy/rollout.mjs   # 只切镜像并校验
 - WebDAV 出口：`https://xmt.idoknow.top/memories/dav/`，游客只读（`PROPFIND`/`GET`/`HEAD`）。
 - OAuth 凭据不写进仓库：集群 Secret `xmt-memories`（`oauth-client-id`、`oauth-client-secret`、`admin-qq`），也可以在后台「设置」里改，改完写回 settings 表。
 - 管理台（AList 风格，左侧栏 + 四个分页）：
-  - `/memories/admin/files`：文件管理器。存储标签切换、面包屑进目录，勾选后批量移动/复制/删除，上传带进度（不限类型），单个文件可改名、打开、下载。
+  - `/memories/admin/files`：文件管理器。存储标签切换、面包屑进目录，列头可按名称/大小/时间排序；勾选（支持 Shift 连选、点整行切换）后批量移动/复制/下载/删除，批量操作走自绘弹窗（不用浏览器 `prompt`），上传带进度（大文件同样分块 + 续传），单个文件可预览（图片/视频/音频/PDF/文本）、改名、下载。
   - `/memories/admin/storages`：存储列表 + 表单（名称/类型/挂载路径/根路径/可见性/启用/隐藏目录），可编辑、测试、删除、直接打开。
   - `/memories/admin/users`：加成员（只填 QQ）、改角色、停用、移除。
   - `/memories/admin/settings`：站点标题与介绍、管理员 QQ、OAuth 凭据。
-  - 这三处都只在管理台加载（`assets/css/admin.css` + `assets/js/admin.js`），画廊不背这部分体积。
+  - 这些页面只在管理台加载（`assets/css/admin.css` + `assets/js/admin.js`），画廊不背这部分体积。
 
 ```bash
 node .tmp/cluster-prep.mjs   # 建 Secret 与 PVC（一次性；脚本里带 token，别提交）
