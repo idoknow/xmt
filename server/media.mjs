@@ -31,6 +31,33 @@ export const isHidden = (driveId, filePath) => {
   return Boolean(hit);
 };
 
+/** 命中该路径的隐藏前缀（自己或上级）；没有返回空串 */
+export const hiddenAncestor = (driveId, target) => {
+  if (!driveId || !target) return "";
+  const row = get(
+    "SELECT prefix FROM drive_hidden WHERE drive_id = ? AND (prefix = ? OR ? LIKE prefix || '/%') ORDER BY length(prefix) LIMIT 1",
+    driveId,
+    target,
+    target,
+  );
+  return row?.prefix || "";
+};
+
+export const addHidden = (driveId, prefixes) => {
+  const list = [...new Set((Array.isArray(prefixes) ? prefixes : [prefixes])
+    .map((item) => String(item || "").trim().replace(/\/+$/, ""))
+    .filter((item) => item && item !== "/")
+    .map((item) => (item.startsWith("/") ? item : `/${item}`)))];
+  for (const prefix of list) run("INSERT OR IGNORE INTO drive_hidden (drive_id, prefix) VALUES (?, ?)", driveId, prefix);
+  return list;
+};
+
+export const removeHidden = (driveId, prefix) => {
+  const value = String(prefix || "").trim().replace(/\/+$/, "");
+  run("DELETE FROM drive_hidden WHERE drive_id = ? AND prefix = ?", driveId, value);
+  return value;
+};
+
 export const setHidden = (driveId, prefixes) => {
   const list = [...new Set((Array.isArray(prefixes) ? prefixes : String(prefixes || "").split(/\r?\n/))
     .map((item) => String(item).trim().replace(/\/+$/, ""))
@@ -249,6 +276,11 @@ export const countMedia = ({ q, kind, owner, excludeHidden = false } = {}) => {
   if (excludeHidden) where.push(HIDDEN_SQL.replace(/m\./g, ""));
   return get(`SELECT COUNT(*) AS n, COALESCE(SUM(size), 0) AS bytes FROM media WHERE ${where.join(" AND ")}`, ...args);
 };
+
+/** 全局与按用户的用量（文件数 / 字节数） */
+export const uploadStats = () => ({
+  global: get("SELECT COUNT(*) AS files, COALESCE(SUM(size),0) AS bytes FROM media"),
+});
 
 export const stats = () => {
   const total = get("SELECT COUNT(*) AS n, COALESCE(SUM(size),0) AS bytes FROM media");

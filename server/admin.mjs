@@ -11,7 +11,7 @@ import { config, paths } from "./config.mjs";
 import { allUsers, currentUser, isAdmin } from "./auth.mjs";
 import { driverFor, forgetDriver } from "./drives.mjs";
 import { streamPath } from "./filestream.mjs";
-import { hiddenPrefixes, publicPrefixes, setHidden, setPublic, stats, upload } from "./media.mjs";
+import { addHidden, hiddenAncestor, hiddenPrefixes, publicPrefixes, removeHidden, setHidden, setPublic, stats, upload } from "./media.mjs";
 import { parseMultipart } from "./multipart.mjs";
 import { probeMedia } from "./probe.mjs";
 import { writeZip } from "./zip.mjs";
@@ -110,6 +110,7 @@ function pageFiles(req, res, url) {
       const entries = sortEntries(list, sortKey, sortDir).map((entry) => ({
         ...entry,
         display: pretty === "/" ? `/${entry.name}` : `${pretty}/${entry.name}`,
+        hidden: Boolean(hiddenAncestor(drive.id, entry.path)),
       }));
       html(
         res,
@@ -161,16 +162,27 @@ function backTo(driveId, dir, patch = {}) {
 
 /* ---------- 文件操作 ---------- */
 
-async function fileAction(req, res) {
+function within(scope, target) {
+  if (!scope) return true;
+  const path = String(target || "");
+  return path === scope || path.startsWith(`${scope}/`);
+}
+
+export async function fileAction(req, res, scope = "") {
   const user = currentUser(req);
   const body = await readJson(req, 64 * 1024);
   const drive = driveOf(body.drive);
   const driver = driverFor(drive);
   const action = String(body.action || "");
   const cwd = cleanDir(body.path);
+  const guard = (target) => {
+    if (!within(scope, target)) throw Object.assign(new Error("只能操作自己文件夹里的内容"), { status: 403 });
+    return target;
+  };
+  guard(cwd);
 
   if (action === "mkdir") {
-    const full = String(body.target || body.path || "");
+    const full = guard(String(body.target || body.path || ""));
     const name = String(body.name || "").trim() || (full.split("/").filter(Boolean).pop() || "");
     if (!name) throw Object.assign(new Error("目录名不能为空"), { status: 400 });
     const base = body.name ? cwd : parentOf(full || cwd);
@@ -180,7 +192,7 @@ async function fileAction(req, res) {
   }
 
   if (action === "rename") {
-    const target = String(body.target || body.path || "");
+    const target = guard(String(body.target || body.path || ""));
     const name = String(body.name || "").trim();
     if (!target || !name) throw Object.assign(new Error("缺少路径或新名字"), { status: 400 });
     const moved = await driver.rename(target, name);
@@ -196,7 +208,7 @@ async function fileAction(req, res) {
   }
 
   if (action === "move" || action === "copy") {
-    const targets = listOf(body.targets ?? body.paths);
+    const targets = listOf(body.targets ?? body.paths).map(guard);
     const dest = cleanDir(body.dest ?? body.to ?? "/");
     if (!targets.length) throw Object.assign(new Error("先选中要处理的内容"), { status: 400 });
     const done = [];
@@ -212,8 +224,56 @@ async function fileAction(req, res) {
     return sendJson(res, 200, { ok: true, done });
   }
 
+  if (action === "hide" || action === "show") {
+    const targets = listOf(body.targets ?? body.target ?? body.path).map(guard);
+    if (!targets.length) throw Object.assign(new Error("先选中要处理的内容"), { status: 400 });
+    const changed = [];
+    const skipped = [];
+    for (const target of targets) {
+      const isHiddenNow = Boolean(hiddenAncestor(drive.id, target) === target);
+      if (action === "hide") {
+        if (isHiddenNow) {
+          skipped.push(target);
+          continue;
+        }
+        // 目录：连里面所有文件一起隐藏；文件：只隐藏自己
+        const paths = [target];
+        const stat = await driver.stat(target);
+        if (stat?.isDir) {
+          const stack = [target];
+          while (stack.length) {
+            const dir = stack.pop();
+            const list = await driver.list(dir);
+            for (const item of list) {
+              paths.push(item.path);
+              if (item.isDir) stack.push(item.path);
+            }
+          }
+        }
+        addHidden(drive.id, paths);
+        changed.push(...paths);
+      } else {
+        const blocked = hiddenAncestor(drive.id, target);
+        if (blocked && blocked !== target) {
+          throw Object.assign(
+            new Error(`「${target}」在已隐藏的目录「${blocked}」里，先显示上级目录再单独显示`),
+            { status: 400 },
+          );
+        }
+        if (!isHiddenNow) {
+          skipped.push(target);
+          continue;
+        }
+        removeHidden(drive.id, target);
+        changed.push(target);
+      }
+    }
+    audit(user.id, action, `${drive.name}:${changed.length} 项`, req.socket.remoteAddress);
+    return sendJson(res, 200, { ok: true, changed: changed.length, skipped: skipped.length, paths: changed });
+  }
+
   if (action === "remove") {
-    const targets = listOf(body.targets ?? body.paths);
+    const targets = listOf(body.targets ?? body.paths).map(guard);
     if (!targets.length) throw Object.assign(new Error("先选中要删除的内容"), { status: 400 });
     for (const target of targets) {
       await driver.remove(target);
@@ -224,7 +284,7 @@ async function fileAction(req, res) {
   }
 
   if (action === "pack") {
-    const targets = listOf(body.targets ?? body.paths);
+    const targets = listOf(body.targets ?? body.paths).map(guard);
     if (!targets.length) throw Object.assign(new Error("先选中要打包的内容"), { status: 400 });
     const stamp = new Date().toISOString().slice(5, 16).replace(/[-T:]/g, "");
     const base = targets.length === 1 ? nameOf(targets[0]).replace(/\.[^.]+$/, "") : "打包";
@@ -254,7 +314,7 @@ async function fileAction(req, res) {
   }
 
   if (action === "share") {
-    const targets = listOf(body.targets ?? body.paths);
+    const targets = listOf(body.targets ?? body.paths).map(guard);
     if (!targets.length) throw Object.assign(new Error("先选中要分享的内容"), { status: 400 });
     const days = Math.max(1, Math.min(365, Number(setting("share.default_days", 7)) || 7));
     const expires = new Date(Date.now() + days * 86400000).toISOString();
@@ -282,7 +342,7 @@ async function fileAction(req, res) {
   throw Object.assign(new Error(`未知操作：${action}`), { status: 400 });
 }
 
-async function fileUpload(req, res) {
+export async function fileUpload(req, res) {
   const user = currentUser(req);
   const contentType = String(req.headers["content-type"] || "");
   const boundary =
@@ -300,7 +360,7 @@ async function fileUpload(req, res) {
   sendJson(res, 200, { ok: true, saved: result.saved, rejected: result.rejected });
 }
 
-async function fileRaw(req, res, url) {
+export async function fileRaw(req, res, url) {
   const drive = driveOf(url.searchParams.get("drive"));
   const target = String(url.searchParams.get("path") || "");
   if (!target) throw Object.assign(new Error("缺少文件路径"), { status: 400 });
@@ -398,9 +458,12 @@ export async function fileInfoOf(drive, driver, target) {
   return out;
 }
 
-async function fileInfo(req, res, url) {
+export async function fileInfo(req, res, url, scope = "") {
   const drive = driveOf(url.searchParams.get("drive"));
   const target = String(url.searchParams.get("path") || "");
+  if (scope && !(target === scope || target.startsWith(`${scope}/`))) {
+    throw Object.assign(new Error("只能查看自己文件夹里的内容"), { status: 403 });
+  }
   if (!target) throw Object.assign(new Error("缺少文件路径"), { status: 400 });
   const info = await fileInfoOf(drive, driverFor(drive), target);
   sendJson(res, 200, { ok: true, file: info, info });
@@ -413,7 +476,15 @@ function pageStorages(req, res) {
 
 function pageUsers(req, res) {
   const user = currentUser(req);
-  html(res, 200, adminUsersPage({ site: siteOf(), user, users: allUsers() }));
+  const users = allUsers().map((row) => {
+    const stat = get(
+      "SELECT COUNT(*) AS files, COALESCE(SUM(size),0) AS bytes FROM media WHERE owner_id = ?",
+      row.id,
+    ) || { files: 0, bytes: 0 };
+    return { ...row, files: stat.files, bytes: stat.bytes };
+  });
+  const total = get("SELECT COUNT(*) AS files, COALESCE(SUM(size),0) AS bytes FROM media") || { files: 0, bytes: 0 };
+  html(res, 200, adminUsersPage({ site: siteOf(), user, users, total }));
 }
 
 function pageSettings(req, res) {

@@ -45,7 +45,7 @@ import {
   sendJson,
 } from "./util.mjs";
 import { detailPage, driveFieldSpecs, fmtSize, galleryPage, loginPage, myPage, shareFilePage, sharePage } from "./ui.mjs";
-import { fileInfoOf, handleAdmin } from "./admin.mjs";
+import { fileAction, fileInfo, fileInfoOf, fileUpload, handleAdmin } from "./admin.mjs";
 import { pageBrowser, rawBrowser } from "./browser.mjs";
 import { handleUploads } from "./uploads.mjs";
 import { handleToolsAdmin, toolsDataHandler } from "./tools.mjs";
@@ -700,8 +700,36 @@ const server = http.createServer(async (req, res) => {
         return redirect(res, `/memories/login?error=${encodeURIComponent(error.message)}`);
       }
     }
-    if (pathname === "/memories/my") return pageMy(req, res);
+    if (pathname === "/memories/my") return redirect(res, "/memories/files");
     if (pathname === "/memories/files") return pageBrowser(req, res, url);
+
+  if (pathname === "/memories/files/action") {
+    const viewer = currentUser(req);
+    const scope = isAdmin(viewer) ? "" : "/" + String(userFolder(viewer)).replace(/^\/+/, "");
+    try {
+      return await fileAction(req, res, scope);
+    } catch (error) {
+      return sendJson(res, error.status || 500, { ok: false, error: error.message });
+    }
+  }
+
+  if (pathname === "/memories/files/info") {
+    const viewer = currentUser(req);
+    const scope = isAdmin(viewer) ? "" : "/" + String(userFolder(viewer)).replace(/^\/+/, "");
+    try {
+      return await fileInfo(req, res, url, scope);
+    } catch (error) {
+      return sendJson(res, error.status || 500, { ok: false, error: error.message });
+    }
+  }
+
+  if (pathname === "/memories/files/upload") {
+    try {
+      return await fileUpload(req, res);
+    } catch (error) {
+      return sendJson(res, error.status || 500, { ok: false, error: error.message });
+    }
+  }
     if (pathname === "/memories/files/raw") {
       try {
         return await rawBrowser(req, res, url);

@@ -138,6 +138,9 @@ export function adminFilesPage({
     const rows = entries
     .map((entry) => {
       const kind = entry.isDir ? "dir" : kindOf(entry.name);
+      const hiddenFlag = entry.hidden
+        ? '<button class="a-btn a-btn--tiny a-btn--warn" type="button" data-show data-path="${e(entry.path)}" title="让成员/游客重新看到">显示</button>'
+        : '<button class="a-btn a-btn--tiny" type="button" data-hide data-path="${e(entry.path)}" title="从成员/游客的视图里藏起来">隐藏</button>';
       const name = entry.isDir
         ? `<a class="a-name a-name--dir" href="/memories/admin/files?drive=${drive.id}&path=${encodeURIComponent(entry.path)}">${e(entry.name)}</a>`
         : `<button class="a-name a-name--file" type="button" data-preview="${e(entry.path)}" data-name="${e(entry.name)}" data-size="${
@@ -165,11 +168,11 @@ export function adminFilesPage({
       return `<tr data-path="${e(entry.path)}" data-dir="${entry.isDir ? "1" : "0"}" data-kind="${kind}">
         <td class="a-cell-name"><button type="button" class="a-tick" data-pick data-value="${e(entry.path)}" ${
           entry.isDir ? 'data-dir="1"' : ""
-        } aria-pressed="false" aria-label="选择 ${e(entry.name)}"></button><span class="a-cell-name__main">${iconOf(kind)}${name}</span></td>
+        } aria-pressed="false" aria-label="选择 ${e(entry.name)}"></button><span class="a-cell-name__main">${iconOf(kind)}${name}${entry.hidden ? '<span class="a-flag">已隐藏</span>' : ""}</span></td>
         <td class="a-cell-path a-mono" hidden>${e(entry.display || entry.path)}</td>
         <td class="a-num">${entry.isDir ? "—" : fmtSize(entry.size)}</td>
         <td class="a-mono">${entry.modified ? e(String(entry.modified).slice(0, 16).replace("T", " ")) : "—"}</td>
-        <td class="a-actions"><div class="a-actions__row">${actions}</div></td>
+        <td class="a-actions"><div class="a-actions__row">${actions}${hiddenFlag}</div></td>
       </tr>`;
     })
     .join("");
@@ -178,6 +181,9 @@ export function adminFilesPage({
 const cards = entries
     .map((entry) => {
       const kind = entry.isDir ? "dir" : kindOf(entry.name);
+      const hiddenFlag = entry.hidden
+        ? '<button class="a-btn a-btn--tiny a-btn--warn" type="button" data-show data-path="${e(entry.path)}" title="让成员/游客重新看到">显示</button>'
+        : '<button class="a-btn a-btn--tiny" type="button" data-hide data-path="${e(entry.path)}" title="从成员/游客的视图里藏起来">隐藏</button>';
       const raw = `/memories/admin/files/raw?drive=${drive.id}&path=${encodeURIComponent(entry.path)}`;
       const thumb =
         kind === "image"
@@ -325,17 +331,6 @@ export function adminStoragesPage({ site, user, drives }) {
         <span class="a-hint">0 用默认（照片 250MB / 视频 10GB）；填了就按这个存储自己的上限</span></label>
       <label class="a-form__check"><input type="checkbox" name="allow_upload" checked /><span>允许成员上传</span></label>
       <label class="a-form__check"><input type="checkbox" name="enabled" checked /><span>启用</span></label>
-      <label class="a-form__wide"><span>隐藏目录</span>
-        <div class="a-pick" data-hidden-box>
-          <p class="a-hint" data-hidden-empty>还没有隐藏任何目录。</p>
-          <ul class="a-pick__chips" data-hidden-chips></ul>
-          <div class="a-pick__row">
-            <button class="a-btn a-btn--tiny" type="button" data-hidden-open>选择目录</button>
-            <span class="a-hint">只对成员与游客生效；管理员始终能看到。</span>
-          </div>
-          <input type="hidden" name="hidden" data-hidden-input value="" />
-        </div>
-      </label>
       <label class="a-form__wide"><span>前台可操作区</span>
         <div class="a-pick" data-public-box>
           <p class="a-hint" data-public-empty>没有限定：所有目录都能在前台看到（绿点）。</p>
@@ -395,7 +390,7 @@ export function adminStoragesPage({ site, user, drives }) {
 const roleLabel = { owner: "超级管理员", admin: "管理员", user: "成员" };
 const rankOf = (row) => (row.role === "owner" ? 3 : row.role === "admin" ? 2 : 1);
 
-export function adminUsersPage({ site, user, users }) {
+export function adminUsersPage({ site, user, users, total = null }) {
   const me = rankOf(user);
   const rows = users
     .map((row) => {
@@ -412,6 +407,8 @@ export function adminUsersPage({ site, user, users }) {
       <td><div class="a-member"><span class="a-ava">${avatarTag(row, "a-ava__img", "a-ava__text")}</span><div class="a-member__text"><strong>${e(displayName(row))}</strong><small class="a-mono">QQ ${e(row.qq || "未绑定")}</small></div></div></td>
       <td data-label="备注">${e(row.note || "—")}</td>
       <td data-label="角色">${e(roleLabel[row.role] || row.role)}</td>
+      <td data-label="文件" class="a-num">${row.files ?? 0}</td>
+      <td data-label="占用" class="a-num">${fmtSize(row.bytes || 0)}</td>
       <td data-label="状态">${row.status === "active" ? '<span class="a-tag a-tag--ok">正常</span>' : '<span class="a-tag">停用</span>'}</td>
       <td data-label="最近登录" class="a-mono">${row.last_login_at ? e(String(row.last_login_at).slice(0, 16).replace("T", " ")) : "—"}</td>
       <td><div class="a-actions__row">
@@ -442,7 +439,7 @@ export function adminUsersPage({ site, user, users }) {
   </form>
   <p class="a-hint">只填 QQ 号就能加人；昵称与头像等他第一次登录时从 Campux 同步，没加进来的 QQ 登录会被拒绝。</p>
   <table class="a-table">
-    <thead><tr><th>成员</th><th>备注</th><th>角色</th><th>状态</th><th>最近登录</th><th></th></tr></thead>
+    <thead><tr><th>成员</th><th>备注</th><th>角色</th><th>文件</th><th>占用</th><th>状态</th><th>最近登录</th><th></th></tr></thead>
     <tbody>${rows || `<tr><td colspan="6" class="a-empty">还没有成员。</td></tr>`}</tbody>
   </table>`;
 

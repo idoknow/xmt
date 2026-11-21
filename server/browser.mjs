@@ -2,8 +2,8 @@
 import { all, get, setting } from "./db.mjs";
 import { currentUser, isAdmin } from "./auth.mjs";
 import { driverFor } from "./drives.mjs";
-import { hiddenPrefixes, publicPrefixes } from "./media.mjs";
-import { browsePage } from "./ui.mjs";
+import { hiddenPrefixes, publicPrefixes, uploadStats, userFolder } from "./media.mjs";
+import { filesPage } from "./ui.mjs";
 import { html, prettyPath, redirect, send } from "./util.mjs";
 import { streamPath } from "./filestream.mjs";
 
@@ -28,6 +28,11 @@ function publicFor(drive, user) {
   return isAdmin(user) ? [] : publicPrefixes(drive.id);
 }
 
+function isOutsidePublic(prefixes, target) {
+  if (!prefixes.length) return false;
+  return !prefixes.some((prefix) => target === prefix || String(target).startsWith(`${prefix}/`));
+}
+
 function isOutside(prefixes, target) {
   if (!prefixes.length) return false;
   return !prefixes.some((prefix) => target === prefix || String(target).startsWith(`${prefix}/`));
@@ -38,46 +43,73 @@ export async function pageBrowser(req, res, url) {
   const drives = visibleDrives(user);
   const wanted = Number(url.searchParams.get("drive"));
   const drive = drives.find((item) => item.id === wanted) || drives[0] || null;
-  const currentPath = url.searchParams.get("path") || "/";
+  const mine = isAdmin(user) ? "" : user ? userFolder(user) : "";
+  const currentPath = url.searchParams.get("path") || (mine || "/");
+  const stats = uploadStats().global || { files: 0, bytes: 0 };
+  const mineStats = user
+    ? get("SELECT COUNT(*) AS files, COALESCE(SUM(size),0) AS bytes FROM media WHERE owner_id = ?", user.id)
+    : null;
 
   if (!drive) {
-    html(res, 200, browsePage({ site: siteOf(), user, drives: [], drive: null, path: "/", entries: [], pretty: "/" }));
+    html(res, 200, filesPage({ site: siteOf(), user, drives: [], drive: null, path: "/", entries: [], stats, mine: mineStats }));
     return;
   }
+
+  const deny = (message, status = 404) =>
+    html(
+      res,
+      status,
+      filesPage({
+        site: siteOf(),
+        user,
+        drives,
+        drive,
+        path: "/",
+        entries: [],
+        stats,
+        mine: mineStats,
+        canManage: Boolean(user),
+        rootLabel: mine ? "我的文件" : "媒体库",
+        error: message,
+      }),
+    );
+
+  if (mine && !(currentPath === mine || String(currentPath).startsWith(`${mine}/`))) {
+    return deny("这里是你自己的目录，上面的路径不在范围内。", 403);
+  }
+  const area = publicFor(drive, user);
+  if (currentPath !== "/" && isOutside(area, currentPath)) return deny("这个目录没有开放。");
 
   const driver = driverFor(drive);
-  const area = publicFor(drive, user);
-  if (currentPath !== "/" && isOutside(area, currentPath)) {
-    html(res, 404, browsePage({ site: siteOf(), user, drives, drive, path: "/", entries: [], error: "这个目录没有开放。", pretty: "/" }));
-    return;
-  }
-
   let entries = [];
   let error = "";
-  let pretty = currentPath;
   try {
     const list = await driver.list(currentPath);
-    const prefixes = hiddenFor(drive, user);
-    entries = list.filter((entry) => !isHiddenPath(prefixes, entry.path) && !isOutside(area, entry.path));
-    pretty = await prettyPath(driver, currentPath).catch(() => currentPath);
+    const hidden = hiddenFor(drive, user);
+    entries = list
+      .filter((entry) => !isHiddenPath(hidden, entry.path))
+      .filter((entry) => !area.length || isOutsidePublic(area, entry.path) === false)
+      .sort((a, b) => Number(b.isDir) - Number(a.isDir) || a.name.localeCompare(b.name, "zh-Hans-CN"));
   } catch (problem) {
-    error = `读取目录失败：${problem.message}`;
+    error = problem.message || "读取目录失败";
   }
 
   html(
     res,
-    200,
-    browsePage({
+    error ? 500 : 200,
+    filesPage({
       site: siteOf(),
       user,
       drives,
       drive,
       path: currentPath,
-      pretty,
       entries,
+      stats,
+      mine: mineStats,
+      canManage: Boolean(user),
+      rootLabel: mine ? "我的文件" : "媒体库",
+      strip: mine,
       error,
-      limit: drive.max_file_bytes ? `单个文件 ≤ ${(drive.max_file_bytes / 1024 ** 3).toFixed(1)} GB（这份存储自己的上限）` : "",
-      canUpload: Boolean(user) && (isAdmin(user) || Boolean(drive.allow_upload)),
     }),
   );
 }

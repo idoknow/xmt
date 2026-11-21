@@ -482,3 +482,151 @@ ${list}
 
 export const driveFieldSpecs = () =>
   Object.fromEntries(Object.entries(DRIVERS).map(([key, spec]) => [key, { label: spec.label, hint: spec.hint, fields: spec.fields }]));
+
+
+/* ---------- 前台文件库（带操作的文件管理器） ---------- */
+
+const fmIcon = (kind) =>
+  kind === "dir"
+    ? '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h4l2 2.5h7A1.5 1.5 0 0 1 19 10v7.5A1.5 1.5 0 0 1 17.5 19h-13A1.5 1.5 0 0 1 3 17.5z" stroke-linejoin="round"/></svg>'
+    : '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M6.5 3.5h6l5 5V19a1 1 0 0 1-1 1h-10a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1z" stroke-linejoin="round"/><path d="M12.5 3.5V9h5" stroke-linejoin="round"/></svg>';
+
+const fmKindOf = (name) =>
+  /\.(jpe?g|png|webp|gif|avif|bmp|heic)$/i.test(name)
+    ? "image"
+    : /\.(mp4|mov|m4v|webm|mkv|avi)$/i.test(name)
+      ? "video"
+      : /\.(mp3|wav|flac|m4a|aac|ogg)$/i.test(name)
+        ? "audio"
+        : /\.pdf$/i.test(name)
+          ? "pdf"
+          : "file";
+
+export function filesPage({
+  site,
+  user,
+  drives = [],
+  drive = null,
+  path: currentPath = "/",
+  entries = [],
+  stats = { files: 0, bytes: 0 },
+  mine = null,
+  canManage = false,
+  rootLabel = "媒体库",
+  strip = "",
+  error = "",
+}) {
+  if (!drive) {
+    return shell({
+      site,
+      user,
+      title: "媒体库",
+      body: '<section class="page-head"><div class="wrap"><p class="kicker">Memories</p><h1>还没有可浏览的存储</h1><p class="lead">请管理员先在后台添加存储。</p></div></section>',
+    });
+  }
+
+  const root = rootLabel;
+  const base = strip && String(currentPath).startsWith(strip) ? strip : "";
+  const relative = base ? String(currentPath).slice(base.length) : String(currentPath);
+  const parts = String(relative)
+    .split("/")
+    .filter(Boolean);
+  const crumbs = [
+    `<a href="/memories/files?drive=${drive.id}">${e(root)}</a>`,
+    ...parts.map((_, index) => {
+      const sub = `${base}/${parts.slice(0, index + 1).join("/")}`;
+      const name = parts[index];
+      return `<a href="/memories/files?drive=${drive.id}&path=${encodeURIComponent(sub)}">${e(name)}</a>`;
+    }),
+  ].join('<span class="m-crumbs__sep">/</span>');
+
+  const chips = drives
+    .map(
+      (item) =>
+        `<a class="m-chip${item.id === drive.id ? " is-on" : ""}" href="/memories/files?drive=${item.id}">${e(item.name)}</a>`,
+    )
+    .join("");
+
+  const rows = entries
+    .map((entry) => {
+      const kind = entry.isDir ? "dir" : fmKindOf(entry.name);
+      const name = entry.isDir
+        ? `<a class="fm-name fm-name--dir" href="/memories/files?drive=${drive.id}&path=${encodeURIComponent(entry.path)}">${e(entry.name)}</a>`
+        : `<button class="fm-name" type="button" data-fm-preview="${e(entry.path)}" data-fm-kind="${kind}">${e(entry.name)}</button>`;
+      return `<tr data-fm-path="${e(entry.path)}" data-fm-dir="${entry.isDir ? 1 : 0}" data-fm-kind="${kind}" data-fm-size="${entry.size || 0}" data-fm-name="${e(entry.name)}">
+        <td class="fm-tick"><button class="a-tick" type="button" data-fm-pick data-value="${e(entry.path)}" aria-pressed="false" aria-label="选择 ${e(entry.name)}"></button></td>
+        <td class="fm-name-cell"><span class="fm-ico fm-ico--${kind}">${fmIcon(kind)}</span>${name}</td>
+        <td class="fm-size">${entry.isDir ? "—" : fmtSize(entry.size)}</td>
+        <td class="fm-time">${entry.modified ? e(String(entry.modified).slice(0, 16).replace("T", " ")) : "—"}</td>
+        <td class="fm-actions">
+          ${entry.isDir ? "" : `<button class="a-btn a-btn--tiny" type="button" data-fm-preview="${e(entry.path)}" data-fm-kind="${kind}">预览</button>`}
+          <a class="a-btn a-btn--tiny" href="/memories/files/raw?drive=${drive.id}&path=${encodeURIComponent(entry.path)}&download=1">下载</a>
+          <button class="a-btn a-btn--tiny" type="button" data-fm-info="${e(entry.path)}">信息</button>
+          <button class="a-btn a-btn--tiny" type="button" data-fm-share="${e(entry.path)}">分享</button>
+          ${canManage ? `<button class="a-btn a-btn--tiny" type="button" data-fm-rename="${e(entry.path)}" data-fm-name="${e(entry.name)}">改名</button><button class="a-btn a-btn--tiny a-btn--danger" type="button" data-fm-remove="${e(entry.path)}">删除</button>` : ""}
+        </td>
+      </tr>`;
+    })
+    .join("");
+
+  const statsLine = `<p class="fm-stats">全站 ${stats.files} 个文件 · ${fmtSize(stats.bytes)}${
+    mine ? `　·　我的 ${mine.files} 个 · ${fmtSize(mine.bytes)}` : ""
+  }</p>`;
+
+  const body = `<section class="page-head">
+    <div class="wrap">
+      <p class="kicker">Memories · ${e(root)}</p>
+      <h1>${e(drive.name)}</h1>
+      <p class="lead">${e(drive.description || "按目录归档的校园影像。")}</p>
+      ${statsLine}
+      ${error ? `<p class="m-alert">${e(error)}</p>` : ""}
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <nav class="m-crumbs">${crumbs}</nav>
+      <div class="fm-toolbar">
+        <div class="m-chips">${chips}</div>
+        <div class="fm-tools">
+          ${canManage ? '<button class="a-btn a-btn--primary" type="button" data-fm-mkdir>新建文件夹</button>' : ""}
+          ${canManage ? `<label class="a-btn">上传<input type="file" multiple hidden data-fm-upload data-drive="${drive.id}" data-path="${e(currentPath)}" /></label>` : ""}
+        </div>
+      </div>
+
+      <div class="a-selbar fm-selbar" data-fm-bar hidden>
+        <span data-fm-count>已选 0 项</span>
+        <button class="a-btn a-btn--tiny" type="button" data-fm-batch="download">下载</button>
+        <button class="a-btn a-btn--tiny" type="button" data-fm-batch="share">分享</button>
+        ${canManage ? '<button class="a-btn a-btn--tiny" type="button" data-fm-batch="move">移动</button><button class="a-btn a-btn--tiny" type="button" data-fm-batch="copy">复制</button><button class="a-btn a-btn--tiny" type="button" data-fm-batch="remove">删除</button>' : ""}
+        <button class="a-btn a-btn--tiny" type="button" data-fm-clear>取消选择</button>
+      </div>
+
+      <table class="a-table fm-table" data-fm-drive="${drive.id}" data-fm-path="${e(currentPath)}">
+        <thead><tr>
+          <th class="fm-tick"><button class="a-tick a-tick--all" type="button" data-fm-all aria-pressed="false" aria-label="全选"></button></th>
+          <th>名称</th><th class="fm-size">大小</th><th class="fm-time">修改时间</th><th class="fm-actions">操作</th>
+        </tr></thead>
+        <tbody>${rows || '<tr><td colspan="5" class="fm-empty">这个目录是空的。</td></tr>'}</tbody>
+      </table>
+      <p class="fm-note">点一行即可选中（按住 Shift 连选）。${canManage ? "删除会直接生效；移动 / 复制 / 打包在选中后出现。" : "游客只读。"}</p>
+    </div>
+  </section>
+
+  <dialog class="a-dialog" data-fm-dialog>
+    <form method="dialog" class="a-dialog__form">
+      <header class="a-dialog__head"><h3 data-fm-title>预览</h3><button class="a-dialog__x" value="close" aria-label="关闭">×</button></header>
+      <div class="a-dialog__body" data-fm-body></div>
+      <footer class="a-dialog__foot" data-fm-foot></footer>
+    </form>
+  </dialog>`;
+
+  return shell({
+    site,
+    user,
+    title: `媒体库 · ${drive.name}`,
+    body,
+    head: `<link rel="stylesheet" href="/assets/css/admin.css?v=${assetVersion()}" />`,
+    scripts: `<script src="/assets/js/files.js?v=${assetVersion()}" defer></script>`,
+  });
+}
