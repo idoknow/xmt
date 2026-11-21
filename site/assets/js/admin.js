@@ -1005,7 +1005,9 @@ if (driveForm) {
     fieldOf("mount_path").value = drive?.mount_path || "";
     fieldOf("root").value = drive?.root || "/";
     fieldOf("visibility").value = drive?.visibility === "public" ? "public" : "members";
+    fieldOf("description").value = drive?.description || "";
     fieldOf("enabled").checked = drive ? Boolean(drive.enabled) : true;
+    fieldOf("allow_upload").checked = drive ? drive.allow_upload !== 0 : true;
     fieldOf("quota_gb").value = drive?.quota_bytes ? (drive.quota_bytes / GB).toFixed(2) : "";
     fieldOf("max_file_gb").value = drive?.max_file_bytes ? (drive.max_file_bytes / GB).toFixed(2) : "";
     fieldOf("driver").disabled = Boolean(drive);
@@ -1037,6 +1039,8 @@ if (driveForm) {
       root: fieldOf("root").value.trim() || "/",
       mount_path: fieldOf("mount_path").value.trim(),
       visibility: fieldOf("visibility").value,
+      description: fieldOf("description").value.trim(),
+      allow_upload: fieldOf("allow_upload").checked,
       enabled: fieldOf("enabled").checked,
       quota_bytes: gb("quota_gb"),
       max_file_bytes: gb("max_file_gb"),

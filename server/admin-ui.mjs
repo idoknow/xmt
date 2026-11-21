@@ -245,8 +245,10 @@ export function adminStoragesPage({ site, user, drives }) {
       <td class="a-mono" data-label="挂载">${e(drive.mount_path || `/ ${drive.name}`)}</td>
       <td data-label="驱动">${e(DRIVERS[drive.driver]?.label || drive.driver)}</td>
       <td class="a-mono" data-label="根">${e(drive.root || "/")}</td>
+      <td data-label="说明">${drive.description ? e(drive.description) : '<span class="a-hint">—</span>'}</td>
       <td data-label="容量">${capText(drive.quota_bytes)}</td>
       <td data-label="单文件">${drive.max_file_bytes ? capText(drive.max_file_bytes) : '<span class="a-hint">默认</span>'}</td>
+      <td data-label="允许上传">${drive.allow_upload ? '<span class="a-tag a-tag--ok">开放</span>' : '<span class="a-tag">关闭</span>'}</td>
       <td data-label="状态">${drive.enabled ? '<span class="a-tag a-tag--ok">启用</span>' : '<span class="a-tag">停用</span>'}</td>
       <td data-label="可见">${drive.visibility === "public" ? "公开" : "成员"}</td>
       <td data-label="隐藏">${drive.hidden?.length ? `${drive.hidden.length} 个` : "—"}</td>
@@ -267,6 +269,8 @@ export function adminStoragesPage({ site, user, drives }) {
     driver: drive.driver,
     mount_path: drive.mount_path || "",
     root: drive.root || "/",
+    description: drive.description || "",
+    allow_upload: drive.allow_upload === 0 ? 0 : 1,
     visibility: drive.visibility,
     enabled: Boolean(drive.enabled),
     hidden: drive.hidden || [],
@@ -288,11 +292,14 @@ export function adminStoragesPage({ site, user, drives }) {
         .join("")}</select></label>
       <label><span>挂载路径</span><input name="mount_path" placeholder="/139" /></label>
       <label><span>根路径</span><input name="root" value="/" placeholder="/" /></label>
+      <label class="a-form__wide"><span>说明</span><input name="description" placeholder="给成员看的一句话：放什么、谁能传、注意什么" />
+        <span class="a-hint">会显示在成员的上传对话框里，帮他们知道该传到哪。</span></label>
       <label><span>可见性</span><select name="visibility"><option value="members">成员可见</option><option value="public">公开</option></select></label>
       <label><span>总容量</span><span class="a-unit"><input name="quota_gb" type="number" min="0" step="0.1" placeholder="0 = 未获取" inputmode="decimal" /><em>GB</em></span>
         <span class="a-hint">0 表示不显示；点「刷新容量」可从存储自动读取</span></label>
       <label><span>单文件上限</span><span class="a-unit"><input name="max_file_gb" type="number" min="0" step="0.1" placeholder="0 = 跟随默认" inputmode="decimal" /><em>GB</em></span>
         <span class="a-hint">0 用默认（照片 250MB / 视频 10GB）；填了就按这个存储自己的上限</span></label>
+      <label class="a-form__check"><input type="checkbox" name="allow_upload" checked /><span>允许成员上传</span></label>
       <label class="a-form__check"><input type="checkbox" name="enabled" checked /><span>启用</span></label>
       <label class="a-form__wide"><span>隐藏目录</span>
         <div class="a-pick" data-hidden-box>
@@ -337,8 +344,8 @@ export function adminStoragesPage({ site, user, drives }) {
   </dialog>
 
   <table class="a-table">
-    <thead><tr><th>名称</th><th>挂载</th><th>驱动</th><th>根</th><th>容量</th><th>单文件</th><th>状态</th><th>可见</th><th>隐藏</th><th></th></tr></thead>
-    <tbody>${rows || `<tr><td colspan="10" class="a-empty">还没有存储。</td></tr>`}</tbody>
+    <thead><tr><th>名称</th><th>挂载</th><th>驱动</th><th>根</th><th>说明</th><th>容量</th><th>单文件</th><th>允许上传</th><th>状态</th><th>可见</th><th>隐藏</th><th></th></tr></thead>
+    <tbody>${rows || `<tr><td colspan="12" class="a-empty">还没有存储。</td></tr>`}</tbody>
   </table>
   <script type="application/json" id="drives-data">${JSON.stringify(drivesData).replace(/</g, "\\u003c")}</script>
   <script type="application/json" id="drive-specs">${JSON.stringify(driveFieldSpecs()).replace(/</g, "\\u003c")}</script>`;

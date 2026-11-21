@@ -76,8 +76,9 @@ const profile = (user) => {
           <div><strong>${e(name)}</strong><small>${e(roleLabel[user.role] || "成员")} · QQ ${e(user.qq || "—")}</small></div>
         </div>
         <a role="menuitem" href="/memories/my">我的上传</a>
+        <a role="menuitem" href="/memories/files">文件</a>
         <a role="menuitem" href="/memories">全部媒体</a>
-        ${user.role === "admin" ? '<a role="menuitem" href="/memories/admin">后台管理</a>' : ""}
+        ${user.role === "admin" || user.role === "owner" ? '<a role="menuitem" href="/memories/admin">后台管理</a>' : ""}
         <a role="menuitem" class="m-user__out" href="/memories/logout">退出登录</a>
       </div>
     </details>`;
@@ -85,8 +86,8 @@ const profile = (user) => {
 
 export function shell({ title, site, user, body, bodyClass = "", scripts = "", head = "" }) {
   const nav = user
-    ? `<a href="/memories">媒体库</a>${profile(user)}`
-    : `<a href="/memories">媒体库</a><a href="/memories/login">登录</a>`;
+    ? `<a href="/memories">媒体库</a><a href="/memories/files">文件</a>${profile(user)}`
+    : `<a href="/memories">媒体库</a><a href="/memories/files">文件</a><a href="/memories/login">登录</a>`;
 
   return `<!doctype html>
 <html lang="zh-CN" data-page="memories">
@@ -157,7 +158,62 @@ const card = (item) => {
   </a>`;
 };
 
-export function galleryPage({ site, user, items, total, query }) {
+export function browsePage({ site, user, drives, drive, path: currentPath, entries = [], error = "", canUpload = false }) {
+  const crumbs = [];
+  const segments = String(currentPath || "/").split("/").filter(Boolean);
+  let walk = "";
+  crumbs.push(`<a href="/memories/files${drive ? `?drive=${drive.id}` : ""}">根目录</a>`);
+  for (const segment of segments) {
+    walk += `/${segment}`;
+    crumbs.push(`<a href="/memories/files?drive=${drive?.id}&path=${encodeURIComponent(walk)}">${e(segment)}</a>`);
+  }
+
+  const chips = drives
+    .map(
+      (item) =>
+        `<a class="m-chip${drive && item.id === drive.id ? " is-on" : ""}" href="/memories/files?drive=${item.id}&path=/">${e(
+          item.name,
+        )}</a>`,
+    )
+    .join("");
+
+  const rows = entries
+    .slice()
+    .sort((a, b) => Number(b.isDir) - Number(a.isDir) || String(a.name).localeCompare(String(b.name), "zh-Hans-CN"))
+    .map((entry) => {
+      const url = `/memories/files/raw?drive=${drive.id}&path=${encodeURIComponent(entry.path)}`;
+      const name = entry.isDir
+        ? `<a class="m-row__name" href="/memories/files?drive=${drive.id}&path=${encodeURIComponent(entry.path)}">${e(
+            entry.name,
+          )}/</a>`
+        : `<a class="m-row__name" href="${url}" target="_blank" rel="noreferrer">${e(entry.name)}</a>`;
+      return `<li class="m-row">
+        <span class="m-row__ico" aria-hidden="true">${entry.isDir ? "▸" : "·"}</span>
+        ${name}
+        <span class="m-row__meta">${entry.isDir ? "" : fmtSize(entry.size)}</span>
+        ${entry.isDir ? "" : `<a class="m-row__dl" href="${url}&download=1">下载</a>`}
+      </li>`;
+    })
+    .join("");
+
+  const body = `
+<section class="m-hero">
+  <p class="m-kicker">Memories · 文件</p>
+  <h1>${e(drive ? drive.name : "文件")}</h1>
+  <p class="m-hero__intro">${e(drive?.description || "这里按存储整理文件；游客只读，成员按权限上传。")}</p>
+</section>
+<div class="m-toolbar">
+  <div class="m-chips">${chips}</div>
+  ${canUpload ? `<label class="m-btn m-btn--primary">上传<input type="file" multiple hidden data-browse-upload data-drive="${drive.id}" data-folder="${e(currentPath)}" /></label>` : ""}
+</div>
+<nav class="m-crumbs">${crumbs.join('<span aria-hidden="true">/</span>')}</nav>
+${error ? `<p class="m-alert">${e(error)}</p>` : ""}
+${rows ? `<ul class="m-rows">${rows}</ul>` : `<p class="m-empty">${drive ? "这个目录是空的。" : "还没有可查看的存储。"}</p>`}`;
+
+  return shell({ title: drive ? drive.name : "文件", site, user, body, bodyClass: "m-page--files" });
+}
+
+export function galleryPage({ site, user, items, total, query, drives = [] }) {
   const sorts = [
     ["new", "最新"],
     ["old", "最早"],
@@ -208,16 +264,32 @@ ${
     ? `<div class="m-grid" data-grid>${items.map(card).join("")}</div>`
     : `<p class="m-empty">这里还什么都没有。${user ? "点右上角上传第一张。" : "登录后可以上传。"}</p>`
 }
-${user ? uploadDialog() : ""}
+${user ? uploadDialog({ drives }) : ""}
 `;
   return shell({ title: "媒体库", site, user, body, bodyClass: "m-page--gallery" });
 }
 
-export function uploadDialog() {
+export function uploadDialog({ drives = [] } = {}) {
+  const usable = drives.filter((drive) => drive.enabled && (drive.allow_upload || drive.allow_upload === undefined));
+  const options = usable
+    .map(
+      (drive) =>
+        `<option value="${drive.id}" data-limit="${Number(drive.max_file_bytes) || 0}" data-desc="${e(
+          drive.description || "",
+        )}">${e(drive.name)}${drive.description ? ` · ${e(drive.description)}` : ""}</option>`,
+    )
+    .join("");
   return `<dialog class="m-modal" data-upload>
   <form method="dialog" class="m-modal__form" data-upload-form>
     <h2>上传到 Memories</h2>
-    <p class="m-modal__hint">照片和视频都行。照片单张不超过 250MB，视频不超过 10GB；存储如果单独设了上限，以存储的为准。</p>
+    ${
+      usable.length > 1
+        ? `<label class="m-field"><span>上传到</span><select data-folder-drive name="drive">${options}</select></label>`
+        : usable.length === 1
+          ? `<input type="hidden" data-folder-drive name="drive" value="${usable[0].id}" />`
+          : ""
+    }
+    <p class="m-modal__hint" data-limit-hint>照片和视频都行。照片单张不超过 250MB，视频不超过 10GB；存储如果单独设了上限，以存储的为准。</p>
     <label class="m-drop" data-drop>
       <input type="file" name="files" accept="image/*,video/*" multiple data-file />
       <span class="m-drop__text">点这里选文件，或者把文件拖进来</span>
@@ -294,7 +366,7 @@ export function myPage({ site, user, items, folder, drives }) {
   </div>
 </div>
 ${items.length ? `<div class="m-grid" data-grid>${items.map(card).join("")}</div>` : `<p class="m-empty">还没有上传过。点右上角开始。</p>`}
-${uploadDialog()}
+${uploadDialog({ drives })}
 `;
   return shell({ title: "我的", site, user, body });
 }

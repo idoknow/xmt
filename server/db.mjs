@@ -133,6 +133,8 @@ ensureColumn("drives", "sort_order", "sort_order INTEGER NOT NULL DEFAULT 0");
 // 0 表示「不知道 / 跟随全局默认」
 ensureColumn("drives", "quota_bytes", "quota_bytes INTEGER NOT NULL DEFAULT 0");
 ensureColumn("drives", "max_file_bytes", "max_file_bytes INTEGER NOT NULL DEFAULT 0");
+ensureColumn("drives", "description", "description TEXT NOT NULL DEFAULT ''");
+ensureColumn("drives", "allow_upload", "allow_upload INTEGER NOT NULL DEFAULT 1");
 
 export const setting = (key, fallback = null) => {
   const row = get("SELECT value FROM settings WHERE key = ?", key);
@@ -153,16 +155,18 @@ export const audit = (userId, action, target, ip) =>
 
 export function bootstrap(adminQQ) {
   const stamp = now();
-  const admin = get("SELECT * FROM users WHERE role = 'admin' LIMIT 1");
+  const admin = get("SELECT * FROM users WHERE role IN ('owner', 'admin') LIMIT 1");
   if (!admin) {
     run(
-      "INSERT INTO users (qq, name, role, status, drive_root, created_at) VALUES (?, ?, 'admin', 'active', ?, ?)",
+      "INSERT INTO users (qq, name, role, status, drive_root, created_at) VALUES (?, ?, 'owner', 'active', ?, ?)",
       adminQQ,
       "管理员",
       "u-admin",
       stamp,
     );
   }
+  // 唯一超级管理员始终绑定 admin.qq；老库里是 'admin' 的一并升级
+  run("UPDATE users SET role = 'owner' WHERE role = 'admin' AND qq = ?", String(adminQQ));
 
   const drive = get("SELECT * FROM drives LIMIT 1");
   if (!drive) {

@@ -1467,3 +1467,79 @@ html[data-view="list"] .m-card__name {
   font-size: 0.7rem;
   color: var(--muted);
 }
+
+/* ---------- 前台文件库 ---------- */
+.m-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+.m-crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  color: var(--muted);
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+.m-crumbs a {
+  color: var(--ink-soft);
+  text-decoration: none;
+}
+.m-crumbs a:hover {
+  color: var(--vermilion);
+}
+.m-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.m-row {
+  display: grid;
+  grid-template-columns: 1.1rem minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.6rem 0.2rem;
+  border-bottom: 1px solid var(--rule);
+}
+.m-row:hover {
+  background: color-mix(in srgb, var(--ink) 3%, transparent);
+}
+.m-row__ico {
+  color: var(--muted);
+  font-family: var(--mono);
+}
+.m-row__name {
+  color: var(--ink);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.m-row__name:hover {
+  color: var(--vermilion);
+}
+.m-row__meta {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+.m-row__dl {
+  font-size: 0.74rem;
+  color: var(--ink-soft);
+  text-decoration: none;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+}
+.m-row__dl:hover {
+  color: var(--vermilion);
+  border-color: var(--vermilion);
+}
+.m-alert {
+  border-inline-start: 2px solid var(--vermilion);
+  padding: 0.5rem 0.8rem;
+  background: color-mix(in srgb, var(--vermilion) 6%, transparent);
+  font-size: 0.82rem;
+}

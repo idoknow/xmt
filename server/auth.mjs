@@ -49,7 +49,10 @@ export function currentUser(req) {
   return { ...user, sessionId: sid };
 }
 
-export const isAdmin = (user) => Boolean(user && user.role === "admin");
+export const isOwner = (user) =>
+  Boolean(user && (user.role === "owner" || String(user.qq) === String(setting("admin.qq", config.adminQQ))));
+
+export const isAdmin = (user) => Boolean(user && (user.role === "admin" || user.role === "owner"));
 
 export function createSession(user, req) {
   const id = b64url(randomBytes(32));
@@ -224,23 +227,23 @@ export async function finishOAuth(code, state, req) {
       run("UPDATE users SET avatar = ? WHERE id = ?", avatar, existing.id);
       existing.avatar = avatar;
     }
-    if (String(qq) === String(adminQQ) && existing.role !== "admin") {
+    if (String(qq) === String(adminQQ) && existing.role !== "owner") {
+      run("UPDATE users SET role = 'owner' WHERE id = ?", existing.id);
+      existing.role = "owner";
+    }
+    if (String(qq) !== String(adminQQ) && existing.role === "owner") {
       run("UPDATE users SET role = 'admin' WHERE id = ?", existing.id);
       existing.role = "admin";
-    }
-    if (String(qq) !== String(adminQQ) && existing.role === "admin") {
-      run("UPDATE users SET role = 'user' WHERE id = ?", existing.id);
-      existing.role = "user";
     }
     audit(existing.id, "login", `qq=${qq}`, req.socket.remoteAddress);
     return existing;
   }
 
   if (String(qq) === String(adminQQ)) {
-    const created = get("SELECT * FROM users WHERE role = 'admin' LIMIT 1");
+    const created = get("SELECT * FROM users WHERE role IN ('owner', 'admin') LIMIT 1");
     if (created) {
       run(
-        "UPDATE users SET qq = ?, name = ?, avatar = COALESCE(NULLIF(?, ''), avatar), drive_root = COALESCE(drive_root, ?) WHERE id = ?",
+        "UPDATE users SET qq = ?, name = ?, avatar = COALESCE(NULLIF(?, ''), avatar), role = 'owner', drive_root = COALESCE(drive_root, ?) WHERE id = ?",
         qq,
         displayName,
         avatar,
@@ -250,7 +253,7 @@ export async function finishOAuth(code, state, req) {
       return get("SELECT * FROM users WHERE id = ?", created.id);
     }
     run(
-      "INSERT INTO users (qq, name, avatar, role, status, drive_root, created_at) VALUES (?, ?, ?, 'admin', 'active', 'u-admin', ?)",
+      "INSERT INTO users (qq, name, avatar, role, status, drive_root, created_at) VALUES (?, ?, ?, 'owner', 'active', 'u-admin', ?)",
       qq,
       displayName,
       avatar,

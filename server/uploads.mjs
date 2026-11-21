@@ -47,6 +47,7 @@ async function initUpload(req, res, user) {
   const driveId = Number(body.drive);
   const drive = get("SELECT * FROM drives WHERE id = ?", driveId);
   if (!drive) throw fail(404, "存储不存在");
+  if (!drive.allow_upload && user.role === "user") throw fail(403, "这份存储没有开放上传");
 
   const name = String(body.name || "").trim();
   const size = Number(body.size) || 0;

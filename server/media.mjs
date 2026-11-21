@@ -79,7 +79,10 @@ export const userFolder = (user) => ensuredUserFolder(user) || `u-${user.id}`;
 /** 用户上传：只能进自己的文件夹；管理员可以指定任意目录 */
 export async function upload({ user, drive, folder, files }) {
   const driver = driverFor(drive);
-  const isAdmin = user.role === "admin";
+  const isAdmin = user.role === "admin" || user.role === "owner";
+  if (!isAdmin && !drive?.allow_upload) {
+    throw Object.assign(new Error("这份存储没有开放上传"), { status: 403 });
+  }
   const month = new Date().toISOString().slice(0, 7);
   const baseDir = isAdmin ? folder || `admin/${month}` : `${userFolder(user)}/${month}`;
   await driver.ensureDir(baseDir);

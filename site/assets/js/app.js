@@ -140,6 +140,46 @@ $$("[data-upload-open]").forEach((btn) =>
 );
 $("[data-upload-cancel]")?.addEventListener("click", () => dialog?.close());
 
+/* 上传上限提示：跟着「上传到」的选择走 */
+const driveSelect = $("[data-folder-drive]");
+const limitHint = $("[data-limit-hint]");
+const sizeText = (bytes) => {
+  const mb = Number(bytes) / 1024 / 1024;
+  if (!Number.isFinite(mb) || mb <= 0) return "";
+  if (mb >= 1024) return `${(mb / 1024).toFixed(mb / 1024 >= 10 ? 0 : 1)} GB`;
+  return `${mb >= 10 ? Math.round(mb) : mb.toFixed(1)} MB`;
+};
+const refreshLimitHint = () => {
+  if (!limitHint) return;
+  const option = driveSelect?.tagName === "SELECT" ? driveSelect.selectedOptions?.[0] : null;
+  const own = Number(option?.dataset.limit || driveSelect?.dataset?.limit || 0);
+  const desc = option?.dataset.desc || "";
+  const base = own > 0 ? `这份存储单独的服务器上限：单个文件 ≤ ${sizeText(own)}` : "单个文件：照片 ≤ 250 MB、视频 ≤ 10 GB（默认上限）";
+  limitHint.textContent = desc ? `${base}。${desc}` : `${base}。`;
+};
+driveSelect?.addEventListener("change", refreshLimitHint);
+refreshLimitHint();
+
+/* 前台文件库：直接上传到当前目录（成员会自动落到自己的目录） */
+$("[data-browse-upload]")?.addEventListener("change", async (event) => {
+  const input = event.currentTarget;
+  const files = Array.from(input.files || []);
+  input.value = "";
+  if (!files.length) return;
+  const form = new FormData();
+  form.append("drive", input.dataset.drive || "");
+  form.append("folder", input.dataset.folder || "/");
+  for (const file of files) form.append("files", file, file.name);
+  try {
+    const res = await fetch("/memories/api/upload", { method: "POST", body: form });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `上传失败（${res.status}）`);
+    location.reload();
+  } catch (error) {
+    alert(error.message);
+  }
+});
+
 const drop = $("[data-drop]");
 if (drop) {
   drop.addEventListener("dragover", (event) => {

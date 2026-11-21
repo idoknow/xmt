@@ -46,6 +46,7 @@ import {
 } from "./util.mjs";
 import { detailPage, driveFieldSpecs, fmtSize, galleryPage, loginPage, myPage, shareFilePage, sharePage } from "./ui.mjs";
 import { fileInfoOf, handleAdmin } from "./admin.mjs";
+import { pageBrowser, rawBrowser } from "./browser.mjs";
 import { handleUploads } from "./uploads.mjs";
 import { streamPath } from "./filestream.mjs";
 
@@ -248,7 +249,10 @@ function pageGallery(req, res, url) {
     admin ? { ...item, is_hidden: isHidden(item.drive_id, item.path) } : item,
   );
   const total = countMedia({ ...query, excludeHidden });
-  html(res, 200, galleryPage({ site: siteOf(), user, items, total, query }));
+  const drives = all("SELECT * FROM drives WHERE enabled = 1 ORDER BY id").filter(
+    (drive) => Boolean(user) || drive.visibility === "public",
+  );
+  html(res, 200, galleryPage({ site: siteOf(), user, items, total, query, drives }));
 }
 
 function pageDetail(req, res, id) {
@@ -510,7 +514,7 @@ async function api(req, res, url) {
       const body = await readJson(req);
       if (!DRIVERS[body.driver]) throw Object.assign(new Error("未知存储类型"), { status: 400 });
       run(
-        "INSERT INTO drives (name, driver, config, root, mount_path, visibility, enabled, quota_bytes, max_file_bytes, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO drives (name, driver, config, root, mount_path, visibility, enabled, quota_bytes, max_file_bytes, description, allow_upload, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         String(body.name || DRIVERS[body.driver].label).slice(0, 40),
         body.driver,
         JSON.stringify(tidyConfig(body.config)),
@@ -520,6 +524,8 @@ async function api(req, res, url) {
         body.enabled === false || body.enabled === 0 ? 0 : 1,
         Math.max(0, Math.trunc(Number(body.quota_bytes) || 0)),
         Math.max(0, Math.trunc(Number(body.max_file_bytes) || 0)),
+        String(body.description || "").slice(0, 200),
+        body.allow_upload === false || body.allow_upload === 0 ? 0 : 1,
         now(),
       );
       const created = get("SELECT id FROM drives ORDER BY id DESC LIMIT 1");
@@ -596,7 +602,7 @@ async function api(req, res, url) {
           merged = JSON.stringify({ ...tidyConfig(existing), ...patch });
         }
         run(
-          "UPDATE drives SET name = COALESCE(?, name), config = COALESCE(?, config), root = COALESCE(?, root), mount_path = COALESCE(?, mount_path), enabled = COALESCE(?, enabled), visibility = COALESCE(?, visibility), quota_bytes = COALESCE(?, quota_bytes), max_file_bytes = COALESCE(?, max_file_bytes) WHERE id = ?",
+          "UPDATE drives SET name = COALESCE(?, name), config = COALESCE(?, config), root = COALESCE(?, root), mount_path = COALESCE(?, mount_path), enabled = COALESCE(?, enabled), visibility = COALESCE(?, visibility), quota_bytes = COALESCE(?, quota_bytes), max_file_bytes = COALESCE(?, max_file_bytes), description = COALESCE(?, description), allow_upload = COALESCE(?, allow_upload) WHERE id = ?",
           body.name ?? null,
           merged,
           body.root ?? null,
@@ -605,6 +611,8 @@ async function api(req, res, url) {
           body.visibility ? (body.visibility === "public" ? "public" : "members") : null,
           body.quota_bytes == null ? null : Math.max(0, Math.trunc(Number(body.quota_bytes) || 0)),
           body.max_file_bytes == null ? null : Math.max(0, Math.trunc(Number(body.max_file_bytes) || 0)),
+          body.description == null ? null : String(body.description).slice(0, 200),
+          body.allow_upload == null ? null : body.allow_upload ? 1 : 0,
           drive.id,
         );
         if (body.hidden != null) setHidden(drive.id, body.hidden);
@@ -669,6 +677,14 @@ const server = http.createServer(async (req, res) => {
       }
     }
     if (pathname === "/memories/my") return pageMy(req, res);
+    if (pathname === "/memories/files") return pageBrowser(req, res, url);
+    if (pathname === "/memories/files/raw") {
+      try {
+        return await rawBrowser(req, res, url);
+      } catch (error) {
+        return send(res, error.status || 500, error.message || "读取失败");
+      }
+    }
     if (pathname.startsWith("/memories/admin")) return handleAdmin(req, res, url);
     if (pathname.startsWith("/memories/a/")) return pageDetail(req, res, pathname.slice("/memories/a/".length));
     if (pathname.startsWith("/memories/s/")) {
