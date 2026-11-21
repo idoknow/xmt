@@ -146,16 +146,19 @@ export function webdavDriver({ address, username = "", password = "", root = "" 
     return { status: lastStatus, items: [], url: decodeHref(joinUrl(base, forms[0])), tried };
   };
 
-  /** 把一次 PROPFIND 的结果转成相对路径条目 */
-  const toEntries = (items, baseUrl) => {
-    const basePath = decodeHref(new URL(baseUrl).pathname).replace(/\/+$/, "");
+  /** 把一次 PROPFIND 的结果转成相对「存储根」的路径条目（跳过被请求目录自身） */
+  const toEntries = (items, dirPath = "/") => {
+    // 服务器回的 href 基本都带着自己的挂载前缀（例如 /dav/...），
+    // 记录必须是相对存储根的路径，否则再进子目录时会把前缀丢掉。
+    const rootPath = decodeHref(new URL(`${trimSlash(base)}/`).pathname).replace(/\/+$/, "");
+    const self = String(dirPath || "/").replace(/\/+$/, "");
     const out = [];
     for (const item of items) {
       const itemPath = item.href.replace(/\/+$/, "");
       if (!itemPath) continue;
-      const rel = relativePath(item.href, basePath);
+      const rel = relativePath(item.href, rootPath);
       const normalized = rel.replace(/\/+$/, "") || "/";
-      if (normalized === "/" || normalized === "") continue; // 目录自身
+      if (normalized === "/" || normalized === self) continue; // 目录自身
       const name = item.display || normalized.split("/").filter(Boolean).pop() || normalized;
       out.push({ name, path: normalized, isDir: item.isDir, size: item.size, modified: item.modified });
     }
@@ -240,7 +243,7 @@ export function webdavDriver({ address, username = "", password = "", root = "" 
       const sortEntries = (items) => items.sort((a, b) => Number(b.isDir) - Number(a.isDir) || a.name.localeCompare(b.name, "zh"));
 
       const hit = await propfindDir(clean, "1");
-      if (hit.ok) return sortEntries(toEntries(hit.items, hit.url));
+      if (hit.ok) return sortEntries(toEntries(hit.items, clean));
 
       // 404/405 之类：有的服务端只认它自己返回的 href（目录名里有 & 时尤其常见，
       // 编码过的 %26 反而不匹配），于是回到上一层按名字找回这条，再用它的 href 直接请求。
@@ -259,7 +262,7 @@ export function webdavDriver({ address, username = "", password = "", root = "" 
             const absolute = /^https?:\/\//i.test(href) ? href : new URL(href, base).toString();
             for (const candidate of [encodeURI(absolute), absolute]) {
               const deep = await propfindAbsolute(candidate, "1");
-              if (deep.status === 207) return sortEntries(toEntries(deep.items, deep.url));
+              if (deep.status === 207) return sortEntries(toEntries(deep.items, clean));
             }
           }
         }
