@@ -9,8 +9,9 @@
     <link rel="icon" href="/assets/img/school-emblem-336.webp" type="image/webp" />
     <link rel="preload" href="/assets/fonts/newsreader-latin.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="/assets/css/style.css" />
+    <link rel="stylesheet" href="/assets/css/notfound.css" />
   </head>
-  <body>
+  <body class="page-404">
     <header class="masthead">
       <div class="wrap masthead__inner">
         <a class="brand" href="/">
@@ -32,24 +33,43 @@
     </header>
 
     <main id="main">
-      <section class="page-head">
-        <div class="wrap">
-          <p class="eyebrow">404 / Not Found</p>
-          <h1 class="page-head__title">这一页还没有</h1>
-          <p class="page-head__lead">
-            地址可能写错了。回到<a href="/">首页</a>，或从上面的导航重找。
-          </p>
+      <!-- 亮色：纸面 + 可以甩出去的纸片 -->
+      <section class="nf nf--paper">
+        <div class="wrap nf__inner">
+          <p class="nf__kicker">404 · 没有这一页</p>
+          <h1 class="nf__title">这一页什么都没有</h1>
+          <p class="nf__lead">地址可能写错了，或者内容已经搬走。下面的纸片可以拖，也可以甩出去。</p>
+
+          <div class="nf__stage" data-shapes aria-hidden="true">
+            <i class="shape shape--circle" data-shape style="--x: 6%; --y: 42%; --s: 76px"></i>
+            <i class="shape shape--square" data-shape style="--x: 22%; --y: 8%; --s: 56px"></i>
+            <i class="shape shape--ring" data-shape style="--x: 34%; --y: 54%; --s: 64px"></i>
+            <i class="shape shape--triangle" data-shape style="--x: 47%; --y: 14%; --s: 58px"></i>
+            <i class="shape shape--square" data-shape style="--x: 58%; --y: 52%; --s: 42px"></i>
+            <i class="shape shape--circle" data-shape style="--x: 72%; --y: 18%; --s: 50px"></i>
+            <i class="shape shape--ring" data-shape style="--x: 86%; --y: 46%; --s: 38px"></i>
+          </div>
+          <p class="nf__hint">拖一下，或者干脆甩出去</p>
+
+          <div class="nf__actions">
+            <a class="btn btn--primary" href="/">回首页</a>
+            <a class="btn" href="/media">媒体资源</a>
+            <a class="btn" href="/memories">媒体库</a>
+          </div>
+
+          <p class="nf__note">如果是从站内点过来的，说明那个链接已经过期了，可以<a href="/media">从媒体资源页</a>重新找。</p>
         </div>
       </section>
 
-      <section class="section" style="border-top: 0">
-        <div class="wrap prose">
-          <p>常见去处：</p>
-          <ul>
-            <li><a href="/orgs">组织</a> —— 学校与三个组织的标识、职责</li>
-            <li><a href="/media">媒体资源</a> —— 云盘资料库与素材直链</li>
-            <li><a href="/cloud">云上桂中</a> —— 站外服务入口</li>
-          </ul>
+      <!-- 暗色：安静的居中一屏 -->
+      <section class="nf nf--night">
+        <div class="wrap nf__inner nf__inner--center">
+          <p class="nf__oops">Oops · 404</p>
+          <blockquote class="nf__quote">往者不可谏，来者犹可追。</blockquote>
+          <p class="nf__cite">《论语 · 微子》</p>
+          <p class="nf__lead nf__lead--quiet">这一页不在了。</p>
+          <a class="nf__back" href="/">回到首页</a>
+          <p class="nf__note nf__note--quiet">也可以去<a href="/media">媒体资源</a>或<a href="/memories">媒体库</a>看看。</p>
         </div>
       </section>
     </main>
@@ -64,5 +84,6 @@
     </footer>
 
     <script src="/assets/js/site.js" defer></script>
+    <script src="/assets/js/notfound.js" defer></script>
   </body>
 </html>

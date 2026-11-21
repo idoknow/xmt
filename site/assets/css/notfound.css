@@ -1,0 +1,258 @@
+/* 404：亮色用纸面 + 纸片，暗色用安静的一屏 */
+
+.page-404 .masthead {
+  border-block-end: 1px solid var(--rule);
+}
+
+.nf {
+  min-height: calc(100vh - 12rem);
+  display: flex;
+  align-items: center;
+  padding-block: clamp(2.4rem, 7vw, 4.6rem) clamp(2.6rem, 6vw, 4rem);
+}
+
+.nf__inner {
+  width: 100%;
+}
+
+.nf--night {
+  display: none;
+}
+
+:root[data-theme="dark"] .nf--paper {
+  display: none;
+}
+
+:root[data-theme="dark"] .nf--night {
+  display: flex;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .nf--paper {
+    display: none;
+  }
+
+  :root:not([data-theme="light"]) .nf--night {
+    display: flex;
+  }
+}
+
+/* ---------- 亮色 ---------- */
+
+.nf__kicker {
+  margin: 0 0 0.9rem;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.nf__title {
+  margin: 0;
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: clamp(2.1rem, 6vw, 3.6rem);
+  line-height: 1.14;
+  letter-spacing: 0.01em;
+}
+
+.nf__lead {
+  margin: 1rem 0 0;
+  max-width: 34rem;
+  font-size: 0.95rem;
+  line-height: 1.9;
+  color: var(--ink-soft, var(--muted));
+}
+
+.nf__stage {
+  position: relative;
+  height: clamp(11rem, 22vw, 14rem);
+  margin-block: clamp(1.2rem, 3vw, 2rem) 0.2rem;
+  border-block: 1px solid var(--rule);
+  overflow: hidden;
+  touch-action: none;
+}
+
+.shape {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  width: var(--s);
+  height: var(--s);
+  display: block;
+  border: 1.5px solid var(--ink);
+  background: transparent;
+  will-change: transform;
+  cursor: grab;
+}
+
+.shape:active {
+  cursor: grabbing;
+}
+
+.shape--circle {
+  border-radius: 50%;
+}
+
+.shape--ring {
+  border-radius: 50%;
+  border-width: 1.5px;
+  border-color: var(--vermilion);
+  box-shadow: inset 0 0 0 6px var(--paper);
+  background: var(--vermilion);
+}
+
+.shape--square {
+  transform: rotate(8deg);
+}
+
+.shape--triangle {
+  border: 0;
+  background: var(--ink);
+  clip-path: polygon(50% 6%, 100% 94%, 0 94%);
+}
+
+.nf__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-block-start: 1.4rem;
+}
+
+.nf__hint {
+  margin: 0.55rem 0 clamp(1rem, 2.4vw, 1.6rem);
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  color: color-mix(in srgb, var(--ink) 42%, transparent);
+}
+
+/* style.css 的 .btn 是给深色横幅用的（纸色字），纸面背景上会看不见，这里覆写 */.nf__actions .btn {
+  margin-top: 0;
+  border-color: color-mix(in srgb, var(--ink) 22%, transparent);
+  color: var(--ink);
+}
+
+.nf__actions .btn:hover,
+.nf__actions .btn:focus-visible {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.nf__actions .btn--primary {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.nf__actions .btn--primary:hover,
+.nf__actions .btn--primary:focus-visible {
+  border-color: var(--vermilion);
+  background: var(--vermilion);
+  color: #fff;
+}
+
+.nf__note {
+  margin: 1.2rem 0 0;
+  font-size: 0.8rem;
+  line-height: 1.8;
+  color: var(--muted);
+}
+
+.nf__note a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--vermilion) 60%, transparent);
+  text-underline-offset: 0.22em;
+}
+
+/* ---------- 暗色 ---------- */
+
+.nf__inner--center {
+  max-width: 30rem;
+  margin-inline: auto;
+  text-align: center;
+}
+
+.nf__oops {
+  margin: 0 0 1.6rem;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--ink) 55%, transparent);
+}
+
+.nf__quote {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: clamp(1.4rem, 3.4vw, 2rem);
+  line-height: 1.6;
+  letter-spacing: 0.02em;
+  text-wrap: balance;
+}
+
+.nf__cite {
+  margin: 0.7rem 0 2.4rem;
+  font-size: 0.78rem;
+  color: color-mix(in srgb, var(--ink) 50%, transparent);
+}
+
+.nf__lead--quiet {
+  margin: 0 0 1.5rem;
+  max-width: none;
+  font-size: 0.92rem;
+  color: color-mix(in srgb, var(--ink) 62%, transparent);
+}
+
+.nf__back {
+  display: inline-block;
+  padding: 0.62rem 1.5rem;
+  border: 1px solid color-mix(in srgb, var(--ink) 26%, transparent);
+  border-radius: 999px;
+  color: var(--ink);
+  font-size: 0.84rem;
+  text-decoration: none;
+  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
+.nf__back:hover,
+.nf__back:focus-visible {
+  border-color: var(--ink);
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+}
+
+.nf__note--quiet {
+  color: color-mix(in srgb, var(--ink) 45%, transparent);
+}
+
+.nf__note--quiet a {
+  color: color-mix(in srgb, var(--ink) 78%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nf__back {
+    transition: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .nf {
+    min-height: auto;
+  }
+
+  .nf--night {
+    min-height: calc(100vh - 9rem);
+  }
+
+  .nf__stage {
+    height: 11rem;
+  }
+
+  .nf__actions .btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}
