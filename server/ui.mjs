@@ -550,9 +550,14 @@ export function filesPage({
     )
     .join("");
 
-  const rows = entries
-    .map((entry) => {
-      const kind = entry.isDir ? "dir" : fmKindOf(entry.name);
+  const skeletonRows = Array.from(
+    { length: 5 },
+    () => `<tr class="fm-skel"><td class="fm-tick"></td><td class="fm-name-cell"><span class="fm-skel__bar"></span></td><td class="fm-size"><span class="fm-skel__bar fm-skel__bar--short"></span></td><td class="fm-time"><span class="fm-skel__bar fm-skel__bar--short"></span></td><td class="fm-actions"></td></tr>`,
+  ).join("");
+
+  const deferred = entries === null;
+  const rows = (entries || [])
+    .map((entry) => {      const kind = entry.isDir ? "dir" : fmKindOf(entry.name);
       const name = entry.isDir
         ? `<a class="fm-name fm-name--dir" href="/memories/files?drive=${drive.id}&path=${encodeURIComponent(entry.path)}">${e(entry.name)}</a>`
         : `<button class="fm-name" type="button" data-fm-preview="${e(entry.path)}" data-fm-kind="${kind}">${e(entry.name)}</button>`;
@@ -606,13 +611,14 @@ export function filesPage({
         <button class="a-btn a-btn--tiny" type="button" data-fm-clear>取消选择</button>
       </div>
 
-      <table class="a-table fm-table" data-fm-drive="${drive.id}" data-fm-path="${e(currentPath)}">
+      <table class="a-table fm-table" data-fm-drive="${drive.id}" data-fm-path="${e(currentPath)}"${deferred ? ' data-fm-defer="1"' : ""}>
         <thead><tr>
           <th class="fm-tick"><button class="a-tick a-tick--all" type="button" data-fm-all aria-pressed="false" aria-label="全选"></button></th>
           <th>名称</th><th class="fm-size">大小</th><th class="fm-time">修改时间</th><th class="fm-actions">操作</th>
         </tr></thead>
-        <tbody>${rows || '<tr><td colspan="5" class="fm-empty">这个目录是空的。</td></tr>'}</tbody>
+        <tbody data-fm-rows>${deferred ? skeletonRows : rows || '<tr><td colspan="5" class="fm-empty">这个目录是空的。</td></tr>'}</tbody>
       </table>
+      ${deferred ? `<script type="application/json" data-fm-boot>${JSON.stringify({ drive: drive.id, path: currentPath })}</script>` : ""}
       <p class="fm-note">点一行即可选中（按住 Shift 连选）。${canManage ? "删除会直接生效；移动 / 复制 / 打包在选中后出现。" : "游客只读。"}</p>
     </div>
   </section>

@@ -30,6 +30,73 @@
     return size + " B";
   };
 
+  const ICONS = {
+    dir: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h4l2 2.5h7A1.5 1.5 0 0 1 19 10v7.5A1.5 1.5 0 0 1 17.5 19h-13A1.5 1.5 0 0 1 3 17.5z"/></svg>',
+    image: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m5 17 5-5 4 4 3-3 3 3"/></svg>',
+    video: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3.5" y="5.5" width="12" height="13" rx="2"/><path d="m15.5 11 5-3v8l-5-3z"/></svg>',
+    audio: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M9 17V6l9-2v11"/><circle cx="7" cy="17" r="2"/><circle cx="16" cy="15" r="2"/></svg>',
+    pdf: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6 3.5h7l5 5V20a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1z"/><path d="M13 3.5V9h5"/></svg>',
+    file: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6 3.5h7l5 5V20a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1z"/><path d="M13 3.5V9h5"/></svg>',
+  };
+
+  const kindOf = (name, isDir) => {
+    if (isDir) return "dir";
+    const ext = String(name).split(".").pop().toLowerCase();
+    if (["jpg", "jpeg", "png", "webp", "gif", "avif", "bmp", "svg"].includes(ext)) return "image";
+    if (["mp4", "mov", "webm", "mkv", "m4v"].includes(ext)) return "video";
+    if (["mp3", "wav", "flac", "m4a", "aac", "ogg"].includes(ext)) return "audio";
+    if (ext === "pdf") return "pdf";
+    return "file";
+  };
+
+  function rowHtml(entry, canManage) {
+    const kind = kindOf(entry.name, entry.isDir);
+    const name = entry.isDir
+      ? `<a class="fm-name fm-name--dir" href="/memories/files?drive=${encodeURIComponent(drive)}&path=${encodeURIComponent(entry.path)}">${esc(entry.name)}</a>`
+      : `<button class="fm-name" type="button" data-fm-preview="${esc(entry.path)}" data-fm-kind="${kind}">${esc(entry.name)}</button>`;
+    const time = entry.modified ? String(entry.modified).slice(0, 16).replace("T", " ") : "—";
+    return `<tr data-fm-path="${esc(entry.path)}" data-fm-dir="${entry.isDir ? 1 : 0}" data-fm-kind="${kind}" data-fm-size="${entry.size || 0}" data-fm-name="${esc(entry.name)}">
+      <td class="fm-tick"><button class="a-tick" type="button" data-fm-pick data-value="${esc(entry.path)}" aria-pressed="false" aria-label="选择 ${esc(entry.name)}"></button></td>
+      <td class="fm-name-cell"><span class="fm-ico fm-ico--${kind}">${ICONS[kind] || ICONS.file}</span>${name}</td>
+      <td class="fm-size">${entry.isDir ? "—" : fmt(entry.size)}</td>
+      <td class="fm-time">${esc(time)}</td>
+      <td class="fm-actions">
+        ${entry.isDir ? "" : `<button class="a-btn a-btn--tiny" type="button" data-fm-preview="${esc(entry.path)}" data-fm-kind="${kind}">预览</button>`}
+        <a class="a-btn a-btn--tiny" href="/memories/files/raw?drive=${encodeURIComponent(drive)}&path=${encodeURIComponent(entry.path)}&download=1">下载</a>
+        <button class="a-btn a-btn--tiny" type="button" data-fm-info="${esc(entry.path)}">信息</button>
+        <button class="a-btn a-btn--tiny" type="button" data-fm-share="${esc(entry.path)}">分享</button>
+        ${canManage ? `<button class="a-btn a-btn--tiny" type="button" data-fm-rename="${esc(entry.path)}" data-fm-name="${esc(entry.name)}">改名</button><button class="a-btn a-btn--tiny a-btn--danger" type="button" data-fm-remove="${esc(entry.path)}">删除</button>` : ""}
+      </td>
+    </tr>`;
+  }
+
+  async function boot() {
+    const body = table.querySelector("[data-fm-rows]");
+    const raw = document.querySelector("[data-fm-boot]");
+    if (!body || !raw) return;
+    let info = {};
+    try {
+      info = JSON.parse(raw.textContent || "{}");
+    } catch {
+      info = {};
+    }
+    const query = new URLSearchParams({ drive: String(info.drive || drive), path: String(info.path || cwd) });
+    try {
+      const response = await fetch(`/memories/files/list?${query}`, { headers: { accept: "application/json" } });
+      const data = await response.json();
+      if (!data.ok) throw new Error(data.error || "读取目录失败");
+      const canManage = Boolean(data.canManage);
+      body.innerHTML = data.entries.length
+        ? data.entries.map((entry) => rowHtml(entry, canManage)).join("")
+        : '<tr><td colspan="5" class="fm-empty">这个目录是空的。</td></tr>';
+      table.removeAttribute("data-fm-defer");
+    } catch (problem) {
+      body.innerHTML = `<tr><td colspan="5" class="fm-empty">读取失败：${esc(problem.message)}</td></tr>`;
+    }
+    sync();
+  }
+
+
   function sync() {
     for (const tick of ticks()) {
       const on = picks.has(tick.dataset.value);
@@ -64,11 +131,10 @@
     sync();
   }
 
-  ticks().forEach((tick, index) => {
-    tick.addEventListener("click", (event) => {
-      event.stopPropagation();
-      toggle(tick.dataset.value, index, event.shiftKey);
-    });
+  table.querySelector("tbody")?.addEventListener("click", (event) => {
+    const tick = event.target.closest("[data-fm-pick]");
+    if (!tick) return;
+    toggle(tick.dataset.value, ticks().indexOf(tick), event.shiftKey);
   });
 
   document.querySelector("[data-fm-all]")?.addEventListener("click", () => {
@@ -315,4 +381,6 @@
       openDialog("上传失败", `<p class="a-hint">${esc(error.message)}</p>`);
     }
   });
+
+  boot();
 })();

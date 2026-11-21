@@ -230,10 +230,10 @@ const cards = entries
     <button class="a-view" type="button" data-view="grid">网格</button>
     <button class="a-view" type="button" data-view="detail">详情</button>
   </div>
-  <table class="a-table a-table--files" data-table data-drive-id="${drive?.id || ""}">
+  <div class="a-scroll"><table class="a-table a-table--files" data-table data-drive-id="${drive?.id || ""}">
     <thead><tr><th><span class="a-th-name"><button type="button" class="a-tick a-tick--all" data-pick-all aria-pressed="false" aria-label="全选"></button>名称</span></th><th class="a-cell-path" hidden>路径</th><th>大小</th><th>修改时间</th><th></th></tr></thead>
     <tbody>${rows || `<tr><td class="a-empty" colspan="6">这个目录是空的。</td></tr>`}</tbody>
-  </table>
+  </table></div>
   <div class="a-grid" data-grid hidden>${cards || '<p class="a-empty">这个目录是空的。</p>'}</div>
   <p class="a-hint">点一行即可选中（按住 Shift 选一段）；删除会直接生效，139 上是进回收站。</p>
 
@@ -375,10 +375,10 @@ export function adminStoragesPage({ site, user, drives }) {
     </form>
   </dialog>
 
-  <table class="a-table">
+  <div class="a-scroll"><table class="a-table">
     <thead><tr><th>名称</th><th>挂载</th><th>驱动</th><th>根</th><th>说明</th><th>容量</th><th>单文件</th><th>允许上传</th><th>状态</th><th>可见</th><th>隐藏</th><th>前台</th><th></th></tr></thead>
     <tbody>${rows || `<tr><td colspan="13" class="a-empty">还没有存储。</td></tr>`}</tbody>
-  </table>
+  </table></div>
   <script type="application/json" id="drives-data">${JSON.stringify(drivesData).replace(/</g, "\\u003c")}</script>
   <script type="application/json" id="drive-specs">${JSON.stringify(driveFieldSpecs()).replace(/</g, "\\u003c")}</script>`;
 
@@ -438,10 +438,10 @@ export function adminUsersPage({ site, user, users, total = null }) {
     </div>
   </form>
   <p class="a-hint">只填 QQ 号就能加人；昵称与头像等他第一次登录时从 Campux 同步，没加进来的 QQ 登录会被拒绝。</p>
-  <table class="a-table">
+  <div class="a-scroll"><table class="a-table">
     <thead><tr><th>成员</th><th>备注</th><th>角色</th><th>文件</th><th>占用</th><th>状态</th><th>最近登录</th><th></th></tr></thead>
     <tbody>${rows || `<tr><td colspan="6" class="a-empty">还没有成员。</td></tr>`}</tbody>
-  </table>`;
+  </table></div>`;
 
   return layout({ site, user, section: "users", title: "成员", body });
 }

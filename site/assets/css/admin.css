@@ -907,24 +907,24 @@
   }
 
   /* 表格转卡片 */
-  .a-table,
-  .a-table tbody,
-  .a-table tr,
-  .a-table td {
+  .a-table--legacy,
+  .a-table--legacy tbody,
+  .a-table--legacy tr,
+  .a-table--legacy td {
     display: block;
     width: 100%;
   }
 
-  .a-table thead {
+  .a-table--legacy thead {
     display: none;
   }
 
-  .a-table tr {
+  .a-table--legacy tr {
     padding: 0.6rem 0;
     border-block-end: 1px solid var(--rule);
   }
 
-  .a-table td {
+  .a-table--legacy td {
     display: flex;
     gap: 0.6rem;
     align-items: baseline;
@@ -932,7 +932,7 @@
     border: 0;
   }
 
-  .a-table td[data-label]::before {
+  .a-table--legacy td[data-label]::before {
     content: attr(data-label);
     flex: 0 0 3.6rem;
     color: var(--muted);
@@ -1854,3 +1854,106 @@ html.is-busy {
 .a-thumb { width: 1.9rem; height: 1.9rem; border-radius: .4rem; object-fit: contain; background: var(--paper-2); border: 1px solid var(--rule); flex: 0 0 auto; }
 .a-link-row--soft { grid-template-columns: minmax(0, 7.5rem) minmax(0, 9rem) minmax(0, 1fr) auto; }
 @media (max-width: 720px) { .a-link-row--soft { grid-template-columns: 1fr; } }
+
+/* ---------- 后台：手机端再收一档 ---------- */
+@media (max-width: 720px) {
+  .a-main {
+    padding: 0.9rem 0.75rem 3rem;
+  }
+  .a-page__head {
+    display: grid;
+    gap: 0.5rem;
+    align-items: start;
+    padding-block-end: 0.7rem;
+  }
+  .a-page__head .a-title,
+  .a-page__head h1 {
+    font-size: clamp(1.35rem, 5.6vw, 1.7rem);
+  }
+  .a-page__aside {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .a-card {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .a-card .a-table {
+    min-width: 36rem;
+  }
+  .a-toolbar {
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .a-toolbar .a-btn {
+    flex: 0 0 auto;
+  }
+  .a-form__grid,
+  .a-form--row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .a-dialog {
+    width: min(100vw - 1rem, 42rem);
+    max-height: min(88vh, 42rem);
+  }
+  .a-dialog__body {
+    padding: 0.9rem 0.8rem;
+  }
+  .a-selbar {
+    inset-inline: 0.5rem;
+    inset-block-end: 0.5rem;
+    translate: none;
+    width: auto;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .a-user__menu,
+  .tools__menu {
+    max-width: calc(100vw - 1rem);
+  }
+}
+
+/* ---------- 后台：表格放进可横向滚动的容器 ---------- */
+.a-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.a-scroll > .a-table {
+  margin: 0;
+}
+
+@media (max-width: 720px) {
+  .a-main {
+    padding: 0.9rem 0.7rem 3rem;
+  }
+  .a-scroll > .a-table {
+    min-width: 32rem;
+  }
+  .a-main .a-table th,
+  .a-main .a-table td {
+    padding: 0.5rem 0.45rem;
+  }
+  .a-main .a-table .a-btn--tiny {
+    padding: 0.22rem 0.4rem;
+    font-size: 0.7rem;
+  }
+  .a-page__head {
+    display: grid;
+    gap: 0.45rem;
+  }
+  .a-page__aside {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .a-toolbar {
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .a-form__grid,
+  .a-form--row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

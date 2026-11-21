@@ -9,22 +9,22 @@ const nameOf = (target) => String(target || "").split("/").filter(Boolean).pop()
 export async function streamPath(req, res, { drive, target, download = false }) {
   const driver = driverFor(drive);
   const downloadAs = download ? nameOf(target) : undefined;
+  const mime = mimeOf(target);
+  // 图片/视频加载过一次就让浏览器自己留着，下次直接命中本地缓存。
+  const cacheable = !downloadAs && /^(image|video|audio)\//.test(mime);
+  const cache = cacheable ? "private, max-age=604800" : "private, max-age=300";
 
   if (drive.driver === "local") {
     const filePath = await driver.filePath(target);
     const info = await fsStat(filePath);
     if (info.isDirectory()) throw Object.assign(new Error("这是目录"), { status: 400 });
-    return sendFile(req, res, filePath, {
-      mime: mimeOf(target),
-      cache: "private, max-age=300",
-      downloadAs,
-    });
+    return sendFile(req, res, filePath, { mime, cache, downloadAs });
   }
 
   const remote = await driver.download(target);
   const headers = {
-    "content-type": remote.mime || mimeOf(target),
-    "cache-control": "private, max-age=300",
+    "content-type": remote.mime || mime,
+    "cache-control": cache,
   };
   if (remote.size && !remote.encoding) headers["content-length"] = String(remote.size);
   if (downloadAs) headers["content-disposition"] = `attachment; filename*=UTF-8''${encodeURIComponent(downloadAs)}`;

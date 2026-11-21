@@ -4,7 +4,7 @@ import { currentUser, isAdmin } from "./auth.mjs";
 import { driverFor } from "./drives.mjs";
 import { hiddenPrefixes, publicPrefixes, uploadStats, userFolder } from "./media.mjs";
 import { filesPage } from "./ui.mjs";
-import { html, prettyPath, redirect, send } from "./util.mjs";
+import { html, prettyPath, redirect, send, sendJson } from "./util.mjs";
 import { streamPath } from "./filestream.mjs";
 
 const siteOf = () => ({ title: setting("site.title", "Memories"), intro: setting("site.intro", "") });
@@ -36,6 +36,17 @@ function isOutsidePublic(prefixes, target) {
 function isOutside(prefixes, target) {
   if (!prefixes.length) return false;
   return !prefixes.some((prefix) => target === prefix || String(target).startsWith(`${prefix}/`));
+}
+
+async function listEntries(drive, user, currentPath) {
+  const driver = driverFor(drive);
+  const hidden = hiddenFor(drive, user);
+  const area = publicFor(drive, user);
+  const list = await driver.list(currentPath);
+  return list
+    .filter((entry) => !isHiddenPath(hidden, entry.path))
+    .filter((entry) => !area.length || isOutsidePublic(area, entry.path) === false)
+    .sort((a, b) => Number(b.isDir) - Number(a.isDir) || a.name.localeCompare(b.name, "zh-Hans-CN"));
 }
 
 export async function pageBrowser(req, res, url) {
@@ -80,38 +91,57 @@ export async function pageBrowser(req, res, url) {
   const area = publicFor(drive, user);
   if (currentPath !== "/" && isOutside(area, currentPath)) return deny("这个目录没有开放。");
 
-  const driver = driverFor(drive);
-  let entries = [];
-  let error = "";
-  try {
-    const list = await driver.list(currentPath);
-    const hidden = hiddenFor(drive, user);
-    entries = list
-      .filter((entry) => !isHiddenPath(hidden, entry.path))
-      .filter((entry) => !area.length || isOutsidePublic(area, entry.path) === false)
-      .sort((a, b) => Number(b.isDir) - Number(a.isDir) || a.name.localeCompare(b.name, "zh-Hans-CN"));
-  } catch (problem) {
-    error = problem.message || "读取目录失败";
-  }
-
   html(
     res,
-    error ? 500 : 200,
+    200,
     filesPage({
       site: siteOf(),
       user,
       drives,
       drive,
       path: currentPath,
-      entries,
+      entries: null,
       stats,
       mine: mineStats,
       canManage: Boolean(user),
       rootLabel: mine ? "我的文件" : "媒体库",
       strip: mine,
-      error,
     }),
   );
+}
+
+// 目录内容单独取，页面先把骨架画出来再慢慢填。
+export async function filesList(req, res, url) {
+  const user = currentUser(req);
+  const drive = get("SELECT * FROM drives WHERE id = ? AND enabled = 1", Number(url.searchParams.get("drive")));
+  if (!drive) return sendJson(res, 404, { ok: false, error: "存储不存在" });
+  if (!user && drive.visibility !== "public") return sendJson(res, 401, { ok: false, error: "先登录" });
+
+  const mine = isAdmin(user) ? "" : user ? userFolder(user) : "";
+  const currentPath = url.searchParams.get("path") || (mine || "/");
+  if (mine && !(currentPath === mine || String(currentPath).startsWith(`${mine}/`))) {
+    return sendJson(res, 403, { ok: false, error: "这里是你自己的目录" });
+  }
+  const area = publicFor(drive, user);
+  if (currentPath !== "/" && isOutside(area, currentPath)) return sendJson(res, 403, { ok: false, error: "这个目录没有开放" });
+
+  try {
+    const entries = await listEntries(drive, user, currentPath);
+    return sendJson(res, 200, {
+      ok: true,
+      path: currentPath,
+      canManage: Boolean(user),
+      entries: entries.map((entry) => ({
+        name: entry.name,
+        path: entry.path,
+        isDir: Boolean(entry.isDir),
+        size: entry.size || 0,
+        modified: entry.modified || null,
+      })),
+    });
+  } catch (problem) {
+    return sendJson(res, problem.status || 500, { ok: false, error: problem.message || "读取目录失败" });
+  }
 }
 
 export async function rawBrowser(req, res, url) {

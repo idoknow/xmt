@@ -47,7 +47,7 @@ import {
 import { detailPage, driveFieldSpecs, fmtSize, galleryPage, loginPage, myPage, shareFilePage, sharePage, shell, assetVersion } from "./ui.mjs";
 import { handleImages, imagePage, imageTotal } from "./images.mjs";
 import { fileAction, fileInfo, fileInfoOf, fileUpload, handleAdmin } from "./admin.mjs";
-import { pageBrowser, rawBrowser } from "./browser.mjs";
+import { filesList, pageBrowser, rawBrowser } from "./browser.mjs";
 import { handleUploads } from "./uploads.mjs";
 import { handleToolsAdmin, toolsDataHandler } from "./tools.mjs";
 import { streamPath } from "./filestream.mjs";
@@ -730,6 +730,14 @@ const server = http.createServer(async (req, res) => {
     }
     if (pathname === "/memories/my") return redirect(res, "/memories/files");
     if (pathname === "/memories/files") return pageBrowser(req, res, url);
+
+  if (pathname === "/memories/files/list") {
+    try {
+      return await filesList(req, res, url);
+    } catch (error) {
+      return sendJson(res, error.status || 500, { ok: false, error: error.message });
+    }
+  }
 
   if (pathname === "/memories/files/action") {
     const viewer = currentUser(req);
