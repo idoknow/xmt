@@ -104,7 +104,9 @@ function serveStatic(req, res, urlPath) {
     if (existsSync(resolved) && statSync(resolved).isFile()) {
       const gz = `${resolved}.gz`;
       const acceptsGzip = /\bgzip\b/.test(String(req.headers["accept-encoding"] || ""));
-      const cache = urlPath.startsWith("/assets/") ? "public, max-age=31536000, immutable" : "no-cache";
+      // 带 ?v= 的才是「指纹化」资源，可以一年不可变；否则每次校验，避免发版后卡在旧 CSS/JS。
+      const versioned = /[?&]v=/.test(String(req.url || ""));
+      const cache = urlPath.startsWith("/assets/") && versioned ? "public, max-age=31536000, immutable" : "no-cache";
       if (acceptsGzip && existsSync(gz)) {
         const info = statSync(gz);
         res.writeHead(200, {

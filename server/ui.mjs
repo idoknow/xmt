@@ -1,8 +1,32 @@
 // 服务端渲染的页面片段。样式来自 /assets/css/style.css + /memories/assets/app.css。
+import { readFileSync, statSync } from "node:fs";
+import path from "node:path";
+import { config } from "./config.mjs";
 import { displayName, escapeHtml as e, qqAvatar } from "./util.mjs";
 import { DRIVERS } from "./drives.mjs";
 
 const year = new Date().getFullYear();
+
+/* 静态资源带版本号：dist/build.txt 里的 commit（取前 12 位）。
+   有 ?v= 时静态文件才按「一年不可变」缓存，否则退回 no-cache 让浏览器每次校验，
+   这样发版后用户刷新就能拿到新的 CSS/JS，不会被困在旧缓存里。 */
+let versionCache = { stamp: 0, value: "" };
+
+function assetVersion() {
+  const file = path.join(config.distDir, "build.txt");
+  try {
+    const info = statSync(file);
+    if (info.mtimeMs !== versionCache.stamp) {
+      const text = readFileSync(file, "utf8");
+      const commit = (text.match(/^commit\s+(\S+)/m) || [])[1] || "";
+      const built = (text.match(/^built\s+(\S+)/m) || [])[1] || "";
+      versionCache = { stamp: info.mtimeMs, value: (commit || built || String(info.mtimeMs)).slice(0, 12) };
+    }
+    return versionCache.value;
+  } catch (error) {
+    return "";
+  }
+}
 
 export const fmtSize = (bytes) => {
   const n = Number(bytes || 0);
@@ -77,8 +101,8 @@ export function shell({ title, site, user, body, bodyClass = "", scripts = "", h
 </script>
 <link rel="icon" href="/assets/img/school-emblem-336.webp" />
 <link rel="preload" href="/assets/fonts/newsreader-latin.woff2" as="font" type="font/woff2" crossorigin />
-<link rel="stylesheet" href="/assets/css/style.css" />
-<link rel="stylesheet" href="/memories/assets/app.css" />
+<link rel="stylesheet" href="/assets/css/style.css?v=${assetVersion()}" />
+<link rel="stylesheet" href="/memories/assets/app.css?v=${assetVersion()}" />
 ${head}
 </head>
 <body class="m-body ${bodyClass}">
@@ -100,7 +124,7 @@ ${head}
     <span>${year} · 学生维护</span>
   </div>
 </footer>
-<script src="/memories/assets/app.js" type="module"></script>
+<script src="/memories/assets/app.js?v=${assetVersion()}" type="module"></script>
 ${scripts}
 </body>
 </html>`;
