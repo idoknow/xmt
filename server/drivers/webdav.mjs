@@ -2,11 +2,13 @@
 const trimSlash = (value) => String(value || "").replace(/\/+$/, "");
 
 const joinUrl = (base, relPath) => {
-  const segments = String(relPath || "/")
+  const raw = String(relPath || "/");
+  const segments = raw
     .split("/")
     .filter(Boolean)
     .map((seg) => encodeURIComponent(seg));
-  return `${trimSlash(base)}/${segments.join("/")}`;
+  const tail = segments.length && raw.endsWith("/") ? "/" : "";
+  return `${trimSlash(base)}/${segments.join("/")}${tail}`;
 };
 
 const authHeader = (username, password) =>
@@ -20,21 +22,35 @@ const decodeHref = (href) => {
   }
 };
 
+/** XML 实体解码：PROPFIND 里的 displayname/href 会把 & < > ' " 写成实体 */
+const decodeXml = (value) =>
+  String(value || "")
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCodePoint(Number.parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(Number(dec)))
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, "&");
+
 function parseProps(xml) {
   const items = [];
   const blocks = String(xml).split(/<[^>]*:?response[\s>]/i).slice(1);
   for (const block of blocks) {
-    const href = /<(?:[\w-]+:)?href[^>]*>([\s\S]*?)<\/(?:[\w-]+:)?href>/i.exec(block)?.[1]?.trim();
-    if (!href) continue;
+    const rawHref = /<(?:[\w-]+:)?href[^>]*>([\s\S]*?)<\/(?:[\w-]+:)?href>/i.exec(block)?.[1]?.trim();
+    if (!rawHref) continue;
+    const href = decodeXml(rawHref);
     // 目录判定：resourcetype 里有 collection，或 href 以 / 结尾，或 getcontenttype 是目录类型
-    const contentType = /<(?:[\w-]+:)?getcontenttype[^>]*>([^<]*)</i.exec(block)?.[1]?.trim() || "";
+    const contentType = decodeXml(/<(?:[\w-]+:)?getcontenttype[^>]*>([^<]*)</i.exec(block)?.[1]?.trim() || "");
     const isDir =
       /<(?:[\w-]+:)?collection\b/i.test(block) ||
       /\/$/.test(href) ||
       /directory|collection|inode\/directory/i.test(contentType);
     const size = Number(/<(?:[\w-]+:)?getcontentlength[^>]*>(\d+)</i.exec(block)?.[1] || 0);
     const modified = /<(?:[\w-]+:)?getlastmodified[^>]*>([^<]+)</i.exec(block)?.[1]?.trim() || null;
-    const display = /<(?:[\w-]+:)?displayname[^>]*>([\s\S]*?)<\/(?:[\w-]+:)?displayname>/i.exec(block)?.[1]?.trim();
+    const display = decodeXml(
+      /<(?:[\w-]+:)?displayname[^>]*>([\s\S]*?)<\/(?:[\w-]+:)?displayname>/i.exec(block)?.[1]?.trim(),
+    ).trim();
     items.push({ href: decodeHref(href), isDir, size: isDir ? 0 : size, modified, display });
   }
   return items;
@@ -66,7 +82,7 @@ function relativePath(href, basePath) {
 export function webdavDriver({ address, username = "", password = "", root = "" }) {
   const base = trimSlash(address) + trimSlash(root);
   const headers = () => {
-    const out = { accept: "application/xml, text/xml" };
+    const out = { accept: "application/xml, text/xml", "accept-encoding": "identity" };
     if (username || password) out.authorization = authHeader(username, password);
     return out;
   };
@@ -83,16 +99,30 @@ export function webdavDriver({ address, username = "", password = "", root = "" 
   };
 
   const statOf = async (target) => {
+    const propBody =
+      '<?xml version="1.0"?><d:propfind xmlns:d="DAV:"><d:prop><d:resourcetype/><d:getcontentlength/><d:getcontenttype/><d:getlastmodified/></d:prop></d:propfind>';
+    const plain = String(target).replace(/\/+$/, "");
+    const forms = [plain, `${plain}/`];
+    const wantName = plain.split("/").filter(Boolean).pop() || "";
     try {
-      const res = await request("PROPFIND", target, {
-        body: '<?xml version="1.0"?><d:propfind xmlns:d="DAV:"><d:prop><d:resourcetype/><d:getcontentlength/><d:getcontenttype/><d:getlastmodified/></d:prop></d:propfind>',
-        extra: { depth: "0", "content-type": "application/xml; charset=UTF-8" },
-        raw: true,
-      });
-      if (!res.ok && res.status !== 207) return null;
-      const [item] = parseProps(await res.text());
-      if (!item) return null;
-      return { path: target, isDir: item.isDir, size: item.size, modified: item.modified };
+      for (const form of forms) {
+        const res = await request("PROPFIND", form, {
+          body: propBody,
+          extra: { depth: "0", "content-type": "application/xml; charset=UTF-8" },
+          raw: true,
+        });
+        if (!res.ok && res.status !== 207) {
+          await res.text().catch(() => "");
+          continue;
+        }
+        const [item] = parseProps(await res.text());
+        if (!item) continue;
+        // 服务器可能把 /file/ 当成所在目录返回，名称对不上就跳过
+        const gotName = item.href.replace(/\/+$/, "").split("/").filter(Boolean).pop() || "";
+        if (wantName && decodeHref(gotName) !== wantName) continue;
+        return { path: target, isDir: item.isDir, size: item.size, modified: item.modified };
+      }
+      return null;
     } catch {
       return null;
     }
@@ -103,14 +133,32 @@ export function webdavDriver({ address, username = "", password = "", root = "" 
     base,
 
     async list(dir = "/") {
-      const res = await request("PROPFIND", dir, {
-        body: '<?xml version="1.0"?><d:propfind xmlns:d="DAV:"><d:prop><d:resourcetype/><d:getcontentlength/><d:getcontenttype/><d:getlastmodified/><d:displayname/></d:prop></d:propfind>',
-        extra: { depth: "1", "content-type": "application/xml; charset=UTF-8" },
-        raw: true,
-      });
-      if (!res.ok && res.status !== 207) throw Object.assign(new Error(`WebDAV 列目录失败 ${res.status}`), { status: 502 });
+      const propBody =
+        '<?xml version="1.0"?><d:propfind xmlns:d="DAV:"><d:prop><d:resourcetype/><d:getcontentlength/><d:getcontenttype/><d:getlastmodified/><d:displayname/></d:prop></d:propfind>';
+      const clean = String(dir || "/").trim() || "/";
+      // 有的服务器对 /a/ 认、对 /a 不认，反过来也有；两个都试一次
+      const candidates = clean === "/" ? ["/"] : [`${clean.replace(/\/+$/, "")}/`, clean.replace(/\/+$/, "")];
+      const tried = [];
+      let res = null;
+      let lastStatus = 0;
+      let usedUrl = "";
+      for (const candidate of candidates) {
+        usedUrl = joinUrl(base, candidate);
+        res = await request("PROPFIND", candidate, {
+          body: propBody,
+          extra: { depth: "1", "content-type": "application/xml; charset=UTF-8" },
+          raw: true,
+        });
+        lastStatus = res.status;
+        if (res.ok || res.status === 207) break;
+        tried.push(`${lastStatus} ${decodeURIComponent(usedUrl)}`);
+        await res.text().catch(() => "");
+      }
+      if (!res || (!res.ok && res.status !== 207)) {
+        throw Object.assign(new Error(`WebDAV 列目录失败 ${lastStatus}（${tried[0] || usedUrl}）`), { status: 502 });
+      }
       const xml = await res.text();
-      const basePath = decodeHref(new URL(joinUrl(base, dir) + (String(dir).endsWith("/") || dir === "/" ? "" : "/")).pathname).replace(/\/+$/, "");
+      const basePath = decodeHref(new URL(usedUrl.endsWith("/") ? usedUrl : `${usedUrl}/`).pathname).replace(/\/+$/, "");
       const out = [];
       for (const item of parseProps(xml)) {
         const itemPath = item.href.replace(/\/+$/, "");
@@ -206,7 +254,12 @@ export function webdavDriver({ address, username = "", password = "", root = "" 
         const text = await res.text().catch(() => "");
         throw Object.assign(new Error(`WebDAV 下载失败 ${res.status}${text ? ` ${text.slice(0, 120)}` : ""}`), { status: 502 });
       }
-      return { stream: res.body, size: Number(res.headers.get("content-length") || 0), mime: res.headers.get("content-type") };
+      return {
+        stream: res.body,
+        size: Number(res.headers.get("content-length") || 0),
+        mime: res.headers.get("content-type"),
+        encoding: res.headers.get("content-encoding") || "",
+      };
     },
   };
 }

@@ -1,5 +1,6 @@
 // Memories 服务端：静态站 + 登录 + 画廊 + 后台 + WebDAV。
 import http from "node:http";
+import { pipeline } from "node:stream/promises";
 import { createReadStream, existsSync, statSync, readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import path from "node:path";
@@ -187,14 +188,29 @@ async function streamMedia(req, res, item, { download = false, shareAllows = tru
     const headers = {
       "content-type": source.mime || item.mime || mimeOf(item.name),
       "cache-control": "private, max-age=3600",
-      "accept-ranges": "none",
     };
-    if (source.size) headers["content-length"] = String(source.size);
+    // 上游若是压缩过的响应，长度对不上（fetch 会解压），这时宁可让 Node 用 chunked
+    if (source.size && !source.encoding) headers["content-length"] = String(source.size);
     if (download) headers["content-disposition"] = `attachment; filename*=UTF-8''${encodeURIComponent(item.name)}`;
+    if (req.method === "HEAD") {
+      res.writeHead(200, headers);
+      source.stream?.cancel?.();
+      return res.end();
+    }
     res.writeHead(200, headers);
-    return source.stream.pipe(res);
+    try {
+      await pipeline(source.stream, res);
+    } catch (error) {
+      console.error("[memories] 传输中断", error.message);
+      if (!res.writableEnded) res.destroy(error);
+    }
+    return;
   } catch (error) {
     console.error("[memories] 读取文件失败", error);
+    if (res.headersSent) {
+      if (!res.writableEnded) res.destroy(error);
+      return;
+    }
     return send(res, 502, `读取失败：${error.message}`);
   }
 }

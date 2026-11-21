@@ -1,6 +1,7 @@
 // AList 风格管理台的后端：/memories/admin/*
 // 页面：文件 / 存储 / 成员 / 设置；文件页的文件操作走 JSON 接口，上传走 multipart。
 import path from "node:path";
+import { pipeline } from "node:stream/promises";
 import { stat as fsStat } from "node:fs/promises";
 import { all, audit, get, run, setting } from "./db.mjs";
 import { config, paths } from "./config.mjs";
@@ -220,15 +221,22 @@ async function fileRaw(req, res, url) {
   const headers = {
     "content-type": remote.mime || mimeOf(target),
     "cache-control": "private, max-age=300",
-    "accept-ranges": "none",
   };
-  if (remote.size) headers["content-length"] = String(remote.size);
+  if (remote.size && !remote.encoding) headers["content-length"] = String(remote.size);
   if (downloadAs) {
     headers["content-disposition"] = `attachment; filename*=UTF-8''${encodeURIComponent(downloadAs)}`;
   }
   res.writeHead(200, headers);
-  if (req.method === "HEAD") return res.end();
-  remote.stream.pipe(res);
+  if (req.method === "HEAD") {
+    remote.stream?.cancel?.();
+    return res.end();
+  }
+  try {
+    await pipeline(remote.stream, res);
+  } catch (error) {
+    console.error("[memories] 管理台下载中断", error.message);
+    if (!res.writableEnded) res.destroy(error);
+  }
 }
 
 function pageStorages(req, res) {
