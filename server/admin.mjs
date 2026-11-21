@@ -426,6 +426,7 @@ function pageSettings(req, res) {
       user,
       settings: {
         adminQQ: setting("admin.qq", config.adminQQ),
+        uploadRoot: setting("upload.root", "用户上传"),
         issuer: setting("oauth.issuer", config.oauth.issuer),
         clientId: setting("oauth.client_id", ""),
         clientSecret: setting("oauth.client_secret", ""),

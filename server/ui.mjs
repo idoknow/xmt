@@ -76,7 +76,7 @@ const profile = (user) => {
           <div><strong>${e(name)}</strong><small>${e(roleLabel[user.role] || "成员")} · QQ ${e(user.qq || "—")}</small></div>
         </div>
         <a role="menuitem" href="/memories/my">我的上传</a>
-        <a role="menuitem" href="/memories/files">文件</a>
+        <a role="menuitem" href="/memories/files">媒体库</a>
         ${user.role === "admin" || user.role === "owner" ? '<a role="menuitem" href="/memories/admin">后台管理</a>' : ""}
         <a role="menuitem" class="m-user__out" href="/memories/logout">退出登录</a>
       </div>
@@ -85,8 +85,8 @@ const profile = (user) => {
 
 export function shell({ title, site, user, body, bodyClass = "", scripts = "", head = "" }) {
   const nav = user
-    ? `<a href="/tools">工具</a><a href="/memories">媒体库</a><a href="/memories/files">文件</a>${profile(user)}`
-    : `<a href="/tools">工具</a><a href="/memories">媒体库</a><a href="/memories/files">文件</a><a href="/memories/login">登录</a>`;
+    ? `<a href="/tools">工具</a><a href="/memories/files">媒体库</a>${profile(user)}`
+    : `<a href="/tools">工具</a><a href="/memories/files">媒体库</a><a href="/memories/login">登录</a>`;
 
   return `<!doctype html>
 <html lang="zh-CN" data-page="memories">
@@ -216,8 +216,8 @@ export function browsePage({
 
   const body = `
 <section class="m-hero">
-  <p class="m-kicker">Memories · 文件</p>
-  <h1>${e(drive ? drive.name : "文件")}</h1>
+  <p class="m-kicker">Memories · 媒体库</p>
+  <h1>${e(drive ? drive.name : "媒体库")}</h1>
   <p class="m-hero__intro">${e(drive?.description || "这里按存储整理文件；游客只读，成员按权限上传。")}</p>
 </section>
 <div class="m-toolbar">
@@ -229,7 +229,7 @@ export function browsePage({
 ${error ? `<p class="m-alert">${e(error)}</p>` : ""}
 ${rows ? `<ul class="m-rows">${rows}</ul>` : `<p class="m-empty">${drive ? "这个目录是空的。" : "还没有可查看的存储。"}</p>`}`;
 
-  return shell({ title: drive ? drive.name : "文件", site, user, body, bodyClass: "m-page--files" });
+  return shell({ title: drive ? drive.name : "媒体库", site, user, body, bodyClass: "m-page--files" });
 }
 
 export function galleryPage({ site, user, items, total, query, drives = [] }) {

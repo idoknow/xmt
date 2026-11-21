@@ -655,7 +655,7 @@ async function api(req, res, url) {
     if (!current) return;
     const body = await readJson(req);
     for (const [key, value] of Object.entries(body)) {
-      if (["site.title", "site.intro", "admin.qq", "oauth.issuer", "oauth.client_id", "oauth.client_secret", "share.default_days"].includes(key)) {
+      if (["site.title", "site.intro", "upload.root", "admin.qq", "oauth.issuer", "oauth.client_id", "oauth.client_secret", "share.default_days"].includes(key)) {
         setSetting(key, value);
       }
     }
@@ -684,7 +684,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (pathname === "/tools/data") return toolsDataHandler(req, res);
-    if (pathname === "/memories" || pathname === "/memories/") return pageGallery(req, res, url);
+    if (pathname === "/memories" || pathname === "/memories/") return redirect(res, "/memories/files");
     if (pathname === "/memories/login") return html(res, 200, loginPage({ site: siteOf(), error: url.searchParams.get("error") || "" }));
     if (pathname === "/memories/logout") {
       const header = destroySession(req);

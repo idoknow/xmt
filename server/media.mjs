@@ -6,8 +6,8 @@ import { all, get, now, run } from "./db.mjs";
 import { config } from "./config.mjs";
 import { driverFor } from "./drives.mjs";
 import { imageSize } from "./imgsize.mjs";
-import { mimeOf } from "./util.mjs";
-import { ensuredUserFolder } from "./auth.mjs";
+import { displayName, mimeOf } from "./util.mjs";
+import { setting } from "./db.mjs";
 
 const IMAGE_EXT = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif", ".heic", ".bmp", ".tiff"]);
 const VIDEO_EXT = new Set([".mp4", ".webm", ".mov", ".m4v", ".mkv", ".avi"]);
@@ -102,7 +102,18 @@ export function canWrite(user, media) {
   return media.owner_id === user.id;
 }
 
-export const userFolder = (user) => ensuredUserFolder(user) || `u-${user.id}`;
+/** 用户上传总文件夹（后台可配，默认「用户上传」） */
+export const uploadRoot = () =>
+  String(setting("upload.root", "") || "用户上传")
+    .replace(/^\/+|\/+$/g, "")
+    .replace(/\\/g, "/") || "用户上传";
+
+/** 每个用户在总文件夹下有一个子文件夹：优先用昵称，其次 QQ，最后 u-<id> */
+export const userFolder = (user) => {
+  const label = String(displayName(user) || "").trim() || (user.qq ? String(user.qq) : `u-${user.id}`);
+  const safe = label.replace(/[\\/:*?"<>|]/g, "-").replace(/\s+/g, " ").slice(0, 40) || `u-${user.id}`;
+  return `${uploadRoot()}/${safe}`;
+};
 
 /** 用户上传：只能进自己的文件夹；管理员可以指定任意目录 */
 export async function upload({ user, drive, folder, files }) {
