@@ -2,13 +2,19 @@
 // 页面：文件 / 存储 / 成员 / 设置；文件页的文件操作走 JSON 接口，上传走 multipart。
 import path from "node:path";
 import { pipeline } from "node:stream/promises";
-import { stat as fsStat } from "node:fs/promises";
+import { createReadStream, createWriteStream } from "node:fs";
+import { mkdtemp, rm, stat as fsStat } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { randomBytes } from "node:crypto";
 import { all, audit, get, run, setting } from "./db.mjs";
 import { config, paths } from "./config.mjs";
 import { allUsers, currentUser, isAdmin } from "./auth.mjs";
 import { driverFor, forgetDriver } from "./drives.mjs";
+import { streamPath } from "./filestream.mjs";
 import { hiddenPrefixes, setHidden, stats, upload } from "./media.mjs";
 import { parseMultipart } from "./multipart.mjs";
+import { probeMedia } from "./probe.mjs";
+import { writeZip } from "./zip.mjs";
 import { escapeHtml, html, mimeOf, readJson, redirect, send, sendFile, sendJson } from "./util.mjs";
 import { adminFilesPage, adminSettingsPage, adminStoragesPage, adminUsersPage } from "./admin-ui.mjs";
 
@@ -176,6 +182,62 @@ async function fileAction(req, res) {
     return sendJson(res, 200, { ok: true, removed: targets.length });
   }
 
+  if (action === "pack") {
+    const targets = listOf(body.targets ?? body.paths);
+    if (!targets.length) throw Object.assign(new Error("先选中要打包的内容"), { status: 400 });
+    const stamp = new Date().toISOString().slice(5, 16).replace(/[-T:]/g, "");
+    const base = targets.length === 1 ? nameOf(targets[0]).replace(/\.[^.]+$/, "") : "打包";
+    const zipName = `${base}-${stamp}.zip`;
+    const dest = `${cwd === "/" ? "" : cwd}/${zipName}`;
+    const tempDir = await mkdtemp(path.join(tmpdir(), "mem-zip-"));
+    const tempZip = path.join(tempDir, zipName);
+    try {
+      const entries = await collectEntries(drive, driver, targets);
+      if (!entries.length) throw Object.assign(new Error("选中的都是空目录"), { status: 400 });
+      await writeZip(
+        tempZip,
+        entries.map((entry) => ({
+          name: entry.name,
+          size: entry.size,
+          modified: entry.modified ? new Date(entry.modified) : undefined,
+          stream: () => entry.stream(),
+        })),
+      );
+      const zipStat = await fsStat(tempZip);
+      await driver.write(dest, { filePath: tempZip, size: zipStat.size });
+      audit(user.id, "pack", `${drive.name}: ${entries.length} 个文件 → ${dest}`, req.socket.remoteAddress);
+      return sendJson(res, 200, { ok: true, path: dest, files: entries.length });
+    } finally {
+      await rm(tempDir, { recursive: true, force: true }).catch(() => {});
+    }
+  }
+
+  if (action === "share") {
+    const targets = listOf(body.targets ?? body.paths);
+    if (!targets.length) throw Object.assign(new Error("先选中要分享的内容"), { status: 400 });
+    const days = Math.max(1, Math.min(365, Number(setting("share.default_days", 7)) || 7));
+    const expires = new Date(Date.now() + days * 86400000).toISOString();
+    const links = [];
+    for (const target of targets) {
+      const info = await driver.stat(target).catch(() => null);
+      if (!info) continue;
+      const token = randomBytes(9).toString("base64url");
+      run(
+        "INSERT INTO shares (token, kind, target, created_by, allow_download, password_hash, expires_at, created_at) VALUES (?, 'path', ?, ?, ?, '', ?, ?)",
+        token,
+        JSON.stringify({ drive: drive.id, path: target, name: nameOf(target), isDir: Boolean(info.isDir), size: Number(info.size) || 0 }),
+        user.id,
+        body.allowDownload === false ? 0 : 1,
+        expires,
+        new Date().toISOString(),
+      );
+      links.push({ path: target, url: `/memories/s/${token}`, token, name: nameOf(target) });
+    }
+    if (!links.length) throw Object.assign(new Error("分享失败：没找到这些文件"), { status: 400 });
+    audit(user.id, "share", `${drive.name}: ${links.length} 项`, req.socket.remoteAddress);
+    return sendJson(res, 200, { ok: true, links });
+  }
+
   throw Object.assign(new Error(`未知操作：${action}`), { status: 400 });
 }
 
@@ -202,41 +264,103 @@ async function fileRaw(req, res, url) {
   const target = String(url.searchParams.get("path") || "");
   if (!target) throw Object.assign(new Error("缺少文件路径"), { status: 400 });
   const download = url.searchParams.get("download") === "1";
-  const downloadAs = download ? nameOf(target) : undefined;
+  return streamPath(req, res, { drive, target, download });
+}
 
-  if (drive.driver === "local") {
-    const driver = driverFor(drive);
-    const filePath = await driver.filePath(target);
-    const info = await fsStat(filePath);
-    if (info.isDirectory()) throw Object.assign(new Error("这是目录"), { status: 400 });
-    return sendFile(req, res, filePath, {
-      mime: mimeOf(target),
-      cache: "private, max-age=300",
-      downloadAs,
+/* ---------- 打包 / 详情 用的小工具 ---------- */
+
+const MAX_PACK_FILES = 5000;
+
+/** 把一个目标（文件或目录）展开成「zip 里的相对名字 + 取流函数」 */
+async function collectEntries(drive, driver, targets) {
+  const entries = [];
+  const walk = async (target, prefix, depth) => {
+    if (entries.length >= MAX_PACK_FILES) return;
+    let info = null;
+    try {
+      info = await driver.stat(target);
+    } catch {
+      return;
+    }
+    const base = nameOf(target);
+    if (!info || info.isDir) {
+      if (depth > 12) return;
+      let children = [];
+      try {
+        children = await driver.list(target);
+      } catch {
+        return;
+      }
+      const dirName = prefix ? `${prefix}/${base}` : base;
+      for (const child of children) {
+        await walk(child.path, dirName, depth + 1);
+        if (entries.length >= MAX_PACK_FILES) return;
+      }
+      return;
+    }
+    entries.push({
+      name: prefix ? `${prefix}/${base}` : base,
+      size: Number(info.size) || 0,
+      modified: info.modified,
+      stream: async () =>
+        drive.driver === "local"
+          ? createReadStream(await driver.filePath(target))
+          : (await driver.download(target)).stream,
     });
-  }
-
-  const driver = driverFor(drive);
-  const remote = await driver.download(target);
-  const headers = {
-    "content-type": remote.mime || mimeOf(target),
-    "cache-control": "private, max-age=300",
   };
-  if (remote.size && !remote.encoding) headers["content-length"] = String(remote.size);
-  if (downloadAs) {
-    headers["content-disposition"] = `attachment; filename*=UTF-8''${encodeURIComponent(downloadAs)}`;
-  }
-  res.writeHead(200, headers);
-  if (req.method === "HEAD") {
-    remote.stream?.cancel?.();
-    return res.end();
-  }
+  for (const target of targets) await walk(target, "", 0);
+  return entries;
+}
+
+export async function fileInfoOf(drive, driver, target) {
+  const info = await driver.stat(target);
+  if (!info) throw Object.assign(new Error("文件不存在"), { status: 404 });
+  const out = {
+    drive: drive.id,
+    driveName: drive.name,
+    path: target,
+    name: nameOf(target),
+    isDir: Boolean(info.isDir),
+    size: Number(info.size) || 0,
+    modified: info.modified || null,
+    mime: info.isDir ? "inode/directory" : mimeOf(target),
+    width: null,
+    height: null,
+    duration: null,
+    fps: null,
+    codec: null,
+    probed: false,
+  };
+  if (out.isDir) return out;
+  // 探测需要本地文件：本地驱动直接读，远端先落临时文件（超过 512MB 就不探了）
+  if (out.size > 512 * 1024 * 1024) return out;
+  const tempDir = await mkdtemp(path.join(tmpdir(), "mem-probe-"));
   try {
-    await pipeline(remote.stream, res);
+    let abs = null;
+    if (drive.driver === "local") {
+      abs = await driver.filePath(target);
+    } else {
+      abs = path.join(tempDir, "src");
+      const remote = await driver.download(target);
+      await pipeline(remote.stream, createWriteStream(abs));
+    }
+    const probe = await probeMedia(abs, out.name);
+    Object.assign(out, probe);
+    out.probed = true;
   } catch (error) {
-    console.error("[memories] 管理台下载中断", error.message);
-    if (!res.writableEnded) res.destroy(error);
+    out.probeError = error.message;
+  } finally {
+    await rm(tempDir, { recursive: true, force: true }).catch(() => {});
   }
+  return out;
+}
+
+async function fileInfo(req, res, url) {
+  const drive = driveOf(url.searchParams.get("drive"));
+  const target = String(url.searchParams.get("path") || "");
+  if (!target) throw Object.assign(new Error("缺少文件路径"), { status: 400 });
+  const info = await fileInfoOf(drive, driverFor(drive), target);
+  sendJson(res, 200, { ok: true, file: info, info });
 }
 
 function pageStorages(req, res) {
@@ -306,6 +430,7 @@ async function routeAdmin(req, res, url) {
   if (pathname === "/memories/admin/files/action" && method === "POST") return fileAction(req, res);
   if (pathname === "/memories/admin/files/upload" && method === "POST") return fileUpload(req, res);
   if (pathname === "/memories/admin/files/raw") return fileRaw(req, res, url);
+  if (pathname === "/memories/admin/files/info") return fileInfo(req, res, url);
 
   return html(res, 404, `<!doctype html><meta charset="utf-8"><p>没有这个后台页面：${pathname}</p>`);
 }

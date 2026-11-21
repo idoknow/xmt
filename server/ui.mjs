@@ -43,6 +43,15 @@ export const fmtDate = (iso) => {
   return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")}`;
 };
 
+export const fmtDuration = (seconds) => {
+  const total = Math.max(0, Math.round(Number(seconds) || 0));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const rest = total % 60;
+  const pad = (value) => String(value).padStart(2, "0");
+  return hours ? `${hours}:${pad(minutes)}:${pad(rest)}` : `${minutes}:${pad(rest)}`;
+};
+
 const roleLabel = { admin: "管理员", user: "成员" };
 
 /** 头像：字母垫底，图片盖在上面；图挂了就露出字母，不至于空一个圈 */
@@ -321,7 +330,64 @@ ${items.length ? `<div class="m-grid" data-grid>${items.map(card).join("")}</div
   return shell({ title: "分享", site, user: null, body });
 }
 
-/* ---------- 后台 ---------- */
+/* ---------- 分享（按路径分享的单文件 / 目录） ---------- */
+
+const previewOf = (file, url) => {
+  const mime = String(file.mime || "");
+  if (mime.startsWith("image/")) return `<img class="m-view__img" src="${url}" alt="${e(file.name)}" decoding="async" />`;
+  if (mime.startsWith("video/")) return `<video class="m-view__video" src="${url}" controls preload="metadata" playsinline></video>`;
+  if (mime.startsWith("audio/")) return `<audio class="m-view__audio" src="${url}" controls preload="metadata"></audio>`;
+  if (mime === "application/pdf") return `<iframe class="m-view__frame" src="${url}" title="${e(file.name)}"></iframe>`;
+  if (mime.startsWith("text/") || /\.(md|txt|json|csv)$/i.test(file.name || "")) {
+    return `<iframe class="m-view__frame" src="${url}" title="${e(file.name)}"></iframe>`;
+  }
+  return `<p class="m-empty">这种文件不内嵌预览。<a href="${url}">直接打开</a></p>`;
+};
+
+export function shareFilePage({ site, share, owner, file, entries = [], base }) {
+  const rows = [
+    ["名称", file.name],
+    ["大小", fmtSize(file.size)],
+    ["类型", file.mime || "—"],
+    file.width && file.height ? ["分辨率", `${file.width} × ${file.height}`] : null,
+    file.duration ? ["时长", fmtDuration(file.duration)] : null,
+    file.fps ? ["帧率", `${file.fps} fps`] : null,
+    file.modified ? ["修改时间", fmtDate(file.modified)] : null,
+  ].filter(Boolean);
+
+  const list = entries.length
+    ? `<ul class="m-files">${entries
+        .map(
+          (entry) =>
+            `<li><a href="${base}/file?path=${encodeURIComponent(entry.path)}">${
+              entry.isDir ? "📁 " : ""
+            }${e(entry.name)}</a><span>${entry.isDir ? "" : fmtSize(entry.size)}</span></li>`,
+        )
+        .join("")}</ul>`
+    : "";
+
+  const body = `
+<section class="m-hero m-hero--small">
+  <p class="m-kicker">分享 · ${e(owner || "Memories")}</p>
+  <h1>${e(file.name || "分享")}</h1>
+  <p class="m-hero__intro">这是一份只读分享${share.allow_download ? "，可以下载" : "，不允许下载"}。${
+    share.expires_at ? `有效期到 ${fmtDate(share.expires_at)}。` : ""
+  }</p>
+</section>
+${file.isDir ? "" : `<div class="m-media">${previewOf(file, `${base}/raw`)}</div>`}
+${list}
+<section class="m-panel">
+  <dl class="m-dl">${rows.map(([key, value]) => `<div><dt>${e(key)}</dt><dd>${e(String(value))}</dd></div>`).join("")}</dl>
+  ${
+    share.allow_download && !file.isDir
+      ? `<p><a class="m-btn" href="${base}/raw?download=1">下载文件</a></p>`
+      : ""
+  }
+</section>
+`;
+  return shell({ title: file.name || "分享", site, user: null, body });
+}
+
 
 export const driveFieldSpecs = () =>
   Object.fromEntries(Object.entries(DRIVERS).map(([key, spec]) => [key, { label: spec.label, hint: spec.hint, fields: spec.fields }]));

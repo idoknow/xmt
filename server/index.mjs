@@ -44,9 +44,10 @@ import {
   sendFile,
   sendJson,
 } from "./util.mjs";
-import { detailPage, driveFieldSpecs, fmtSize, galleryPage, loginPage, myPage, sharePage } from "./ui.mjs";
-import { handleAdmin } from "./admin.mjs";
+import { detailPage, driveFieldSpecs, fmtSize, galleryPage, loginPage, myPage, shareFilePage, sharePage } from "./ui.mjs";
+import { fileInfoOf, handleAdmin } from "./admin.mjs";
 import { handleUploads } from "./uploads.mjs";
+import { streamPath } from "./filestream.mjs";
 
 bootstrap(config.adminQQ);
 
@@ -276,12 +277,88 @@ function pageMy(req, res) {
   html(res, 200, myPage({ site: siteOf(), user, items, folder: user.drive_root, drives }));
 }
 
-function pageShare(req, res, token) {
+function shareLookup(token) {
   const share = get("SELECT * FROM shares WHERE token = ?", token);
-  if (!share) return html(res, 404, loginPage({ site: siteOf(), error: "分享不存在或已过期" }));
-  if (share.expires_at && new Date(share.expires_at).getTime() < Date.now()) {
-    return html(res, 410, loginPage({ site: siteOf(), error: "这个分享已经过期了" }));
+  if (!share) return { share: null, gone: 404 };
+  if (share.expires_at && new Date(share.expires_at).getTime() < Date.now()) return { share, gone: 410 };
+  return { share, gone: 0 };
+}
+
+const shareMeta = (share) => {
+  try {
+    return JSON.parse(share.target || "{}");
+  } catch {
+    return null;
   }
+};
+
+const safeChild = (root, child) => {
+  const base = String(root || "/").replace(/\/+$/, "");
+  const rel = String(child || "")
+    .split("/")
+    .filter((part) => part && part !== "." && part !== "..")
+    .join("/");
+  return rel ? `${base}/${rel}` : base || "/";
+};
+
+async function pageSharePath(req, res, share) {
+  const meta = shareMeta(share);
+  const drive = meta ? get("SELECT * FROM drives WHERE id = ?", meta.drive) : null;
+  if (!drive) return html(res, 404, loginPage({ site: siteOf(), error: "分享的存储已经不存在了" }));
+  const driver = driverFor(drive);
+  const owner = get("SELECT name FROM users WHERE id = ?", share.created_by)?.name;
+  const sub = new URL(req.url, "http://x").searchParams.get("path") || "";
+  const target = meta.isDir ? safeChild(meta.path, sub) : meta.path;
+  const info = await fileInfoOf(drive, driver, target).catch(() => null);
+  if (!info) return html(res, 404, loginPage({ site: siteOf(), error: "分享的文件已经不在原处了" }));
+
+  let entries = [];
+  if (info.isDir) {
+    const list = await driver.list(target).catch(() => []);
+    entries = list.map((entry) => ({ name: entry.name, size: entry.size, isDir: entry.isDir, path: entry.path.replace(`${meta.path}/`, "") }));
+  }
+
+  return html(
+    res,
+    200,
+    shareFilePage({
+      site: siteOf(),
+      share,
+      owner,
+      file: {
+        name: info.name,
+        size: info.size,
+        mime: info.mime,
+        isDir: info.isDir,
+        width: info.width,
+        height: info.height,
+        duration: info.duration,
+        fps: info.fps,
+        modified: info.modified,
+      },
+      entries,
+      base: `/memories/s/${share.token}`,
+    }),
+  );
+}
+
+async function streamSharePath(req, res, share, url) {
+  const meta = shareMeta(share);
+  const drive = meta ? get("SELECT * FROM drives WHERE id = ?", meta.drive) : null;
+  if (!drive) throw Object.assign(new Error("存储不存在"), { status: 404 });
+  const sub = url.searchParams.get("path") || "";
+  const target = meta.isDir ? safeChild(meta.path, sub) : meta.path;
+  const download = url.searchParams.get("download") === "1";
+  if (download && !share.allow_download) throw Object.assign(new Error("这份分享不允许下载"), { status: 403 });
+  return streamPath(req, res, { drive, target, download });
+}
+
+async function pageShare(req, res, token, url) {
+  const { share, gone } = shareLookup(token);
+  if (!share) return html(res, 404, loginPage({ site: siteOf(), error: "分享不存在或已过期" }));
+  if (gone === 410) return html(res, 410, loginPage({ site: siteOf(), error: "这个分享已经过期了" }));
+  if (share.kind === "path") return pageSharePath(req, res, share);
+
   const ids = String(share.target).split(",").map(Number).filter(Boolean);
   const items = ids.length
     ? all(
@@ -295,6 +372,7 @@ function pageShare(req, res, token) {
   const visible = items.filter((item) => !isHidden(item.drive_id, item.path));
   html(res, 200, sharePage({ site: siteOf(), share, items: visible, owner }));
 }
+
 
 /* ---------- API ---------- */
 
@@ -593,7 +671,20 @@ const server = http.createServer(async (req, res) => {
     if (pathname === "/memories/my") return pageMy(req, res);
     if (pathname.startsWith("/memories/admin")) return handleAdmin(req, res, url);
     if (pathname.startsWith("/memories/a/")) return pageDetail(req, res, pathname.slice("/memories/a/".length));
-    if (pathname.startsWith("/memories/s/")) return pageShare(req, res, pathname.slice("/memories/s/".length));
+    if (pathname.startsWith("/memories/s/")) {
+      const rest = pathname.slice("/memories/s/".length).split("/").filter(Boolean);
+      const token = rest[0] || "";
+      if (rest[1] === "raw") {
+        const { share, gone } = shareLookup(token);
+        if (!share || gone) return send(res, gone || 404, "Not Found");
+        try {
+          return await streamSharePath(req, res, share, url);
+        } catch (error) {
+          return send(res, error.status || 500, error.message || "读取失败");
+        }
+      }
+      return pageShare(req, res, token, url);
+    }
     if (pathname.startsWith("/memories/f/")) {
       const item = get("SELECT * FROM media WHERE id = ?", Number(pathname.slice("/memories/f/".length)));
       if (!item) return send(res, 404, "Not Found");
@@ -633,3 +724,5 @@ server.listen(config.port, config.host, () => {
   console.log(`Memories ▸ http://${config.host}:${config.port}/memories  (dist: ${DIST})`);
   console.log(`OAuth ▸ ${setting("oauth.issuer", "") || config.oauth.issuer} · client ${config.oauth.clientId || "(未设置)"}`);
 });
+
+export { server };

@@ -126,6 +126,10 @@ function syncSelection() {
     const row = box.closest("tr");
     if (row) row.classList.toggle("is-picked", box.checked);
   });
+  $$(".a-grid__card").forEach((card) => {
+    const box = $('[data-pick][value="' + CSS.escape(card.dataset.path || "") + '"]');
+    card.classList.toggle("is-picked", Boolean(box?.checked));
+  });
   if (selbar) selbar.hidden = chosen.length === 0;
   if (selCount) selCount.textContent = `已选 ${chosen.length} 项`;
 }
@@ -482,10 +486,47 @@ async function doBatch(mode) {
     return;
   }
 
+  if (mode === "pack") {
+    await runPack(paths);
+    return;
+  }
+
+  if (mode === "share") {
+    await sharePaths(paths);
+    return;
+  }
+
   const dest = await pickFolder(PATH, PATH);
   if (!dest) return;
   await act({ action: mode, targets: paths, dest });
   location.reload();
+}
+
+async function runPack(paths) {
+  openDialog({
+    title: "打包",
+    body: '<p class="a-hint" data-pack-note>正在把 ' + paths.length + " 项打包成 zip…</p>" + '<p class="a-note a-note--bad" data-dialog-error hidden></p>',
+    ok: "",
+  });
+  try {
+    const data = await act({ action: "pack", targets: paths });
+    const note = $("[data-pack-note]", dialogBody);
+    if (note) {
+      note.innerHTML =
+        "已生成 <strong>" +
+        esc(data.name || nameOf(data.path || "")) +
+        "</strong>（" +
+        (data.files ?? paths.length) +
+        " 个文件），保存在当前目录。";
+    }
+    setTimeout(() => location.reload(), 1400);
+  } catch (error) {
+    const note = $("[data-pack-note]", dialogBody);
+    if (note) {
+      note.className = "a-note a-note--bad";
+      note.textContent = error.message;
+    }
+  }
 }
 
 /* 预览 */
@@ -494,43 +535,171 @@ const IMAGE_EXT = new Set(["jpg", "jpeg", "png", "webp", "gif", "avif", "svg", "
 const VIDEO_EXT = new Set(["mp4", "webm", "mov", "m4v", "ogv"]);
 const AUDIO_EXT = new Set(["mp3", "wav", "ogg", "m4a", "flac"]);
 
-function openPreview(path, name, size) {
+const fmtDuration = (seconds) => {
+  const total = Math.max(0, Math.round(Number(seconds) || 0));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  const pad = (value) => String(value).padStart(2, "0");
+  return h ? h + ":" + pad(m) + ":" + pad(s) : m + ":" + pad(s);
+};
+
+const nameOf = (path) => String(path).split("/").filter(Boolean).pop() || "";
+
+const viewIcon = (kind) =>
+  kind === "video" ? "▶" : kind === "audio" ? "♪" : kind === "pdf" ? "PDF" : kind === "image" ? "▣" : kind === "dir" ? "▤" : "·";
+
+const infoRows = (info) => {
+  const rows = [
+    ["名称", info.name],
+    ["位置", info.path],
+    ["存储", info.driveName || "—"],
+    ["类型", info.isDir ? "目录" : info.mime || "未知"],
+    ["大小", info.isDir ? "—" : fmt(info.size)],
+    ["分辨率", info.width && info.height ? info.width + " × " + info.height : "—"],
+    ["时长", info.duration ? fmtDuration(info.duration) : "—"],
+    ["帧率", info.fps ? info.fps.toFixed(2) + " fps" : "—"],
+    ["编码", info.codec || "—"],
+    ["修改时间", info.modified ? new Date(info.modified).toLocaleString("zh-CN") : "—"],
+  ];
+  return rows
+    .map(([key, value]) => "<div class=\"a-dl__row\"><dt>" + esc(key) + "</dt><dd>" + esc(String(value ?? "—")) + "</dd></div>")
+    .join("");
+};
+
+function openViewer({ path, name, size = 0, kind = "", tab = "preview", info = null }) {
   const ext = String(name).split(".").pop()?.toLowerCase() || "";
   const url = rawUrl(path);
   let media = "";
-  if (IMAGE_EXT.has(ext)) media = `<img class="a-preview__img" src="${url}" alt="${esc(name)}" />`;
-  else if (VIDEO_EXT.has(ext)) media = `<video class="a-preview__img" src="${url}" controls preload="metadata"></video>`;
-  else if (AUDIO_EXT.has(ext)) media = `<audio src="${url}" controls preload="metadata"></audio>`;
-  else if (ext === "pdf") media = `<iframe class="a-preview__frame" src="${url}" title="${esc(name)}"></iframe>`;
-  else media = `<pre class="a-preview__text" data-text>读取中…</pre>`;
+  if (kind === "dir") media = "<p class=\"a-hint\">目录没有预览。</p>";
+  else if (IMAGE_EXT.has(ext)) media = "<img class=\"a-preview__img\" src=\"" + url + "\" alt=\"" + esc(name) + "\" />";
+  else if (VIDEO_EXT.has(ext)) media = "<video class=\"a-preview__img\" src=\"" + url + "\" controls preload=\"metadata\"></video>";
+  else if (AUDIO_EXT.has(ext)) media = "<audio src=\"" + url + "\" controls preload=\"metadata\"></audio>";
+  else if (ext === "pdf") media = "<iframe class=\"a-preview__frame\" src=\"" + url + "\" title=\"" + esc(name) + "\"></iframe>";
+  else media = "<pre class=\"a-preview__text\" data-text>读取中…</pre>";
+
+  const body =
+    "<div class=\"a-viewer\" data-viewer>" +
+    "<div class=\"a-viewer__tabs\">" +
+    "<button class=\"a-tab is-on\" type=\"button\" data-tab=\"preview\">预览</button>" +
+    "<button class=\"a-tab\" type=\"button\" data-tab=\"info\">详细信息</button>" +
+    "</div>" +
+    "<div class=\"a-viewer__pane\" data-pane=\"preview\"><div class=\"a-viewer__stage\">" + media + "</div>" +
+    "<p class=\"a-hint\">" + esc(path) + " · " + (kind === "dir" ? "目录" : fmt(size)) + "</p></div>" +
+    "<div class=\"a-viewer__pane\" data-pane=\"info\" hidden><dl class=\"a-dl\" data-info-list>" +
+    (info ? infoRows(info) : "<div class=\"a-dl__row\"><dt>信息</dt><dd>读取中…</dd></div>") +
+    "</dl></div>" +
+    "<p class=\"a-note a-note--bad\" data-dialog-error hidden></p>" +
+    "</div>";
 
   openDialog({
-    title: name,
-    body: `${media}
-      <p class="a-hint">${esc(path)} · ${fmt(size)}</p>
-      <p class="a-note a-note--bad" data-dialog-error hidden></p>`,
-    ok: "下载",
-    submit: async () => {
-      const link = document.createElement("a");
-      link.href = rawUrl(path, true);
-      link.download = name;
-      document.body.append(link);
-      link.click();
-      link.remove();
-    },
+    title: viewIcon(kind) + " " + name,
+    body,
+    ok: kind === "dir" ? "" : "下载",
+    submit:
+      kind === "dir"
+        ? null
+        : async () => {
+            const link = document.createElement("a");
+            link.href = rawUrl(path, true);
+            link.download = name;
+            document.body.append(link);
+            link.click();
+            link.remove();
+          },
   });
 
-  if (!media.includes("data-text")) return;
-  fetch(url, { headers: { range: "bytes=0-20479" } })
-    .then((res) => res.text())
-    .then((text) => {
-      const box = $("[data-text]", dialogBody);
-      if (box) box.textContent = text.length ? text : "（空文件）";
-    })
-    .catch((error) => {
-      const box = $("[data-text]", dialogBody);
-      if (box) box.textContent = `读取失败：${error.message}`;
+  const viewer = $("[data-viewer]", dialogBody);
+  if (!viewer) return;
+
+  const show = (which) => {
+    $$("[data-tab]", viewer).forEach((button) => button.classList.toggle("is-on", button.dataset.tab === which));
+    $$("[data-pane]", viewer).forEach((pane) => {
+      pane.hidden = pane.dataset.pane !== which;
     });
+  };
+  viewer.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-tab]");
+    if (button) show(button.dataset.tab);
+  });
+  if (tab !== "preview") show(tab);
+
+  const paint = (data) => {
+    const list = $("[data-info-list]", viewer);
+    if (list && data) list.innerHTML = infoRows(data);
+  };
+
+  if (info) paint(info);
+  else
+    fetch("/memories/admin/files/info?drive=" + encodeURIComponent(DRIVE) + "&path=" + encodeURIComponent(path))
+      .then((res) => res.json())
+      .then((data) => paint(data.file || data))
+      .catch(() => paint({ name, path, size }));
+
+  if (media.includes("data-text")) {
+    fetch(url, { headers: { range: "bytes=0-20479" } })
+      .then((res) => res.text())
+      .then((text) => {
+        const box = $("[data-text]", viewer);
+        if (box) box.textContent = text.length ? text : "（空文件）";
+      })
+      .catch((error) => {
+        const box = $("[data-text]", viewer);
+        if (box) box.textContent = "读取失败：" + error.message;
+      });
+  }
+}
+
+function openPreview(path, name, size, kind = "") {
+  openViewer({ path, name, size, kind, tab: "preview" });
+}
+
+async function sharePaths(paths) {
+  const data = await act({ action: "share", targets: paths });
+  const links = data.links || [];
+  if (!links.length) throw new Error("没有拿到分享链接");
+
+  if (links.length === 1) {
+    const absolute = location.origin + links[0].url;
+    openDialog({
+      title: "分享链接",
+      body:
+        "<p class=\"a-hint\">打开链接就能预览，不需要登录；默认 7 天后过期。</p>" +
+        "<label class=\"a-field\"><span>链接</span><input type=\"text\" value=\"" + esc(absolute) + "\" data-share-link readonly /></label>" +
+        "<p class=\"a-hint\">" + esc(links[0].name) + "</p>",
+      ok: "复制",
+      submit: async () => {
+        const input = $("[data-share-link]", dialogBody);
+        if (!input) return;
+        input.select();
+        try {
+          await navigator.clipboard.writeText(absolute);
+        } catch {
+          document.execCommand("copy");
+        }
+      },
+    });
+    return;
+  }
+
+  openDialog({
+    title: "分享链接 · " + links.length + " 个",
+    body:
+      "<p class=\"a-hint\">每条各一个链接，7 天后过期。</p>" +
+      "<div class=\"a-links\">" +
+      links
+        .map(
+          (link) =>
+            "<div class=\"a-links__row\"><span class=\"a-links__name\">" +
+            esc(link.name) +
+            "</span><input type=\"text\" readonly value=\"" +
+            esc(location.origin + link.url) +
+            "\" /></div>",
+        )
+        .join("") +
+      "</div>",
+    ok: "",
+  });
 }
 
 /* ---------- 事件绑定 ---------- */
@@ -568,11 +737,82 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const info = event.target.closest("[data-info]");
+  if (info) {
+    openViewer({
+      path: info.dataset.info,
+      name: info.dataset.name || nameOf(info.dataset.info),
+      kind: info.dataset.kind || "",
+      tab: "info",
+    });
+    return;
+  }
+
+  const share = event.target.closest("[data-share]");
+  if (share) {
+    sharePaths([share.dataset.share]).catch((error) => alert(error.message));
+    return;
+  }
+
   const preview = event.target.closest("[data-preview]");
   if (preview) {
     openPreview(preview.dataset.preview, preview.dataset.name || "", preview.dataset.size || 0);
   }
 });
+
+/* ---------- 视图：列表 / 网格 / 详情 ---------- */
+
+const fileTable = $("[data-table]");
+const fileGrid = $("[data-grid]");
+const VIEW_KEY = "admin-view";
+
+function setView(mode) {
+  const value = ["list", "grid", "detail"].includes(mode) ? mode : "list";
+  try {
+    localStorage.setItem(VIEW_KEY, value);
+  } catch {
+    /* 隐私模式下写不进去也无所谓 */
+  }
+  $$("[data-view]").forEach((button) => button.classList.toggle("is-on", button.dataset.view === value));
+  if (fileTable) fileTable.hidden = value === "grid";
+  if (fileGrid) fileGrid.hidden = value !== "grid";
+  $$(".a-cell-path").forEach((cell) => {
+    cell.hidden = value !== "detail";
+  });
+}
+
+if ($("[data-view]")) {
+  let saved = "list";
+  try {
+    saved = localStorage.getItem(VIEW_KEY) || "list";
+  } catch {
+    saved = "list";
+  }
+  setView(saved);
+  $$("[data-view]").forEach((button) => button.addEventListener("click", () => setView(button.dataset.view)));
+}
+
+if (fileGrid) {
+  fileGrid.addEventListener("click", (event) => {
+    const card = event.target.closest(".a-grid__card");
+    if (!card) return;
+    const box = $('[data-pick][value="' + CSS.escape(card.dataset.path || "") + '"]');
+    if (!box) return;
+    box.checked = !box.checked;
+    lastIndex = -1;
+    syncSelection();
+  });
+
+  fileGrid.addEventListener("dblclick", (event) => {
+    const card = event.target.closest(".a-grid__card");
+    if (!card) return;
+    if (card.dataset.dir === "1") {
+      location.href = "/memories/admin/files?drive=" + encodeURIComponent(DRIVE) + "&path=" + encodeURIComponent(card.dataset.path || "/");
+      return;
+    }
+    openPreview(card.dataset.path, card.dataset.name || nameOf(card.dataset.path || ""), card.dataset.size || 0, card.dataset.kind || "");
+  });
+}
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && dialog?.open) closeDialog();

@@ -1403,3 +1403,62 @@ html[data-view="list"] .m-card__name {
   font-size: 0.8rem;
   margin: 0.6rem 0 0;
 }
+
+/* ============ 分享页（/memories/s/<token>） ============ */
+.m-media {
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--ink) 5%, var(--paper));
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  padding: 0.6rem;
+  margin: 0 0 1.2rem;
+  overflow: auto;
+  max-height: min(66vh, 640px);
+}
+.m-media .m-view__img,
+.m-media .m-view__video {
+  max-width: 100%;
+  max-height: min(64vh, 620px);
+  display: block;
+  border-radius: 3px;
+}
+.m-media .m-view__audio { width: min(100%, 30rem); }
+.m-media .m-view__frame {
+  width: 100%;
+  height: min(64vh, 620px);
+  border: 0;
+  border-radius: 3px;
+  background: #fff;
+}
+
+.m-files {
+  display: grid;
+  gap: 0;
+  margin: 0 0 1.4rem;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--rule);
+}
+.m-files li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.6rem;
+  align-items: center;
+  padding: 0.55rem 0.2rem;
+  border-bottom: 1px solid var(--rule);
+  font-size: 0.88rem;
+}
+.m-files a {
+  color: inherit;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.m-files a:hover { color: var(--vermilion); }
+.m-files span {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--muted);
+}
