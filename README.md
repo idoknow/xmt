@@ -90,6 +90,12 @@ node deploy/rollout.mjs   # 只切镜像并校验
 - 139 的凭据两种填法，任选其一：① 整段 `yun.139.com` 的 Cookie（含 `ORCHES-C-TOKEN`、`ORCHES-I-ACCOUNT-ENCRYPT`）。服务端会用它解出账号，并按网页端的规则（AES-128-ECB + 前端常量 `C_ENCRYPT_CODE`）把 `ORCHES-C-TOKEN` 解成接口认可的 `authToken`；② 直接填 `Authorization`（`Basic` + `pc:<账号>:<authToken>` 的 base64）。根目录固定用个人云的 `root`。
 - WebDAV 出口：`https://xmt.idoknow.top/memories/dav/`，游客只读（`PROPFIND`/`GET`/`HEAD`）。
 - OAuth 凭据不写进仓库：集群 Secret `xmt-memories`（`oauth-client-id`、`oauth-client-secret`、`admin-qq`），也可以在后台「设置」里改，改完写回 settings 表。
+- 管理台（AList 风格，左侧栏 + 四个分页）：
+  - `/memories/admin/files`：文件管理器。存储标签切换、面包屑进目录，勾选后批量移动/复制/删除，上传带进度（不限类型），单个文件可改名、打开、下载。
+  - `/memories/admin/storages`：存储列表 + 表单（名称/类型/挂载路径/根路径/可见性/启用/隐藏目录），可编辑、测试、删除、直接打开。
+  - `/memories/admin/users`：加成员（只填 QQ）、改角色、停用、移除。
+  - `/memories/admin/settings`：站点标题与介绍、管理员 QQ、OAuth 凭据。
+  - 这三处都只在管理台加载（`assets/css/admin.css` + `assets/js/admin.js`），画廊不背这部分体积。
 
 ```bash
 node .tmp/cluster-prep.mjs   # 建 Secret 与 PVC（一次性；脚本里带 token，别提交）

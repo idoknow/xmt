@@ -122,6 +122,15 @@ export const all = (sql, ...args) => db.prepare(sql).all(...args);
 export const get = (sql, ...args) => db.prepare(sql).get(...args);
 export const run = (sql, ...args) => db.prepare(sql).run(...args);
 
+/* 轻量迁移：老库升级时补列，已有列就跳过 */
+function ensureColumn(table, column, ddl) {
+  const columns = all(`PRAGMA table_info(${table})`).map((row) => row.name);
+  if (!columns.includes(column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${ddl}`);
+}
+
+ensureColumn("drives", "mount_path", "mount_path TEXT NOT NULL DEFAULT ''");
+ensureColumn("drives", "sort_order", "sort_order INTEGER NOT NULL DEFAULT 0");
+
 export const setting = (key, fallback = null) => {
   const row = get("SELECT value FROM settings WHERE key = ?", key);
   return row ? row.value : fallback;

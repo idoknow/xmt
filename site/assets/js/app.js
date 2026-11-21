@@ -343,6 +343,7 @@ const setEditing = (drive) => {
   if (field("name")) field("name").value = drive.name || "";
   if (field("driver")) field("driver").value = drive.driver;
   if (field("root")) field("root").value = drive.root || "/";
+  if (field("mount_path")) field("mount_path").value = drive.mount_path || "";
   if (field("visibility")) field("visibility").value = drive.visibility === "public" ? "public" : "members";
   if (field("hidden")) field("hidden").value = (drive.hidden || []).join("\n");
   if (field("enabled")) field("enabled").checked = Boolean(drive.enabled);
@@ -534,6 +535,7 @@ driveForm?.addEventListener("submit", async (event) => {
     name: field("name")?.value.trim() || "",
     driver: field("driver")?.value || "local",
     root: field("root")?.value.trim() || "/",
+    mount_path: field("mount_path")?.value.trim() || "",
     visibility: field("visibility")?.value || "members",
     enabled: Boolean(field("enabled")?.checked),
     hidden,
@@ -584,6 +586,17 @@ document.addEventListener("click", async (event) => {
   if (toggle) {
     try {
       await api(`/memories/api/users/${toggle.dataset.toggleUser}/status`, {});
+      location.reload();
+    } catch (error) {
+      alert(error.message);
+    }
+    return;
+  }
+  const drop = event.target.closest("[data-remove-user]");
+  if (drop) {
+    if (!confirm("把这个成员从媒体库移除？他上传的内容会保留。")) return;
+    try {
+      await api(`/memories/api/users/${drop.dataset.removeUser}`, {}, "DELETE");
       location.reload();
     } catch (error) {
       alert(error.message);

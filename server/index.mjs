@@ -43,7 +43,8 @@ import {
   sendFile,
   sendJson,
 } from "./util.mjs";
-import { adminPage, detailPage, driveFieldSpecs, fmtSize, galleryPage, loginPage, myPage, sharePage } from "./ui.mjs";
+import { detailPage, driveFieldSpecs, fmtSize, galleryPage, loginPage, myPage, sharePage } from "./ui.mjs";
+import { handleAdmin } from "./admin.mjs";
 
 bootstrap(config.adminQQ);
 
@@ -241,29 +242,6 @@ function pageMy(req, res) {
   html(res, 200, myPage({ site: siteOf(), user, items, folder: user.drive_root, drives }));
 }
 
-function pageAdmin(req, res) {
-  const user = currentUser(req);
-  if (!user) return redirect(res, "/memories/login");
-  if (!isAdmin(user)) return html(res, 403, loginPage({ site: siteOf(), error: "只有管理员能进后台" }));
-  html(
-    res,
-    200,
-    adminPage({
-      site: siteOf(),
-      user,
-      users: allUsers(),
-      drives: all("SELECT * FROM drives ORDER BY id").map((drive) => ({ ...drive, hidden: hiddenPrefixes(drive.id) })),
-      settings: {
-        adminQQ: setting("admin.qq", config.adminQQ),
-        issuer: setting("oauth.issuer", config.oauth.issuer),
-        clientId: setting("oauth.client_id", ""),
-        clientSecret: setting("oauth.client_secret", ""),
-      },
-      counters: stats(),
-    }),
-  );
-}
-
 function pageShare(req, res, token) {
   const share = get("SELECT * FROM shares WHERE token = ?", token);
   if (!share) return html(res, 404, loginPage({ site: siteOf(), error: "分享不存在或已过期" }));
@@ -400,6 +378,15 @@ async function api(req, res, url) {
       }
       return json(res, { ok: true, users: allUsers() });
     }
+    if (parts[1] && method === "DELETE") {
+      const target = get("SELECT * FROM users WHERE id = ?", Number(parts[1]));
+      if (!target) throw Object.assign(new Error("用户不存在"), { status: 404 });
+      if (target.id === current.id) throw Object.assign(new Error("不能移除自己"), { status: 400 });
+      run("DELETE FROM sessions WHERE user_id = ?", target.id);
+      run("DELETE FROM users WHERE id = ?", target.id);
+      audit(current.id, "user.remove", `QQ ${target.qq}`, req.socket.remoteAddress);
+      return json(res, { ok: true, users: allUsers() });
+    }
   }
 
   if (parts[0] === "drives") {
@@ -409,11 +396,12 @@ async function api(req, res, url) {
       const body = await readJson(req);
       if (!DRIVERS[body.driver]) throw Object.assign(new Error("未知存储类型"), { status: 400 });
       run(
-        "INSERT INTO drives (name, driver, config, root, visibility, enabled, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO drives (name, driver, config, root, mount_path, visibility, enabled, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
         String(body.name || DRIVERS[body.driver].label).slice(0, 40),
         body.driver,
         JSON.stringify(body.config || {}),
         String(body.root || "/"),
+        String(body.mount_path || "").slice(0, 60),
         body.visibility === "public" ? "public" : "members",
         body.enabled === false || body.enabled === 0 ? 0 : 1,
         now(),
@@ -457,10 +445,11 @@ async function api(req, res, url) {
       if (method === "POST") {
         const body = await readJson(req);
         run(
-          "UPDATE drives SET name = COALESCE(?, name), config = COALESCE(?, config), root = COALESCE(?, root), enabled = COALESCE(?, enabled), visibility = COALESCE(?, visibility) WHERE id = ?",
+          "UPDATE drives SET name = COALESCE(?, name), config = COALESCE(?, config), root = COALESCE(?, root), mount_path = COALESCE(?, mount_path), enabled = COALESCE(?, enabled), visibility = COALESCE(?, visibility) WHERE id = ?",
           body.name ?? null,
           body.config ? JSON.stringify(body.config) : null,
           body.root ?? null,
+          body.mount_path == null ? null : String(body.mount_path).slice(0, 60),
           body.enabled == null ? null : body.enabled ? 1 : 0,
           body.visibility ? (body.visibility === "public" ? "public" : "members") : null,
           drive.id,
@@ -527,7 +516,7 @@ const server = http.createServer(async (req, res) => {
       }
     }
     if (pathname === "/memories/my") return pageMy(req, res);
-    if (pathname === "/memories/admin") return pageAdmin(req, res);
+    if (pathname.startsWith("/memories/admin")) return handleAdmin(req, res, url);
     if (pathname.startsWith("/memories/a/")) return pageDetail(req, res, pathname.slice("/memories/a/".length));
     if (pathname.startsWith("/memories/s/")) return pageShare(req, res, pathname.slice("/memories/s/".length));
     if (pathname.startsWith("/memories/f/")) {
