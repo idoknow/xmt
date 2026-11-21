@@ -60,6 +60,7 @@ export const PROVIDERS = {
     field: "file",
     max: 8 * 1024 * 1024,
     referrer: "never",
+    secure: true,
   },
   psbctc: {
     name: "中国邮政图床",
@@ -133,8 +134,11 @@ async function forward(provider, file, options = {}) {
   if (data?.errno !== 0) {
     throw Object.assign(new Error(data?.error || data?.message || "图床拒绝了这次上传"), { status: 400 });
   }
+  let url = data.data?.url || "";
+  // 搜狗返回 http 链接，本站是 https，直接嵌预览会被浏览器当混合内容拦掉；同一条链接 https 可用。
+  if (info.secure && url.startsWith("http://")) url = `https://${url.slice(7)}`;
   return {
-    url: data.data?.url || "",
+    url,
     filename: data.data?.imgFile || data.data?.fileName || "",
     meta: {},
   };
