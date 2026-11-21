@@ -112,7 +112,43 @@ const selbar = $("[data-selbar]");
 const selCount = $("[data-sel-count]");
 let lastIndex = -1;
 
-const boxes = () => $$("[data-pick]");
+const boxes = () => $("[data-pick]");
+
+/* ---------- 加载提示 ---------- */
+
+const loading = document.createElement("div");
+loading.className = "a-loading";
+loading.hidden = true;
+loading.innerHTML = '<span class="a-spin" aria-hidden="true"></span><span>加载中…</span>';
+document.body.append(loading);
+
+let busyCount = 0;
+function busy(on = true) {
+  busyCount = Math.max(0, busyCount + (on ? 1 : -1));
+  loading.hidden = busyCount === 0;
+  document.documentElement.classList.toggle("is-busy", busyCount > 0);
+}
+
+const withBusy = (promise) => {
+  busy(true);
+  return Promise.resolve(promise).finally(() => busy(false));
+};
+
+// 站内跳转会整页刷新，先给个提示，别让人以为没反应
+document.addEventListener("click", (event) => {
+  const link = event.target.closest("a[href]");
+  if (!link || link.target === "_blank" || event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
+  if (link.hasAttribute("download")) return;
+  let url;
+  try {
+    url = new URL(link.href, location.href);
+  } catch {
+    return;
+  }
+  if (url.origin !== location.origin || url.href === location.href) return;
+  busy(true);
+});
+document.addEventListener("submit", () => busy(true), true);
 const picked = () => boxes().filter((box) => box.checked).map((box) => box.value);
 
 function syncSelection() {
@@ -405,7 +441,7 @@ async function pickFolder(startPath, initial = "/") {
 /* ---------- 操作 ---------- */
 
 async function act(body) {
-  return api("/memories/admin/files/action", { drive: DRIVE, ...body });
+  return withBusy(api("/memories/admin/files/action", { drive: DRIVE, ...body }));
 }
 
 function askName({ title, label, value = "", ok = "确定" }) {
@@ -453,7 +489,7 @@ async function doBatch(mode) {
   if (!paths.length) return;
 
   if (mode === "remove") {
-    const dirsOnly = paths.every((path) => $(`[data-pick][value="${CSS.escape(path)}"]`)?.dataset.isDir === "1");
+    const dirsOnly = paths.every((path) => document.querySelector(`tr[data-path="${CSS.escape(path)}"]`)?.dataset.dir === "1");
     const ok = await new Promise((resolve) => {
       openDialog({
         title: "删除",
@@ -576,20 +612,38 @@ const typeText = (info) => {
 };
 
 const infoRows = (info) => {
+  const isDir = Boolean(info.isDir);
+  const mime = String(info.mime || "");
+  const pair = (value) => (value ? value : "—");
+  const resolution = info.width && info.height ? info.width + " × " + info.height : "—";
+  const duration = info.duration ? fmtDuration(info.duration) : "—";
+
   const rows = [
     ["名称", info.name],
-    ["位置", info.path],
+    ["位置", info.display || info.path],
     ["存储", info.driveName || "—"],
     ["类型", typeText(info)],
-    ["大小", info.isDir ? "—" : fmt(info.size)],
-    ["分辨率", info.width && info.height ? info.width + " × " + info.height : "—"],
-    ["时长", info.duration ? fmtDuration(info.duration) : "—"],
-    ["帧率", info.fps ? info.fps.toFixed(2) + " fps" : "—"],
-    ["编码", info.codec || "—"],
-    ["修改时间", info.modified ? new Date(info.modified).toLocaleString("zh-CN") : "—"],
+    ["大小", isDir ? "—" : fmt(info.size)],
   ];
+
+  if (/^image\//.test(mime)) {
+    rows.push(["分辨率", pair(resolution)]);
+  } else if (/^video\//.test(mime)) {
+    rows.push(["分辨率", pair(resolution)]);
+    rows.push(["时长", duration]);
+    rows.push(["帧率", info.fps ? info.fps.toFixed(2) + " fps" : "—"]);
+    rows.push(["编码", pair(info.codec)]);
+  } else if (/^audio\//.test(mime)) {
+    rows.push(["时长", duration]);
+    rows.push(["编码", pair(info.codec)]);
+  }
+
+  rows.push(["修改时间", info.modified ? new Date(info.modified).toLocaleString("zh-CN") : "—"]);
+
   return rows
-    .map(([key, value]) => "<div class=\"a-dl__row\"><dt>" + esc(key) + "</dt><dd>" + esc(String(value ?? "—")) + "</dd></div>")
+    .map(function (row) {
+      return '<div class="a-dl__row"><dt>' + esc(row[0]) + "</dt><dd>" + esc(String(row[1] ?? "—")) + "</dd></div>";
+    })
     .join("");
 };
 
@@ -936,6 +990,7 @@ if (driveForm) {
     if (submitBtn) submitBtn.textContent = drive ? "保存修改" : "添加存储";
     if (cancelBtn) cancelBtn.hidden = !drive;
     driveForm.classList.toggle("is-editing", Boolean(drive));
+    if (drive) driveForm.hidden = false;
   }
 
   fieldOf("driver").addEventListener("change", () => renderConfig(fieldOf("driver").value, {}));
@@ -976,7 +1031,17 @@ if (driveForm) {
     }
   });
 
-  cancelBtn?.addEventListener("click", () => fillForm(null));
+  cancelBtn?.addEventListener("click", () => {
+    fillForm(null);
+    driveForm.hidden = true;
+  });
+
+  $("[data-add-toggle]")?.addEventListener("click", () => {
+    fillForm(null);
+    driveForm.hidden = false;
+    driveForm.scrollIntoView({ behavior: "smooth", block: "center" });
+    fieldOf("name")?.focus();
+  });
   $("[data-hidden-open]")?.addEventListener("click", () => openPicker(pick.driveId));
 
   driveForm.addEventListener("click", (event) => {

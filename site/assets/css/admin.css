@@ -1163,3 +1163,138 @@
   .a-dl__row { grid-template-columns: 4.6rem minmax(0, 1fr); }
   .a-links__row { grid-template-columns: 1fr; }
 }
+
+/* ---------- 加载提示 ---------- */
+.a-loading {
+  position: fixed;
+  inset-block-start: 1rem;
+  inset-inline-end: 1rem;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.85rem 0.5rem 0.6rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--paper);
+  box-shadow: 0 8px 20px -14px rgba(20, 19, 27, 0.6);
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+
+.a-spin {
+  width: 0.95rem;
+  height: 0.95rem;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--vermilion) 30%, transparent);
+  border-block-start-color: var(--vermilion);
+  animation: a-spin 0.7s linear infinite;
+}
+
+@keyframes a-spin {
+  to { transform: rotate(360deg); }
+}
+
+html.is-busy {
+  cursor: progress;
+}
+
+/* ---------- 列表里的勾选与表头 ---------- */
+.a-pickbox {
+  display: inline-flex;
+  align-items: center;
+  margin-inline-end: 0.55rem;
+  vertical-align: middle;
+}
+
+.a-pickbox input[type="checkbox"],
+.a-th-name input[type="checkbox"] {
+  width: 0.95rem;
+  height: 0.95rem;
+  accent-color: var(--vermilion);
+  cursor: pointer;
+}
+
+.a-th-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.a-cell-name {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* ---------- 带单位的输入框 ---------- */
+.a-unit {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--paper);
+  overflow: hidden;
+}
+
+.a-unit input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  padding: 0.42rem 0.55rem;
+  font: inherit;
+  color: var(--ink);
+}
+
+.a-unit input:focus {
+  outline: 0;
+}
+
+.a-unit:focus-within {
+  border-color: color-mix(in srgb, var(--vermilion) 55%, var(--rule));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--vermilion) 14%, transparent);
+}
+
+.a-unit em {
+  display: flex;
+  align-items: center;
+  padding-inline: 0.5rem;
+  border-inline-start: 1px solid var(--rule);
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-style: normal;
+  color: var(--muted);
+}
+
+/* ---------- 表单里的多行输入（Cookie 这种长串） ---------- */
+.a-form textarea {
+  width: 100%;
+  padding: 0.55rem 0.6rem;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--ink) 3%, var(--paper));
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+  word-break: break-all;
+  resize: vertical;
+}
+
+.a-form textarea:focus {
+  outline: 0;
+  border-color: color-mix(in srgb, var(--vermilion) 55%, var(--rule));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--vermilion) 14%, transparent);
+}
+
+.a-toolbar--flush {
+  margin-block: 0 0.75rem;
+  padding: 0;
+}
+
+.a-form[hidden] {
+  display: none !important;
+}

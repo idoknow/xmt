@@ -64,6 +64,20 @@ const sortEntries = (entries, key, dir) => {
   });
 };
 
+// 驱动给的路径可能是 ID（139 就是这样），界面上按名称显示
+export async function prettyPath(driver, target) {
+  const clean = target === "/" || !target ? "/" : String(target).replace(/\/+$/, "");
+  if (clean === "/") return "/";
+  const segments = clean.split("/").filter(Boolean);
+  const names = [];
+  for (let index = 0; index < segments.length; index += 1) {
+    const sub = "/" + segments.slice(0, index + 1).join("/");
+    const info = await driver.stat(sub).catch(() => null);
+    names.push(info?.name || segments[index]);
+  }
+  return "/" + names.join("/");
+}
+
 function pageFiles(req, res, url) {
   const user = currentUser(req);
   const drives = drivesAll();
@@ -83,14 +97,31 @@ function pageFiles(req, res, url) {
     );
   }
 
-  return driverFor(drive)
+  const driver = driverFor(drive);
+  return driver
     .list(currentPath)
-    .then((list) => {
-      const entries = sortEntries(list, sortKey, sortDir);
+    .then(async (list) => {
+      const pretty = await prettyPath(driver, currentPath).catch(() => currentPath);
+      const entries = sortEntries(list, sortKey, sortDir).map((entry) => ({
+        ...entry,
+        display: pretty === "/" ? `/${entry.name}` : `${pretty}/${entry.name}`,
+      }));
       html(
         res,
         200,
-        adminFilesPage({ site: siteOf(), user, drives, drive, path: currentPath, entries, notice, error, sortKey, sortDir }),
+        adminFilesPage({
+          site: siteOf(),
+          user,
+          drives,
+          drive,
+          path: currentPath,
+          pretty,
+          entries,
+          notice,
+          error,
+          sortKey,
+          sortDir,
+        }),
       );
     })
     .catch((problem) => {
@@ -103,6 +134,7 @@ function pageFiles(req, res, url) {
           drives,
           drive,
           path: currentPath,
+          pretty: currentPath,
           entries: [],
           notice,
           error: `读取目录失败：${problem.message}`,
@@ -320,6 +352,7 @@ export async function fileInfoOf(drive, driver, target) {
     drive: drive.id,
     driveName: drive.name,
     path: target,
+    display: await prettyPath(driver, target).catch(() => target),
     name: displayNameOf,
     isDir: Boolean(info.isDir),
     size: Number(info.size) || 0,

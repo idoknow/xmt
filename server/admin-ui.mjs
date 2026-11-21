@@ -53,15 +53,16 @@ function layout({ site, user, section, title, body, scripts = "" }) {
 
 /* ---------- 文件 ---------- */
 
-const crumbOf = (drive, currentPath) => {
+const crumbOf = (drive, currentPath, pretty = currentPath) => {
   const parts = String(currentPath || "/").split("/").filter(Boolean);
+  const names = String(pretty || "/").split("/").filter(Boolean);
   const base = `/memories/admin/files?drive=${drive.id}`;
   const crumbs = [`<a href="${base}&path=/">根目录</a>`];
   let acc = "";
-  for (const part of parts) {
+  parts.forEach((part, index) => {
     acc += `/${part}`;
-    crumbs.push(`<a href="${base}&path=${encodeURIComponent(acc)}">${e(part)}</a>`);
-  }
+    crumbs.push(`<a href="${base}&path=${encodeURIComponent(acc)}">${e(names[index] || part)}</a>`);
+  });
   return crumbs.join('<span class="a-crumb__sep">/</span>');
 };
 
@@ -71,6 +72,7 @@ export function adminFilesPage({
   drives,
   drive,
   path: currentPath,
+  pretty = currentPath,
   entries,
   notice,
   error,
@@ -107,7 +109,7 @@ export function adminFilesPage({
             ? "pdf"
             : "file";
 
-  const rows = entries
+    const rows = entries
     .map((entry) => {
       const kind = entry.isDir ? "dir" : kindOf(entry.name);
       const name = entry.isDir
@@ -135,11 +137,10 @@ export function adminFilesPage({
              entry.name,
            )}">删除</button>`;
       return `<tr data-path="${e(entry.path)}" data-dir="${entry.isDir ? "1" : "0"}" data-kind="${kind}">
-        <td class="a-check"><input type="checkbox" data-pick value="${e(entry.path)}" ${entry.isDir ? 'data-is-dir="1"' : ""} aria-label="${e(
+        <td class="a-cell-name"><label class="a-pickbox"><input type="checkbox" data-pick value="${e(entry.path)}" aria-label="${e(
           entry.name,
-        )}" /></td>
-        <td class="a-cell-name"><span class="a-ico a-ico--${kind}"></span>${name}</td>
-        <td class="a-cell-path a-mono" hidden>${e(entry.path)}</td>
+        )}" /></label>${name}</td>
+        <td class="a-cell-path a-mono" hidden>${e(entry.display || entry.path)}</td>
         <td class="a-num">${entry.isDir ? "—" : fmtSize(entry.size)}</td>
         <td class="a-mono">${entry.modified ? e(String(entry.modified).slice(0, 16).replace("T", " ")) : "—"}</td>
         <td class="a-actions"><div class="a-actions__row">${actions}</div></td>
@@ -147,7 +148,8 @@ export function adminFilesPage({
     })
     .join("");
 
-  const cards = entries
+  
+const cards = entries
     .map((entry) => {
       const kind = entry.isDir ? "dir" : kindOf(entry.name);
       const raw = `/memories/admin/files/raw?drive=${drive.id}&path=${encodeURIComponent(entry.path)}`;
@@ -173,7 +175,7 @@ export function adminFilesPage({
   ${error ? `<p class="a-note a-note--bad">${e(error)}</p>` : ""}
   ${
     drive
-      ? `<div class="a-crumb">${crumbOf(drive, currentPath)}</div>
+      ? `<div class="a-crumb">${crumbOf(drive, currentPath, pretty)}</div>
   <div class="a-toolbar">
     <label class="a-btn a-btn--primary"><input type="file" multiple data-upload hidden />上传</label>
     <button class="a-btn" type="button" data-mkdir>新建文件夹</button>
@@ -198,7 +200,7 @@ export function adminFilesPage({
     <button class="a-view" type="button" data-view="detail">详情</button>
   </div>
   <table class="a-table a-table--files" data-table>
-    <thead><tr><th class="a-check"><input type="checkbox" data-pick-all aria-label="全选" /></th><th>名称</th><th class="a-cell-path" hidden>路径</th><th>大小</th><th>修改时间</th><th></th></tr></thead>
+    <thead><tr><th><span class="a-th-name"><input type="checkbox" data-pick-all aria-label="全选" />名称</span></th><th class="a-cell-path" hidden>路径</th><th>大小</th><th>修改时间</th><th></th></tr></thead>
     <tbody>${rows || `<tr><td class="a-empty" colspan="6">这个目录是空的。</td></tr>`}</tbody>
   </table>
   <div class="a-grid" data-grid hidden>${cards || '<p class="a-empty">这个目录是空的。</p>'}</div>
@@ -271,7 +273,11 @@ export function adminStoragesPage({ site, user, drives }) {
   }));
 
   const body = `
-  <form class="a-form" data-add-drive data-drive-id="">
+  <div class="a-toolbar a-toolbar--flush">
+    <button class="a-btn a-btn--primary" type="button" data-add-toggle>＋ 添加存储</button>
+    <span class="a-hint">点一下展开表单；行内「编辑」也会展开同一份表单。</span>
+  </div>
+  <form class="a-form" data-add-drive data-drive-id="" hidden>
     <div class="a-form__grid">
       <label><span>名称</span><input name="name" required placeholder="移动云盘" /></label>
       <label><span>类型</span><select name="driver">${Object.entries(DRIVERS)
@@ -280,10 +286,10 @@ export function adminStoragesPage({ site, user, drives }) {
       <label><span>挂载路径</span><input name="mount_path" placeholder="/139" /></label>
       <label><span>根路径</span><input name="root" value="/" placeholder="/" /></label>
       <label><span>可见性</span><select name="visibility"><option value="members">成员可见</option><option value="public">公开</option></select></label>
-      <label><span>总容量（GB）</span><input name="quota_gb" type="number" min="0" step="0.1" placeholder="0 = 未获取" />
-        <span class="a-hint">填 0 表示不显示；点「刷新容量」可从存储自动读取</span></label>
-      <label><span>单文件上限（GB）</span><input name="max_file_gb" type="number" min="0" step="0.1" placeholder="0 = 跟随默认" />
-        <span class="a-hint">0 表示用默认（照片 250MB / 视频 10GB）；填了就按这个存储自己的上限</span></label>
+      <label><span>总容量</span><span class="a-unit"><input name="quota_gb" type="number" min="0" step="0.1" placeholder="0 = 未获取" inputmode="decimal" /><em>GB</em></span>
+        <span class="a-hint">0 表示不显示；点「刷新容量」可从存储自动读取</span></label>
+      <label><span>单文件上限</span><span class="a-unit"><input name="max_file_gb" type="number" min="0" step="0.1" placeholder="0 = 跟随默认" inputmode="decimal" /><em>GB</em></span>
+        <span class="a-hint">0 用默认（照片 250MB / 视频 10GB）；填了就按这个存储自己的上限</span></label>
       <label class="a-form__check"><input type="checkbox" name="enabled" checked /><span>启用</span></label>
       <label class="a-form__wide"><span>隐藏目录</span>
         <div class="a-pick" data-hidden-box>
