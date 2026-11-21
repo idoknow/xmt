@@ -568,23 +568,51 @@ function renderSoftware(items) {
   if (!items.length) return;
   grid.innerHTML = items
     .map((item) => {
-      const links = (item.links || [])
-        .map(
-          (link) =>
-            `<a class="soft__link" href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(link.label || "下载")}</a>`,
-        )
-        .join("");
+      const groups = new Map();
+      (item.links || []).forEach((link) => {
+        const key = link.platform || "其他";
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(link);
+      });
+      const links = groups.size
+        ? Array.from(groups.entries())
+            .map(
+              ([platform, list]) => `<div class="soft__platform">
+            <span class="soft__platform-name">${escapeHtml(platform)}</span>
+            <span class="soft__platform-links">${list
+              .map(
+                (link) =>
+                  `<a class="soft__link" href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(
+                    link.label || "下载",
+                  )}</a>`,
+              )
+              .join("")}</span>
+          </div>`,
+            )
+            .join("")
+        : '<span class="soft__empty">暂无下载线路</span>';
+      const devices = String(item.devices || "")
+        .split(/[,，、·]/)
+        .map((entry) => entry.trim())
+        .filter(Boolean);
       return `<article class="soft">
         <header class="soft__head">
+          ${item.icon ? `<img class="soft__icon" src="${escapeHtml(item.icon)}" alt="" loading="lazy" />` : ""}
           <h3 class="soft__name">${escapeHtml(item.name)}</h3>
           ${item.category ? `<span class="soft__tag">${escapeHtml(item.category)}</span>` : ""}
         </header>
         <dl class="soft__meta">
-          ${item.devices ? `<div><dt>适配</dt><dd>${escapeHtml(item.devices)}</dd></div>` : ""}
+          ${
+            devices.length
+              ? `<div><dt>适配</dt><dd class="soft__devices">${devices
+                  .map((entry) => `<span>${escapeHtml(entry)}</span>`)
+                  .join("")}</dd></div>`
+              : ""
+          }
           ${item.size ? `<div><dt>大小</dt><dd>${escapeHtml(item.size)}</dd></div>` : ""}
         </dl>
         ${item.note ? `<p class="soft__note">${escapeHtml(item.note)}</p>` : ""}
-        <div class="soft__links">${links || '<span class="soft__empty">暂无下载线路</span>'}</div>
+        <div class="soft__links">${links}</div>
       </article>`;
     })
     .join("");

@@ -10,7 +10,11 @@ const decodeLinks = (raw) => {
     const list = JSON.parse(raw || "[]");
     return Array.isArray(list)
       ? list
-          .map((item) => ({ label: String(item?.label || ""), url: String(item?.url || "") }))
+          .map((item) => ({
+            platform: String(item?.platform || ""),
+            label: String(item?.label || ""),
+            url: String(item?.url || ""),
+          }))
           .filter((item) => item.url)
       : [];
   } catch {
@@ -23,7 +27,7 @@ export function catalog() {
     "SELECT id, name, url, note, category FROM tool_links WHERE enabled = 1 ORDER BY sort_order, id",
   ).map((row) => ({ ...row }));
   const software = all(
-    "SELECT id, name, category, devices, size, note, links FROM software WHERE enabled = 1 ORDER BY sort_order, id",
+    "SELECT id, name, icon, category, devices, size, note, links FROM software WHERE enabled = 1 ORDER BY sort_order, id",
   ).map((row) => ({ ...row, links: decodeLinks(row.links) }));
   return { links, software };
 }
@@ -60,7 +64,7 @@ const softwareRows = (rows) =>
     .map((row) => {
       const links = decodeLinks(row.links);
       return `<tr>
-      <td><div class="a-name-cell"><strong>${e(row.name)}</strong><small class="a-mono">${links.length} 条下载线路</small></div></td>
+      <td><div class="a-name-cell">${row.icon ? `<img class="a-thumb" src="${e(row.icon)}" alt="" loading="lazy" />` : ""}<div><strong>${e(row.name)}</strong><small class="a-mono">${Array.from(new Set(links.map((link) => link.platform).filter(Boolean))).join(" / ") || "未分平台"} · ${links.length} 条线路</small></div></div></td>
       <td data-label="分类">${row.category ? `<span class="a-chip">${e(row.category)}</span>` : "—"}</td>
       <td data-label="适配">${e(row.devices || "—")}</td>
       <td data-label="大小">${e(row.size || "—")}</td>
@@ -117,6 +121,29 @@ export function adminToolsPage({ site, user }) {
   return layout({ site, user, section: "tools", title: "在线工具清单", body, scripts: toolsScript() });
 }
 
+const splitTags = (value) =>
+  String(value || "")
+    .split(/[,，、·]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+const deviceOptions = () =>
+  Array.from(new Set(all("SELECT devices FROM software").flatMap((row) => splitTags(row.devices))))
+    .map((item) => `<option value="${e(item)}"></option>`)
+    .join("");
+
+const platformOptions = () =>
+  Array.from(
+    new Set(
+      all("SELECT links FROM software")
+        .flatMap((row) => decodeLinks(row.links))
+        .map((link) => link.platform)
+        .filter(Boolean),
+    ),
+  )
+    .map((item) => `<option value="${e(item)}"></option>`)
+    .join("");
+
 export function adminSoftwarePage({ site, user }) {
   const rows = all("SELECT * FROM software ORDER BY sort_order, id");
   const enabled = rows.filter((row) => row.enabled).length;
@@ -138,16 +165,23 @@ export function adminSoftwarePage({ site, user }) {
       <input type="hidden" name="id" value="" />
       <div class="a-form__grid">
         <label><span>名称</span><input name="name" required maxlength="40" placeholder="Photoshop 2024" /></label>
+        <label><span>图标</span><input name="icon" maxlength="300" placeholder="https://… 图标地址，可留空" /></label>
         <label><span>分类</span><input name="category" maxlength="20" placeholder="图像 / 视频 / 工具" /></label>
-        <label><span>适配设备</span><input name="devices" maxlength="60" placeholder="Windows 10/11 · macOS 12+" /></label>
+        <label class="a-form__wide"><span>适配设备</span>
+          <div class="a-tags" data-devices-tags></div>
+          <input type="hidden" name="devices" value="" />
+          <input class="a-tags__input" data-devices-input list="soft-devices" maxlength="40" placeholder="输入后按回车，例如 Windows 10/11" />
+          <datalist id="soft-devices">${deviceOptions()}</datalist>
+        </label>
         <label><span>大小</span><input name="size" maxlength="20" placeholder="2.1 GB" /></label>
         <label><span>排序</span><input name="sort_order" type="number" value="0" step="1" /></label>
         <label class="a-form__wide"><span>说明</span><input name="note" maxlength="120" placeholder="一句话说明，可写授权方式" /></label>
       </div>
       <div class="a-form__wide">
         <span class="a-fieldset__title">下载线路</span>
-        <p class="a-hint">名称写「百度网盘」「官网直链」之类，前台会把它做成按钮。</p>
-        <div class="a-link-editor" data-soft-links></div>
+        <p class="a-hint">一个软件可以有多个平台（Windows / Android / iOS / 网页…），每个平台各写自己的线路；同一平台下可以有多条线路。</p>
+        <datalist id="soft-platforms">${platformOptions()}</datalist>
+          <div class="a-link-editor" data-soft-links></div>
         <button class="a-btn a-btn--tiny" type="button" data-soft-add>＋ 加一条线路</button>
       </div>
       <div class="a-form__actions"><button class="a-btn a-btn--primary" type="submit" data-soft-submit>添加软件</button><button class="a-btn" type="button" data-soft-cancel hidden>取消编辑</button></div>
@@ -259,11 +293,16 @@ async function router(req, res, url) {
     if (!name) return json(res, 400, { ok: false, error: "名称要填" });
     const links = Array.isArray(body.links)
       ? body.links
-          .map((item) => ({ label: cleanText(item?.label, 40), url: cleanText(item?.url, 300) }))
+          .map((item) => ({
+            platform: cleanText(item?.platform, 24),
+            label: cleanText(item?.label, 40),
+            url: cleanText(item?.url, 300),
+          }))
           .filter((item) => item.url)
       : [];
     const fields = [
       name,
+      cleanText(body.icon, 300),
       cleanText(body.category, 20),
       cleanText(body.devices, 60),
       cleanText(body.size, 20),
@@ -273,14 +312,14 @@ async function router(req, res, url) {
     ];
     if (body.id) {
       run(
-        "UPDATE software SET name = ?, category = ?, devices = ?, size = ?, note = ?, links = ?, sort_order = ?, updated_at = ? WHERE id = ?",
+        "UPDATE software SET name = ?, icon = ?, category = ?, devices = ?, size = ?, note = ?, links = ?, sort_order = ?, updated_at = ? WHERE id = ?",
         ...fields,
         now(),
         Number(body.id),
       );
     } else {
       run(
-        "INSERT INTO software (name, category, devices, size, note, links, sort_order, enabled, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)",
+        "INSERT INTO software (name, icon, category, devices, size, note, links, sort_order, enabled, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)",
         ...fields,
         now(),
       );

@@ -85,8 +85,8 @@ const profile = (user) => {
 
 export function shell({ title, site, user, body, bodyClass = "", scripts = "", head = "" }) {
   const nav = user
-    ? `<a href="/tools">工具</a><a href="/memories/files">媒体库</a>${profile(user)}`
-    : `<a href="/tools">工具</a><a href="/memories/files">媒体库</a><a href="/memories/login">登录</a>`;
+    ? `<a href="/memories/files">媒体库</a>${profile(user)}`
+    : `<a href="/memories/files">媒体库</a><a href="/memories/login">登录</a>`;
 
   return `<!doctype html>
 <html lang="zh-CN" data-page="memories">
@@ -118,7 +118,7 @@ ${head}
 <header class="m-top">
   <div class="m-top__inner">
     <a class="m-brand" href="/">
-      <img src="/assets/img/school-emblem-336.webp" alt="" width="32" height="32" />
+      <img src="/assets/img/memories-icon.png" alt="" width="32" height="32" />
       <span><strong>${e(site.title || "Memories")}</strong><small>桂中校园媒体库</small></span>
     </a>
     <nav class="m-nav">${nav}
@@ -130,7 +130,10 @@ ${head}
 <footer class="m-foot">
   <div class="m-foot__inner">
     <span>${e(site.title || "Memories")} — 桂林中学新媒体</span>
-    <span>${year} · 学生维护</span>
+    <span class="m-foot__meta">
+      ${site.icp ? `<a class="m-foot__icp" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">${e(site.icp)}</a>` : ""}
+      <span>${year} · 学生维护</span>
+    </span>
   </div>
 </footer>
 <script src="/memories/assets/app.js?v=${assetVersion()}" type="module"></script>

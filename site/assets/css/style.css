@@ -1771,3 +1771,39 @@ html[dir="rtl"] :is(.page-head__lead, .prose p, .prose-lede, .prose-note, .notic
 .org:hover {
   box-shadow: 0 18px 34px -28px rgba(31, 30, 53, 0.6);
 }
+
+/* ---------- 页脚：引语与备案 ---------- */
+.footer__quote {
+  margin: 0.9rem 0 0;
+  max-width: 24em;
+  font-family: var(--serif);
+  font-size: 1.02rem;
+  line-height: 1.6;
+  color: var(--ink-soft);
+  text-wrap: pretty;
+}
+.footer__quote--sub {
+  margin-top: 0.35rem;
+  font-size: 0.92rem;
+  color: var(--muted);
+}
+.footer__base {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.4rem;
+  align-items: center;
+}
+.footer__icp {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: color 0.15s var(--ease), border-color 0.15s var(--ease);
+}
+.footer__icp:hover,
+.footer__icp:focus-visible {
+  color: var(--vermilion);
+  border-bottom-color: color-mix(in srgb, var(--vermilion) 45%, transparent);
+}

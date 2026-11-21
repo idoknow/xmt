@@ -655,7 +655,7 @@ async function api(req, res, url) {
     if (!current) return;
     const body = await readJson(req);
     for (const [key, value] of Object.entries(body)) {
-      if (["site.title", "site.intro", "upload.root", "admin.qq", "oauth.issuer", "oauth.client_id", "oauth.client_secret", "share.default_days"].includes(key)) {
+      if (["site.title", "site.intro", "site.icp", "upload.root", "admin.qq", "oauth.issuer", "oauth.client_id", "oauth.client_secret", "share.default_days"].includes(key)) {
         setSetting(key, value);
       }
     }

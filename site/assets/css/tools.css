@@ -883,3 +883,22 @@ input[type="range"] {
 .tool-view .tool__actions {
   margin-block-start: 1.1rem;
 }
+
+/* ---------- 软件卡：平台分组、图标、设备标签 ---------- */
+.page-tools .soft__head { display: flex; align-items: center; gap: .7rem; flex-wrap: wrap; }
+.page-tools .soft__icon { width: 2.2rem; height: 2.2rem; border-radius: .45rem; object-fit: contain; background: var(--paper-2); border: 1px solid var(--rule); flex: 0 0 auto; }
+.page-tools .soft__devices { display: flex; flex-wrap: wrap; gap: .3rem; }
+.page-tools .soft__devices span {
+  font-family: var(--mono); font-size: .66rem; letter-spacing: .02em;
+  padding: .12rem .45rem; border: 1px solid var(--rule); border-radius: 999px; color: var(--ink-soft);
+}
+.page-tools .soft__platform { display: grid; gap: .35rem; padding: .55rem 0; border-top: 1px solid var(--rule); }
+.page-tools .soft__platform:first-child { border-top: 0; padding-top: 0; }
+.page-tools .soft__platform-name { font-family: var(--mono); font-size: .66rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.page-tools .soft__platform-links { display: flex; flex-wrap: wrap; gap: .4rem; }
+
+/* ---------- 文案换行：长串不再顶出右侧 ---------- */
+.page-tools :is(.page-head__lead, .tool__desc, .prose p, .prose-lede, .soft__note, .link-row__meta, .m-empty) {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}

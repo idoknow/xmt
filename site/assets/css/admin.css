@@ -1837,3 +1837,20 @@ html.is-busy {
 .a-form .a-form__actions {
   margin-block-start: 0.9rem;
 }
+
+/* ---------- 设备标签、图标缩略图、平台线路行 ---------- */
+.a-tags { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: .4rem; }
+.a-tags:empty { display: none; }
+.a-tag {
+  display: inline-flex; align-items: center; gap: .28rem;
+  padding: .18rem .45rem; border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--vermilion) 35%, var(--rule));
+  background: color-mix(in srgb, var(--vermilion) 7%, transparent);
+  font-size: .76rem;
+}
+.a-tag button { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: .9rem; line-height: 1; padding: 0 .1rem; }
+.a-tag button:hover { color: var(--vermilion); }
+.a-tags__input { width: 100%; }
+.a-thumb { width: 1.9rem; height: 1.9rem; border-radius: .4rem; object-fit: contain; background: var(--paper-2); border: 1px solid var(--rule); flex: 0 0 auto; }
+.a-link-row--soft { grid-template-columns: minmax(0, 7.5rem) minmax(0, 9rem) minmax(0, 1fr) auto; }
+@media (max-width: 720px) { .a-link-row--soft { grid-template-columns: 1fr; } }

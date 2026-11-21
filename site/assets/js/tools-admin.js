@@ -16,6 +16,15 @@ const post = async (url, body, method = "POST") => {
   return data;
 };
 
+// 表单里的 name/id/size 与 HTMLFormElement 自身属性同名，直接 form.name 拿到的是字符串，
+// 这里统一走 elements，避免「点编辑没反应」。
+const field = (form, name) => form.elements.namedItem(name) || $(`[name="${name}"]`, form);
+const read = (form, name) => String(field(form, name)?.value ?? "").trim();
+const setValue = (form, name, value) => {
+  const node = field(form, name);
+  if (node) node.value = value ?? "";
+};
+
 /* ---------- 链接 ---------- */
 
 const linkForm = $("[data-link-form]");
@@ -24,11 +33,11 @@ if (linkForm) {
   const cancel = $("[data-link-cancel]", linkForm);
 
   const fill = (link) => {
-    linkForm.id.value = link?.id || "";
-    linkForm.name.value = link?.name || "";
-    linkForm.url.value = link?.url || "";
-    linkForm.note.value = link?.note || "";
-    linkForm.sort_order.value = String(link?.sort_order ?? 0);
+    setValue(linkForm, "id", link?.id || "");
+    setValue(linkForm, "name", link?.name || "");
+    setValue(linkForm, "url", link?.url || "");
+    setValue(linkForm, "note", link?.note || "");
+    setValue(linkForm, "sort_order", String(link?.sort_order ?? 0));
     submit.textContent = link?.id ? "保存修改" : "添加链接";
     cancel.hidden = !link?.id;
     if (link?.id) {
@@ -40,7 +49,7 @@ if (linkForm) {
   const openForm = () => {
     linkForm.hidden = false;
     linkForm.scrollIntoView({ behavior: "smooth", block: "center" });
-    linkForm.name.focus();
+    field(linkForm, "name")?.focus();
   };
 
   $("[data-link-open]")?.addEventListener("click", () => {
@@ -58,12 +67,13 @@ if (linkForm) {
     submit.disabled = true;
     try {
       const body = {
-        name: linkForm.name.value.trim(),
-        url: linkForm.url.value.trim(),
-        note: linkForm.note.value.trim(),
-        sort_order: Number(linkForm.sort_order.value) || 0,
+        name: read(linkForm, "name"),
+        url: read(linkForm, "url"),
+        note: read(linkForm, "note"),
+        sort_order: Number(read(linkForm, "sort_order")) || 0,
       };
-      if (linkForm.id.value) body.id = Number(linkForm.id.value);
+      const id = read(linkForm, "id");
+      if (id) body.id = Number(id);
       await post("/memories/api/tools/links", body);
       linkForm.reset();
       fill(null);
@@ -116,10 +126,11 @@ if (softForm) {
   const cancel = $("[data-soft-cancel]", softForm);
   const list = $("[data-soft-links]", softForm);
 
-  const addRow = (link = { label: "", url: "" }) => {
+  const addRow = (link = { platform: "", label: "", url: "" }) => {
     const row = document.createElement("div");
-    row.className = "a-link-row";
+    row.className = "a-link-row a-link-row--soft";
     row.innerHTML = `
+      <input class="field__input" data-link-platform placeholder="平台，如 Windows / Android" value="${String(link.platform || "").replace(/"/g, "&quot;")}" list="soft-platforms" />
       <input class="field__input" data-link-label placeholder="线路名，如「网盘」「直链」" value="${String(link.label || "").replace(/"/g, "&quot;")}" />
       <input class="field__input" data-link-url placeholder="https://…" value="${String(link.url || "").replace(/"/g, "&quot;")}" />
       <button class="a-btn a-btn--tiny" type="button" data-link-remove>删除</button>`;
@@ -130,15 +141,16 @@ if (softForm) {
   $("[data-soft-add]", softForm)?.addEventListener("click", () => addRow());
 
   const fill = (item) => {
-    softForm.id.value = item?.id || "";
-    softForm.name.value = item?.name || "";
-    softForm.category.value = item?.category || "";
-    softForm.devices.value = item?.devices || "";
-    softForm.size.value = item?.size || "";
-    softForm.note.value = item?.note || "";
-    softForm.sort_order.value = String(item?.sort_order ?? 0);
+    setValue(softForm, "id", item?.id || "");
+    setValue(softForm, "name", item?.name || "");
+    setValue(softForm, "icon", item?.icon || "");
+    setValue(softForm, "category", item?.category || "");
+    setValue(softForm, "devices", item?.devices || "");
+    setValue(softForm, "size", item?.size || "");
+    setValue(softForm, "note", item?.note || "");
+    setValue(softForm, "sort_order", String(item?.sort_order ?? 0));
     list.innerHTML = "";
-    const links = item?.links?.length ? item.links : [{ label: "", url: "" }];
+    const links = item?.links?.length ? item.links : [{ platform: "", label: "", url: "" }];
     links.forEach((link) => addRow(link));
     submit.textContent = item?.id ? "保存修改" : "添加软件";
     cancel.hidden = !item?.id;
@@ -151,7 +163,7 @@ if (softForm) {
   const openForm = () => {
     softForm.hidden = false;
     softForm.scrollIntoView({ behavior: "smooth", block: "start" });
-    softForm.name.focus();
+    field(softForm, "name")?.focus();
   };
 
   $("[data-soft-open]")?.addEventListener("click", () => {
@@ -171,20 +183,23 @@ if (softForm) {
     try {
       const links = $$(".a-link-row", list)
         .map((row) => ({
+          platform: $("[data-link-platform]", row).value.trim(),
           label: $("[data-link-label]", row).value.trim(),
           url: $("[data-link-url]", row).value.trim(),
         }))
         .filter((link) => link.url);
       const body = {
-        name: softForm.name.value.trim(),
-        category: softForm.category.value.trim(),
-        devices: softForm.devices.value.trim(),
-        size: softForm.size.value.trim(),
-        note: softForm.note.value.trim(),
-        sort_order: Number(softForm.sort_order.value) || 0,
+        name: read(softForm, "name"),
+        icon: read(softForm, "icon"),
+        category: read(softForm, "category"),
+        devices: read(softForm, "devices"),
+        size: read(softForm, "size"),
+        note: read(softForm, "note"),
+        sort_order: Number(read(softForm, "sort_order")) || 0,
         links,
       };
-      if (softForm.id.value) body.id = Number(softForm.id.value);
+      const id = read(softForm, "id");
+      if (id) body.id = Number(id);
       await post("/memories/api/tools/software", body);
       softForm.reset();
       fill(null);
@@ -227,4 +242,53 @@ if (softForm) {
         });
     }
   });
+}
+
+/* ---------- 适配设备：回车加标签 ---------- */
+
+const devicesInput = $('[data-devices-input]');
+const devicesBox = $("[data-devices-tags]");
+const devicesHidden = $('[data-soft-form] [name="devices"]');
+
+if (devicesInput && devicesBox && devicesHidden) {
+  const readTags = () =>
+    String(devicesHidden.value || "")
+      .split(/[,，、]/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  const writeTags = (tags) => {
+    devicesHidden.value = Array.from(new Set(tags)).join(" · ");
+  };
+  const render = () => {
+    devicesBox.innerHTML = "";
+    readTags().forEach((tag) => {
+      const chip = document.createElement("span");
+      chip.className = "a-tag";
+      chip.innerHTML = `<span>${tag.replace(/[<>&]/g, "")}</span>`;
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.textContent = "×";
+      remove.setAttribute("aria-label", `移除 ${tag}`);
+      remove.addEventListener("click", () => {
+        writeTags(readTags().filter((item) => item !== tag));
+        render();
+      });
+      chip.append(remove);
+      devicesBox.append(chip);
+    });
+  };
+  const add = (value) => {
+    const tag = String(value || "").trim();
+    if (!tag) return;
+    writeTags([...readTags(), tag]);
+    devicesInput.value = "";
+    render();
+  };
+  devicesInput.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    add(devicesInput.value);
+  });
+  devicesInput.addEventListener("blur", () => add(devicesInput.value));
+  render();
 }

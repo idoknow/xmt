@@ -458,6 +458,8 @@ export function adminSettingsPage({ site, user, settings, counters }) {
       <label><span>站点标题</span><input name="site.title" value="${e(site.title || "")}" /></label>
       <label><span>介绍</span><input name="site.intro" value="${e(site.intro || "")}" /></label>
       <label><span>用户上传总文件夹</span><input name="upload.root" value="${e(settings.uploadRoot || "")}" placeholder="用户上传" /></label>
+
+        <label><span>备案号</span><input name="site.icp" value="${e(settings["site.icp"] || "")}" placeholder="桂ICP备2020008331号-1" /></label>
       <label><span>管理员 QQ</span><input name="admin.qq" value="${e(settings.adminQQ || "")}" /></label>
       <label><span>OAuth 站点</span><input name="oauth.issuer" value="${e(settings.issuer || "")}" /></label>
       <label><span>Client ID</span><input name="oauth.client_id" value="${e(settings.clientId || "")}" /></label>

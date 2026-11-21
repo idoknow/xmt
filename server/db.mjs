@@ -164,6 +164,7 @@ ensureColumn("drives", "sort_order", "sort_order INTEGER NOT NULL DEFAULT 0");
 ensureColumn("drives", "quota_bytes", "quota_bytes INTEGER NOT NULL DEFAULT 0");
 ensureColumn("drives", "max_file_bytes", "max_file_bytes INTEGER NOT NULL DEFAULT 0");
 ensureColumn("drives", "description", "description TEXT NOT NULL DEFAULT ''");
+ensureColumn("software", "icon", "icon TEXT NOT NULL DEFAULT ''");
 ensureColumn("drives", "allow_upload", "allow_upload INTEGER NOT NULL DEFAULT 1");
 
 export const setting = (key, fallback = null) => {
@@ -214,6 +215,7 @@ export function bootstrap(adminQQ) {
       "site.intro",
       "Memories 为学生打造专属的校园媒体分享空间，上传、浏览、管理校园照片，让青春的每一帧都被温柔记录。",
     );
+  if (!setting("site.icp")) setSetting("site.icp", "桂ICP备2020008331号-1");
   /* OAuth 只写非空值：部署时由 Secret 注入的凭据不该被空记录覆盖 */
   const seed = (key, value) => {
     if (!value) return;
