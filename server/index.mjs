@@ -44,7 +44,8 @@ import {
   sendFile,
   sendJson,
 } from "./util.mjs";
-import { detailPage, driveFieldSpecs, fmtSize, galleryPage, loginPage, myPage, shareFilePage, sharePage } from "./ui.mjs";
+import { detailPage, driveFieldSpecs, fmtSize, galleryPage, loginPage, myPage, shareFilePage, sharePage, shell, assetVersion } from "./ui.mjs";
+import { handleImages, imagePage, imageTotal } from "./images.mjs";
 import { fileAction, fileInfo, fileInfoOf, fileUpload, handleAdmin } from "./admin.mjs";
 import { pageBrowser, rawBrowser } from "./browser.mjs";
 import { handleUploads } from "./uploads.mjs";
@@ -684,6 +685,33 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (pathname === "/tools/data") return toolsDataHandler(req, res);
+
+    if (pathname === "/image" || pathname === "/image/") {
+      const viewer = currentUser(req);
+      const site = siteOf();
+      return html(
+        res,
+        200,
+        shell({
+          title: "图床",
+          site,
+          user: viewer,
+          bodyClass: "page-image",
+          head: `<link rel="stylesheet" href="/assets/css/image.css?v=${assetVersion()}" />`,
+          scripts: `<script src="/assets/js/image.js?v=${assetVersion()}" defer></script>`,
+          body: imagePage({ site, user: viewer, total: imageTotal() }),
+        }),
+      );
+    }
+
+    if (pathname.startsWith("/memories/api/images")) {
+      const viewer = currentUser(req);
+      try {
+        return await handleImages(req, res, url, viewer);
+      } catch (error) {
+        return sendJson(res, error.status || 500, { ok: false, error: error.message });
+      }
+    }
     if (pathname === "/memories" || pathname === "/memories/") return redirect(res, "/memories/files");
     if (pathname === "/memories/login") return html(res, 200, loginPage({ site: siteOf(), error: url.searchParams.get("error") || "" }));
     if (pathname === "/memories/logout") {

@@ -85,8 +85,8 @@ const profile = (user) => {
 
 export function shell({ title, site, user, body, bodyClass = "", scripts = "", head = "" }) {
   const nav = user
-    ? `<a href="/memories/files">媒体库</a>${profile(user)}`
-    : `<a href="/memories/files">媒体库</a><a href="/memories/login">登录</a>`;
+    ? `<a href="/memories/files">媒体库</a><a href="/image">图床</a>${profile(user)}`
+    : `<a href="/memories/files">媒体库</a><a href="/image">图床</a><a href="/memories/login">登录</a>`;
 
   return `<!doctype html>
 <html lang="zh-CN" data-page="memories">
@@ -592,6 +592,7 @@ export function filesPage({
       <div class="fm-toolbar">
         <div class="m-chips">${chips}</div>
         <div class="fm-tools">
+          ${user ? '<a class="a-btn" href="/image#mine">图床图片</a>' : ""}
           ${canManage ? '<button class="a-btn a-btn--primary" type="button" data-fm-mkdir>新建文件夹</button>' : ""}
           ${canManage ? `<label class="a-btn">上传<input type="file" multiple hidden data-fm-upload data-drive="${drive.id}" data-path="${e(currentPath)}" /></label>` : ""}
         </div>
