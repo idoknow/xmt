@@ -40,7 +40,6 @@ const linkRows = (rows) =>
       (row) => `<tr>
       <td><div class="a-name-cell"><strong>${e(row.name)}</strong><small class="a-mono">${e(row.url)}</small></div></td>
       <td data-label="说明">${e(row.note || "—")}</td>
-      <td data-label="分类">${row.category ? `<span class="a-chip">${e(row.category)}</span>` : "—"}</td>
       <td data-label="排序" class="a-mono">${row.sort_order}</td>
       <td data-label="状态"><span class="a-pill ${row.enabled ? "a-pill--on" : "a-pill--off"}">${
         row.enabled ? "展示中" : "已隐藏"
@@ -94,14 +93,14 @@ export function adminToolsPage({ site, user }) {
   </header>
 
   <section class="a-card a-card--pad">
-    <header class="a-card__head"><h3>添加条目</h3><p class="a-hint">点表格里的「编辑」可直接改这一条。</p></header>
-    <form class="a-form" data-link-form>
+    <header class="a-card__head a-card__head--row"><h3>条目</h3><button class="a-btn a-btn--primary" type="button" data-link-open>＋ 添加条目</button></header>
+    <p class="a-hint">点「添加条目」展开表单；点表格里的「编辑」也可以直接改这一条。</p>
+    <form class="a-form" data-link-form hidden>
       <input type="hidden" name="id" value="" />
       <div class="a-form__grid">
         <label><span>名称</span><input name="name" required maxlength="40" placeholder="Squoosh" /></label>
         <label><span>链接</span><input name="url" required type="url" placeholder="https://squoosh.app/" /></label>
-        <label><span>分类</span><input name="category" maxlength="20" placeholder="压缩 / 转换 / 抠图" /></label>
-        <label><span>排序</span><input name="sort_order" type="number" value="0" step="1" /></label>
+                <label><span>排序</span><input name="sort_order" type="number" value="0" step="1" /></label>
         <label class="a-form__wide"><span>说明</span><input name="note" maxlength="80" placeholder="一行说明，展示在链接右侧" /></label>
       </div>
       <div class="a-form__actions"><button class="a-btn a-btn--primary" type="submit" data-link-submit>添加链接</button><button class="a-btn" type="button" data-link-cancel hidden>取消编辑</button></div>
@@ -111,8 +110,8 @@ export function adminToolsPage({ site, user }) {
   <section class="a-card">
     <header class="a-card__head a-card__head--row"><h3>全部条目</h3><p class="a-hint">排序值相同则按添加顺序。</p></header>
     <table class="a-table" data-link-table>
-      <thead><tr><th>名称</th><th>说明</th><th>分类</th><th>排序</th><th>状态</th><th>操作</th></tr></thead>
-      <tbody>${rows.length ? linkRows(rows) : '<tr><td colspan="6" class="a-empty">还没有条目。上面填一条试试，例如 <strong>Squoosh</strong> → https://squoosh.app/</td></tr>'}</tbody>
+      <thead><tr><th>名称</th><th>说明</th><th>排序</th><th>状态</th><th>操作</th></tr></thead>
+      <tbody>${rows.length ? linkRows(rows) : '<tr><td colspan="5" class="a-empty">还没有条目。上面填一条试试，例如 <strong>Squoosh</strong> → https://squoosh.app/</td></tr>'}</tbody>
     </table>
   </section>`;
   return layout({ site, user, section: "tools", title: "在线工具清单", body, scripts: toolsScript() });
@@ -133,8 +132,9 @@ export function adminSoftwarePage({ site, user }) {
   </header>
 
   <section class="a-card a-card--pad">
-    <header class="a-card__head"><h3>添加软件</h3><p class="a-hint">适配设备与大小可留空，前台会自动省略这两项。</p></header>
-    <form class="a-form" data-soft-form>
+    <header class="a-card__head a-card__head--row"><h3>软件</h3><button class="a-btn a-btn--primary" type="button" data-soft-open>＋ 添加软件</button></header>
+    <p class="a-hint">点「添加软件」展开表单；适配设备与大小可留空，前台会自动省略这两项。</p>
+    <form class="a-form" data-soft-form hidden>
       <input type="hidden" name="id" value="" />
       <div class="a-form__grid">
         <label><span>名称</span><input name="name" required maxlength="40" placeholder="Photoshop 2024" /></label>

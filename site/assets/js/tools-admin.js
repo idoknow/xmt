@@ -28,14 +28,30 @@ if (linkForm) {
     linkForm.name.value = link?.name || "";
     linkForm.url.value = link?.url || "";
     linkForm.note.value = link?.note || "";
-    linkForm.category.value = link?.category || "";
     linkForm.sort_order.value = String(link?.sort_order ?? 0);
     submit.textContent = link?.id ? "保存修改" : "添加链接";
     cancel.hidden = !link?.id;
-    if (link?.id) linkForm.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (link?.id) {
+      linkForm.hidden = false;
+      linkForm.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
   };
 
-  cancel?.addEventListener("click", () => fill(null));
+  const openForm = () => {
+    linkForm.hidden = false;
+    linkForm.scrollIntoView({ behavior: "smooth", block: "center" });
+    linkForm.name.focus();
+  };
+
+  $("[data-link-open]")?.addEventListener("click", () => {
+    fill(null);
+    openForm();
+  });
+
+  cancel?.addEventListener("click", () => {
+    fill(null);
+    linkForm.hidden = true;
+  });
 
   linkForm.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -45,11 +61,13 @@ if (linkForm) {
         name: linkForm.name.value.trim(),
         url: linkForm.url.value.trim(),
         note: linkForm.note.value.trim(),
-        category: linkForm.category.value.trim(),
         sort_order: Number(linkForm.sort_order.value) || 0,
       };
       if (linkForm.id.value) body.id = Number(linkForm.id.value);
       await post("/memories/api/tools/links", body);
+      linkForm.reset();
+      fill(null);
+      linkForm.hidden = true;
       location.reload();
     } catch (error) {
       alert(error.message);
@@ -124,10 +142,27 @@ if (softForm) {
     links.forEach((link) => addRow(link));
     submit.textContent = item?.id ? "保存修改" : "添加软件";
     cancel.hidden = !item?.id;
-    if (item?.id) softForm.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (item?.id) {
+      softForm.hidden = false;
+      softForm.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   };
 
-  cancel?.addEventListener("click", () => fill(null));
+  const openForm = () => {
+    softForm.hidden = false;
+    softForm.scrollIntoView({ behavior: "smooth", block: "start" });
+    softForm.name.focus();
+  };
+
+  $("[data-soft-open]")?.addEventListener("click", () => {
+    fill(null);
+    openForm();
+  });
+
+  cancel?.addEventListener("click", () => {
+    fill(null);
+    softForm.hidden = true;
+  });
   fill(null);
 
   softForm.addEventListener("submit", async (event) => {
@@ -151,6 +186,9 @@ if (softForm) {
       };
       if (softForm.id.value) body.id = Number(softForm.id.value);
       await post("/memories/api/tools/software", body);
+      softForm.reset();
+      fill(null);
+      softForm.hidden = true;
       location.reload();
     } catch (error) {
       alert(error.message);

@@ -1807,3 +1807,8 @@ html.is-busy {
   height: 100%;
   object-fit: cover;
 }
+
+/* 表单底部按钮与上方字段留出间距（此前紧贴，聚焦环看起来像重叠） */
+.a-form .a-form__actions {
+  margin-block-start: 0.9rem;
+}
