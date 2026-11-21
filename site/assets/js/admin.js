@@ -1203,3 +1203,80 @@ if (driveForm) {
   renderHidden();
 }
 
+
+/* ---------- 成员与设置 ---------- */
+
+const userForm = $("[data-add-user]");
+if (userForm) {
+  userForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const data = new FormData(userForm);
+    try {
+      await api("/memories/api/users", {
+        qq: String(data.get("qq") || "").trim(),
+        note: String(data.get("note") || ""),
+        role: String(data.get("role") || "user"),
+      });
+      location.reload();
+    } catch (error) {
+      alert(error.message);
+    }
+  });
+
+  document.addEventListener("change", async (event) => {
+    const select = event.target.closest("[data-role]");
+    if (!select) return;
+    try {
+      await api(`/memories/api/users/${encodeURIComponent(select.dataset.role)}`, { role: select.value });
+      location.reload();
+    } catch (error) {
+      alert(error.message);
+    }
+  });
+
+  document.addEventListener("click", async (event) => {
+    const toggle = event.target.closest("[data-toggle-user]");
+    if (toggle) {
+      toggle.disabled = true;
+      api(`/memories/api/users/${encodeURIComponent(toggle.dataset.toggleUser)}/status`, {})
+        .then(() => location.reload())
+        .catch((error) => {
+          alert(error.message);
+          toggle.disabled = false;
+        });
+      return;
+    }
+
+    const remove = event.target.closest("[data-remove-user]");
+    if (!remove) return;
+    const row = remove.closest("tr");
+    const who = row?.querySelector("strong")?.textContent?.trim() || "这个账号";
+    if (!confirm(`移除 ${who} 吗？他的登录会立即失效，上传过的文件会保留。`)) return;
+    remove.disabled = true;
+    try {
+      await api(`/memories/api/users/${encodeURIComponent(remove.dataset.removeUser)}`, {}, "DELETE");
+      location.reload();
+    } catch (error) {
+      alert(error.message);
+      remove.disabled = false;
+    }
+  });
+}
+
+const settingsForm = $("[data-settings]");
+if (settingsForm) {
+  settingsForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const body = {};
+    new FormData(settingsForm).forEach((value, key) => {
+      body[key] = String(value);
+    });
+    try {
+      await api("/memories/api/settings", body);
+      alert("已保存。");
+      location.reload();
+    } catch (error) {
+      alert(error.message);
+    }
+  });
+}

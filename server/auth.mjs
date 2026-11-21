@@ -273,7 +273,7 @@ export async function finishOAuth(code, state, req) {
 
 export function canManage(user, media) {
   if (!user) return false;
-  if (user.role === "admin") return true;
+  if (user.role === "admin" || user.role === "owner") return true;
   return media && media.owner_id === user.id;
 }
 

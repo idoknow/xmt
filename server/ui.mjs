@@ -52,7 +52,7 @@ export const fmtDuration = (seconds) => {
   return hours ? `${hours}:${pad(minutes)}:${pad(rest)}` : `${minutes}:${pad(rest)}`;
 };
 
-const roleLabel = { admin: "管理员", user: "成员" };
+const roleLabel = { owner: "超级管理员", admin: "管理员", user: "成员" };
 
 /** 头像：字母垫底，图片盖在上面；图挂了就露出字母，不至于空一个圈 */
 const avatarTag = (user, className = "m-user__img", textClass = "m-user__text") => {

@@ -355,29 +355,39 @@ export function adminStoragesPage({ site, user, drives }) {
 
 /* ---------- 成员 ---------- */
 
-const roleLabel = { admin: "管理员", user: "成员" };
+const roleLabel = { owner: "超级管理员", admin: "管理员", user: "成员" };
+const rankOf = (row) => (row.role === "owner" ? 3 : row.role === "admin" ? 2 : 1);
 
 export function adminUsersPage({ site, user, users }) {
+  const me = rankOf(user);
   const rows = users
-    .map(
-      (row) => `<tr>
+    .map((row) => {
+      const rank = rankOf(row);
+      const self = row.id === user.id;
+      const canTouch = !self && rank <= me && (me >= 3 || rank < 2);
+      const roleCell = canTouch
+        ? `<select data-role="${row.id}" class="a-select">
+          <option value="user"${row.role === "user" ? " selected" : ""}>成员</option>
+          <option value="admin"${row.role === "admin" ? " selected" : ""}>管理员</option>
+        </select>`
+        : `<span class="a-tag${rank === 3 ? " a-tag--ok" : ""}">${e(roleLabel[row.role] || row.role)}</span>`;
+      return `<tr>
       <td><strong>${e(displayName(row))}</strong><small class="a-mono">QQ ${e(row.qq || "未绑定")}</small></td>
       <td data-label="备注">${e(row.note || "—")}</td>
       <td data-label="角色">${e(roleLabel[row.role] || row.role)}</td>
       <td data-label="状态">${row.status === "active" ? '<span class="a-tag a-tag--ok">正常</span>' : '<span class="a-tag">停用</span>'}</td>
       <td data-label="最近登录" class="a-mono">${row.last_login_at ? e(String(row.last_login_at).slice(0, 16).replace("T", " ")) : "—"}</td>
       <td><div class="a-actions__row">
-        <select data-role="${row.id}" class="a-select">
-          <option value="user"${row.role === "user" ? " selected" : ""}>成员</option>
-          <option value="admin"${row.role === "admin" ? " selected" : ""}>管理员</option>
-        </select>
-        <button class="a-btn a-btn--tiny" type="button" data-toggle-user="${row.id}" data-status="${row.status}">${
-          row.status === "active" ? "停用" : "启用"
-        }</button>
-        <button class="a-btn a-btn--tiny a-btn--danger" type="button" data-remove-user="${row.id}">移除</button>
+        ${roleCell}
+        <button class="a-btn a-btn--tiny" type="button" data-toggle-user="${row.id}" data-status="${row.status}"${
+          canTouch ? "" : " disabled"
+        }>${row.status === "active" ? "停用" : "启用"}</button>
+        <button class="a-btn a-btn--tiny a-btn--danger" type="button" data-remove-user="${row.id}"${
+          canTouch ? "" : " disabled"
+        }>移除</button>
       </div></td>
-    </tr>`,
-    )
+    </tr>`;
+    })
     .join("");
 
   const body = `
@@ -385,6 +395,11 @@ export function adminUsersPage({ site, user, users }) {
     <div class="a-form__grid">
       <label><span>QQ 号</span><input name="qq" required pattern="\\d{5,12}" inputmode="numeric" placeholder="1692138502" /></label>
       <label><span>备注</span><input name="note" placeholder="高一 3 班 / 摄影社" /></label>
+      ${
+        me >= 3
+          ? `<label><span>角色</span><select name="role" class="a-select"><option value="user">成员</option><option value="admin">管理员</option></select></label>`
+          : ""
+      }
       <div class="a-form__actions"><button class="a-btn a-btn--primary" type="submit">添加成员</button></div>
     </div>
   </form>

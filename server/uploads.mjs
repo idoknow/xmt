@@ -34,7 +34,7 @@ async function writeMeta(id, meta) {
 function limitFor(user, name, drive = null) {
   const kind = kindOf(name);
   let limit;
-  if (user.role === "admin") limit = config.limits.admin;
+  if (user.role === "admin" || user.role === "owner") limit = config.limits.admin;
   else if (kind === "image") limit = config.limits.userImage;
   else if (kind === "video") limit = config.limits.userVideo;
   else return { kind, limit: 0 };

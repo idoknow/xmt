@@ -469,15 +469,26 @@ async function api(req, res, url) {
   if (parts[0] === "users") {
     const current = requireAdmin(req, res);
     if (!current) return;
+    const rankOf = (user) =>
+      !user ? 0 : String(user.qq) === String(setting("admin.qq", config.adminQQ)) || user.role === "owner" ? 3 : user.role === "admin" ? 2 : 1;
+    const guard = (target, action) => {
+      if (rankOf(target) > rankOf(current)) throw Object.assign(new Error(`不能${action}权限比自己高的账号`), { status: 403 });
+      if (rankOf(current) < 3 && rankOf(target) >= 2) {
+        throw Object.assign(new Error(`只有超级管理员能${action}管理员`), { status: 403 });
+      }
+    };
     if (!parts[1] && method === "POST") {
       const body = await readJson(req);
       const qq = String(body.qq || "").trim();
+      const role = body.role === "admin" ? "admin" : "user";
+      if (role === "admin" && rankOf(current) < 3) throw Object.assign(new Error("只有超级管理员能添加管理员"), { status: 403 });
       if (!/^\d{5,12}$/.test(qq)) throw Object.assign(new Error("QQ 号要填数字"), { status: 400 });
       if (get("SELECT id FROM users WHERE qq = ?", qq)) throw Object.assign(new Error("这个 QQ 已经加过了"), { status: 409 });
       run(
-        "INSERT INTO users (qq, name, avatar, role, status, note, created_at) VALUES (?, '', ?, 'user', 'active', ?, ?)",
+        "INSERT INTO users (qq, name, avatar, role, status, note, created_at) VALUES (?, '', ?, ?, 'active', ?, ?)",
         qq,
         qqAvatar(qq),
+        role,
         String(body.note || "").slice(0, 60) || null,
         now(),
       );
@@ -488,10 +499,16 @@ async function api(req, res, url) {
       if (!target) throw Object.assign(new Error("用户不存在"), { status: 404 });
       const body = await readJson(req);
       if (parts[2] === "role" && body.role) {
+        if (rankOf(current) < 3) throw Object.assign(new Error("只有超级管理员能调整角色"), { status: 403 });
+        guard(target, "调整");
+        if (rankOf(target) === 3) throw Object.assign(new Error("超级管理员不能被降级"), { status: 403 });
         run("UPDATE users SET role = ? WHERE id = ?", body.role === "admin" ? "admin" : "user", target.id);
       } else if (parts[2] === "status") {
+        guard(target, "停用");
+        if (rankOf(target) === 3) throw Object.assign(new Error("超级管理员不能被停用"), { status: 403 });
         run("UPDATE users SET status = ? WHERE id = ?", target.status === "active" ? "disabled" : "active", target.id);
       } else if (body.note != null || body.name) {
+        guard(target, "修改");
         run("UPDATE users SET note = COALESCE(?, note), name = COALESCE(?, name) WHERE id = ?", body.note ?? null, body.name ?? null, target.id);
       }
       return json(res, { ok: true, users: allUsers() });

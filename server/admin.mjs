@@ -30,7 +30,7 @@ const readable = (bytes) => {
 function limitHint(user, drive) {
   const own = Number(drive?.max_file_bytes) || 0;
   if (own > 0) return `单个文件 ≤ ${readable(own)}（这份存储单独设的上限）`;
-  if (user?.role === "admin") return `单个文件 ≤ ${readable(config.limits?.admin)}（默认上限，存储里没设）`;
+  if (user?.role === "admin" || user?.role === "owner") return `单个文件 ≤ ${readable(config.limits?.admin)}（默认上限，存储里没设）`;
   return `图片 ≤ ${readable(config.limits?.userImage)}、视频 ≤ ${readable(config.limits?.userVideo)}（默认上限，存储里没设）`;
 }
 
