@@ -65,7 +65,19 @@ const crumbOf = (drive, currentPath) => {
   return crumbs.join('<span class="a-crumb__sep">/</span>');
 };
 
-export function adminFilesPage({ site, user, drives, drive, path: currentPath, entries, notice, error, quota }) {
+export function adminFilesPage({
+  site,
+  user,
+  drives,
+  drive,
+  path: currentPath,
+  entries,
+  notice,
+  error,
+  quota,
+  sortKey = "name",
+  sortDir = "asc",
+}) {
   const driveTabs = drives
     .map(
       (item) =>
@@ -75,27 +87,47 @@ export function adminFilesPage({ site, user, drives, drive, path: currentPath, e
     )
     .join("");
 
+  const sortHref = (key) => {
+    const dir = key === sortKey && sortDir === "asc" ? "desc" : "asc";
+    return `/memories/admin/files?drive=${drive ? drive.id : ""}&path=${encodeURIComponent(currentPath)}&sort=${key}&dir=${dir}`;
+  };
+  const sortLabel = (key, text) =>
+    `<a class="a-sort${key === sortKey ? " is-on" : ""}" href="${sortHref(key)}">${text}${
+      key === sortKey ? `<i>${sortDir === "asc" ? "↑" : "↓"}</i>` : ""
+    }</a>`;
+
   const rows = entries
     .map((entry) => {
-      const open = entry.isDir
+      const name = entry.isDir
         ? `<a class="a-name a-name--dir" href="/memories/admin/files?drive=${drive.id}&path=${encodeURIComponent(entry.path)}">${e(entry.name)}</a>`
-        : `<span class="a-name">${e(entry.name)}</span>`;
+        : `<button class="a-name a-name--file" type="button" data-preview="${e(entry.path)}" data-name="${e(entry.name)}" data-size="${
+            entry.size || 0
+          }">${e(entry.name)}</button>`;
       const preview = entry.isDir
         ? ""
-        : `<a class="a-btn a-btn--tiny" href="/memories/admin/files/raw?drive=${drive.id}&path=${encodeURIComponent(
-            entry.path,
-          )}" target="_blank" rel="noopener">打开</a>`;
+        : `<button class="a-btn a-btn--tiny" type="button" data-preview="${e(entry.path)}" data-name="${e(entry.name)}" data-size="${
+            entry.size || 0
+          }">预览</button>`;
       return `<tr data-path="${e(entry.path)}" data-dir="${entry.isDir ? "1" : "0"}">
-        <td class="a-check"><input type="checkbox" data-pick value="${e(entry.path)}" ${entry.isDir ? 'data-is-dir="1"' : ""} /></td>
-        <td>${entry.isDir ? '<span class="a-ico a-ico--dir"></span>' : '<span class="a-ico"></span>'}${open}</td>
-        <td class="a-mono" data-label="路径">${e(entry.path)}</td>
-        <td class="a-num" data-label="大小">${entry.isDir ? "—" : fmtSize(entry.size)}</td>
-        <td class="a-mono" data-label="修改">${entry.modified ? e(String(entry.modified).slice(0, 16).replace("T", " ")) : "—"}</td>
+        <td class="a-check"><input type="checkbox" data-pick value="${e(entry.path)}" ${entry.isDir ? 'data-is-dir="1"' : ""} aria-label="${e(
+          entry.name,
+        )}" /></td>
+        <td class="a-cell-name"><span class="a-ico${entry.isDir ? " a-ico--dir" : ""}"></span>${name}</td>
+        <td class="a-num">${entry.isDir ? "—" : fmtSize(entry.size)}</td>
+        <td class="a-mono">${entry.modified ? e(String(entry.modified).slice(0, 16).replace("T", " ")) : "—"}</td>
         <td class="a-actions"><div class="a-actions__row">
           ${preview}
-          ${entry.isDir ? "" : `<a class="a-btn a-btn--tiny" href="/memories/admin/files/raw?drive=${drive.id}&path=${encodeURIComponent(entry.path)}&download=1">下载</a>`}
+          ${
+            entry.isDir
+              ? ""
+              : `<a class="a-btn a-btn--tiny" href="/memories/admin/files/raw?drive=${drive.id}&path=${encodeURIComponent(
+                  entry.path,
+                )}&download=1">下载</a>`
+          }
           <button class="a-btn a-btn--tiny" type="button" data-rename="${e(entry.path)}" data-name="${e(entry.name)}">改名</button>
-          <button class="a-btn a-btn--tiny a-btn--danger" type="button" data-remove="${e(entry.path)}">删除</button>
+          <button class="a-btn a-btn--tiny a-btn--danger" type="button" data-remove="${e(entry.path)}" data-name="${e(
+            entry.name,
+          )}">删除</button>
         </div></td>
       </tr>`;
     })
@@ -111,18 +143,38 @@ export function adminFilesPage({ site, user, drives, drive, path: currentPath, e
   <div class="a-toolbar">
     <label class="a-btn a-btn--primary"><input type="file" multiple data-upload hidden />上传</label>
     <button class="a-btn" type="button" data-mkdir>新建文件夹</button>
-    <button class="a-btn" type="button" data-batch="move">移动</button>
-    <button class="a-btn" type="button" data-batch="copy">复制</button>
-    <button class="a-btn a-btn--danger" type="button" data-batch="remove">删除选中</button>
     <span class="a-toolbar__spacer"></span>
-    <span class="a-hint" data-count>${entries.length} 项${quota ? ` · ${e(quota)}` : ""}</span>
+    <span class="a-sorts">${sortLabel("name", "名称")}${sortLabel("size", "大小")}${sortLabel("time", "时间")}</span>
+  </div>
+  <div class="a-selbar" data-selbar hidden>
+    <span class="a-selbar__count" data-sel-count>已选 0 项</span>
+    <button class="a-btn a-btn--tiny" type="button" data-batch="move">移动</button>
+    <button class="a-btn a-btn--tiny" type="button" data-batch="copy">复制</button>
+    <button class="a-btn a-btn--tiny" type="button" data-batch="download">下载</button>
+    <button class="a-btn a-btn--tiny a-btn--danger" type="button" data-batch="remove">删除</button>
+    <span class="a-toolbar__spacer"></span>
+    <button class="a-btn a-btn--tiny" type="button" data-clear>取消选择</button>
   </div>
   <div class="a-up" data-upload-progress hidden><div class="a-up__bar"><i data-upload-bar></i></div><span data-upload-note></span></div>
-  <table class="a-table">
-    <thead><tr><th class="a-check"><input type="checkbox" data-pick-all /></th><th>名称</th><th>路径</th><th>大小</th><th>修改时间</th><th></th></tr></thead>
-    <tbody>${rows || `<tr><td colspan="6" class="a-empty">这个目录是空的。</td></tr>`}</tbody>
+  <table class="a-table a-table--files">
+    <thead><tr><th class="a-check"><input type="checkbox" data-pick-all aria-label="全选" /></th><th>名称</th><th>大小</th><th>修改时间</th><th></th></tr></thead>
+    <tbody>${rows || `<tr><td colspan="5" class="a-empty">这个目录是空的。</td></tr>`}</tbody>
   </table>
-  <p class="a-hint">服务器磁盘、WebDAV、移动云盘共用同一套操作：上传不限类型，删除会直接生效（139 是进回收站）。</p>`
+  <p class="a-hint">点一行即可选中（按住 Shift 选一段）；删除会直接生效，139 上是进回收站。</p>
+
+  <dialog class="a-dialog" data-dialog>
+    <form class="a-dialog__form" data-dialog-form>
+      <div class="a-dialog__head">
+        <strong data-dialog-title>操作</strong>
+        <button class="a-btn a-btn--tiny" type="button" data-dialog-close>关闭</button>
+      </div>
+      <div class="a-dialog__body" data-dialog-body></div>
+      <div class="a-dialog__foot">
+        <button class="a-btn" type="button" data-dialog-close>取消</button>
+        <button class="a-btn a-btn--primary" type="submit" data-dialog-ok>确定</button>
+      </div>
+    </form>
+  </dialog>`
       : `<p class="a-empty">先在「存储」里添加一个存储。</p>`
   }`;
 

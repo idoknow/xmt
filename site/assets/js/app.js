@@ -162,13 +162,11 @@ function renderQueue() {
   if (submit) submit.disabled = chosen.length === 0;
 }
 
-$("[data-upload-form]")?.addEventListener("submit", (event) => {
+$("[data-upload-form]")?.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (!chosen.length) return;
-  const form = new FormData();
-  for (const file of chosen) form.append("files", file);
   const drive = $("[data-folder-drive]")?.value;
-  if (drive) form.append("drive", drive);
+  const folder = $("[data-folder-path]")?.value || "/";
 
   const upBox = $("[data-upload-progress]");
   const upBar = $("[data-upload-bar]");
@@ -177,7 +175,7 @@ $("[data-upload-form]")?.addEventListener("submit", (event) => {
   const total = chosen.reduce((sum, file) => sum + file.size, 0);
   const started = performance.now();
 
-  const setProgress = (loaded, done) => {
+  const setProgress = (loaded, done, label = "") => {
     if (!upBox) return;
     upBox.hidden = false;
     const pct = done ? 100 : Math.min(99, Math.round((loaded / Math.max(1, total)) * 100));
@@ -188,46 +186,103 @@ $("[data-upload-form]")?.addEventListener("submit", (event) => {
       const speed = seconds > 0.6 ? loaded / seconds : 0;
       upNote.textContent = done
         ? `${fmt(total)} · ${chosen.length} 个文件`
-        : speed
-          ? `${fmt(loaded)} / ${fmt(total)} · ${fmt(speed)}/s`
-          : `${fmt(total)} 待上传`;
+        : `${label ? `${label} · ` : ""}${fmt(loaded)} / ${fmt(total)}${speed ? ` · ${fmt(speed)}/s` : ""}`;
     }
   };
 
-  const xhr = new XMLHttpRequest();
-  xhr.open("POST", "/memories/api/upload");
-  xhr.upload.addEventListener("progress", (progressEvent) => {
-    if (!progressEvent.lengthComputable) return;
-    setProgress(progressEvent.loaded, false);
-  });
-  xhr.addEventListener("load", () => {
+  // 大文件走分块上传（并发 4 块，可断点续传），小文件直接一次传
+  const SMALL = 4 * 1024 * 1024;
+  const sendSmall = (files) =>
+    new Promise((resolve, reject) => {
+      const form = new FormData();
+      for (const file of files) form.append("files", file);
+      if (drive) form.append("drive", drive);
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", "/memories/api/upload");
+      xhr.addEventListener("load", () => {
+        let data = {};
+        try {
+          data = JSON.parse(xhr.responseText);
+        } catch {}
+        if (xhr.status >= 400 || data.ok === false) reject(new Error(data.error || `上传失败（${xhr.status}）`));
+        else resolve(data);
+      });
+      xhr.addEventListener("error", () => reject(new Error("上传中断了")));
+      xhr.send(form);
+    });
+
+  const sendChunked = async (file) => {
+    const init = await api("/memories/api/uploads", {
+      drive: drive ? Number(drive) : undefined,
+      folder,
+      name: file.name,
+      size: file.size,
+      type: file.type || "application/octet-stream",
+    });
+    const { id, chunkSize, chunks } = init;
+    const done = new Set(init.uploaded || []);
+    const key = `mul:${drive || ""}:${folder}:${file.name}:${file.size}:${file.lastModified}`;
+    const save = () => localStorage.setItem(key, JSON.stringify({ id, at: Date.now(), uploaded: [...done] }));
+    save();
+    const queue = [];
+    for (let index = 0; index < chunks; index += 1) if (!done.has(index)) queue.push(index);
+    const bytesDone = () => [...done].reduce((sum, index) => sum + Math.min(chunkSize, file.size - index * chunkSize), 0);
+    let failed = null;
+    const worker = async () => {
+      while (queue.length && !failed) {
+        const index = queue.shift();
+        const start = index * chunkSize;
+        try {
+          const res = await fetch(`/memories/api/uploads/${id}/chunks/${index}`, {
+            method: "PUT",
+            headers: { "content-type": "application/octet-stream" },
+            body: file.slice(start, Math.min(file.size, start + chunkSize)),
+          });
+          const body = await res.json().catch(() => ({}));
+          if (!res.ok || body.ok === false) throw new Error(body.error || `第 ${index + 1} 块失败`);
+          done.add(index);
+          save();
+          setProgress(bytesDone(), false, file.name);
+        } catch (error) {
+          failed = error;
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(4, chunks) }, worker));
+    if (failed) throw failed;
+    const result = await api(`/memories/api/uploads/${id}/complete`, {});
+    localStorage.removeItem(key);
+    return result;
+  };
+
+  try {
+    let loaded = 0;
+    let savedCount = 0;
+    const rejected = [];
+    const small = chosen.filter((file) => file.size <= SMALL);
+    if (small.length) {
+      const data = await sendSmall(small);
+      savedCount += data.saved?.length || 0;
+      rejected.push(...(data.rejected || []));
+      loaded += small.reduce((sum, file) => sum + file.size, 0);
+      setProgress(loaded, false);
+    }
+    for (const file of chosen.filter((item) => item.size > SMALL)) {
+      const data = await sendChunked(file);
+      savedCount += data.media?.length || 0;
+      rejected.push(...(data.rejected || []));
+      loaded += file.size;
+      setProgress(loaded, false, file.name);
+    }
     setProgress(total, true);
-    let data = {};
-    try {
-      data = JSON.parse(xhr.responseText);
-    } catch {}
-    if (xhr.status >= 400 || data.ok === false) {
-      alert(data.error || `上传失败（${xhr.status}）`);
-      return;
-    }
-    const rejected = data.rejected?.length ? `\n跳过：${data.rejected.map((r) => `${r.name}（${r.reason}）`).join("，")}` : "";
-    alert(`上传完成：${data.saved.length} 个${rejected}`);
+    const skipped = rejected.length ? `\n跳过：${rejected.map((item) => `${item.name}（${item.reason}）`).join("，")}` : "";
+    alert(`上传完成：${savedCount} 个${skipped}`);
     location.reload();
-  });
-  xhr.addEventListener("error", () => {
+  } catch (error) {
     if (upPct) upPct.textContent = "中断";
-    if (upNote) upNote.textContent = "网络断了，再试一次";
+    if (upNote) upNote.textContent = `${error.message}；再点一次上传会接着传`;
     if (upBar) upBar.classList.add("is-error");
-    alert("上传中断了，再试一次");
-  });
-  xhr.addEventListener("loadstart", () => {
-    if (upBar) {
-      upBar.classList.remove("is-error");
-      upBar.style.width = "0%";
-    }
-    setProgress(0, false);
-  });
-  xhr.send(form);
+  }
 });
 
 /* ---------- 详情 ---------- */

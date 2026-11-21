@@ -97,7 +97,8 @@ export async function upload({ user, drive, folder, files }) {
       continue;
     }
     if (size > limit) {
-      rejected.push({ name: file.filename, reason: `超过 ${Math.round(limit / 1024 / 1024)}MB` });
+      const mb = limit / 1024 / 1024;
+      rejected.push({ name: file.filename, reason: `超过 ${mb >= 1024 ? `${(mb / 1024).toFixed(0)}GB` : `${Math.round(mb)}MB`}` });
       await unlink(file.path).catch(() => {});
       continue;
     }

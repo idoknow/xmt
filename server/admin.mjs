@@ -39,6 +39,24 @@ const listOf = (value) => (Array.isArray(value) ? value : []).map(String).filter
 
 /* ---------- 页面 ---------- */
 
+const SORT_KEYS = new Set(["name", "size", "time"]);
+
+const sortEntries = (entries, key, dir) => {
+  const sign = dir === "desc" ? -1 : 1;
+  const pick = (entry) => {
+    if (key === "size") return Number(entry.size) || 0;
+    if (key === "time") return entry.modified ? new Date(entry.modified).getTime() || 0 : 0;
+    return String(entry.name || "");
+  };
+  return [...entries].sort((a, b) => {
+    if (Boolean(a.isDir) !== Boolean(b.isDir)) return a.isDir ? -1 : 1;
+    const left = pick(a);
+    const right = pick(b);
+    if (typeof left === "number" && typeof right === "number") return (left - right) * sign;
+    return String(left).localeCompare(String(right), "zh-Hans-CN") * sign;
+  });
+};
+
 function pageFiles(req, res, url) {
   const user = currentUser(req);
   const drives = drivesAll();
@@ -47,22 +65,25 @@ function pageFiles(req, res, url) {
   const currentPath = cleanDir(url.searchParams.get("path"));
   const notice = url.searchParams.get("notice") || "";
   const error = url.searchParams.get("error") || "";
+  const sortKey = SORT_KEYS.has(url.searchParams.get("sort")) ? url.searchParams.get("sort") : "name";
+  const sortDir = url.searchParams.get("dir") === "desc" ? "desc" : "asc";
 
   if (!drive) {
     return html(
       res,
       200,
-      adminFilesPage({ site: siteOf(), user, drives, drive: null, path: "/", entries: [], notice, error }),
+      adminFilesPage({ site: siteOf(), user, drives, drive: null, path: "/", entries: [], notice, error, sortKey, sortDir }),
     );
   }
 
   return driverFor(drive)
     .list(currentPath)
-    .then((entries) => {
+    .then((list) => {
+      const entries = sortEntries(list, sortKey, sortDir);
       html(
         res,
         200,
-        adminFilesPage({ site: siteOf(), user, drives, drive, path: currentPath, entries, notice, error }),
+        adminFilesPage({ site: siteOf(), user, drives, drive, path: currentPath, entries, notice, error, sortKey, sortDir }),
       );
     })
     .catch((problem) => {
@@ -78,6 +99,8 @@ function pageFiles(req, res, url) {
           entries: [],
           notice,
           error: `读取目录失败：${problem.message}`,
+          sortKey,
+          sortDir,
         }),
       );
     });

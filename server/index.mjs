@@ -45,6 +45,7 @@ import {
 } from "./util.mjs";
 import { detailPage, driveFieldSpecs, fmtSize, galleryPage, loginPage, myPage, sharePage } from "./ui.mjs";
 import { handleAdmin } from "./admin.mjs";
+import { handleUploads } from "./uploads.mjs";
 
 bootstrap(config.adminQQ);
 
@@ -291,6 +292,8 @@ async function api(req, res, url) {
   const method = req.method;
 
   if (parts[0] === "upload" && method === "POST") return apiUpload(req, res);
+
+  if (parts[0] === "uploads") return handleUploads(req, res, url, user);
 
   if (parts[0] === "media" && parts[1]) {
     const media = get("SELECT * FROM media WHERE id = ?", Number(parts[1]));

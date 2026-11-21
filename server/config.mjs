@@ -32,9 +32,9 @@ export const config = {
 
   // 上传限制（字节）
   limits: {
-    userImage: Number(process.env.LIMIT_IMAGE || 30 * 1024 * 1024),
-    userVideo: Number(process.env.LIMIT_VIDEO || 512 * 1024 * 1024),
-    admin: Number(process.env.LIMIT_ADMIN || 2 * 1024 * 1024 * 1024),
+    userImage: Number(process.env.LIMIT_IMAGE || 250 * 1024 * 1024),
+    userVideo: Number(process.env.LIMIT_VIDEO || 10 * 1024 * 1024 * 1024),
+    admin: Number(process.env.LIMIT_ADMIN || 10 * 1024 * 1024 * 1024),
   },
 
   sessionDays: Number(process.env.SESSION_DAYS || 30),
