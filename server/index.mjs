@@ -56,6 +56,23 @@ const siteOf = () => ({
 });
 
 const json = (res, data, status = 200) => sendJson(res, status, data);
+/**
+ * 存储配置清洗：前端表单的字段名带 `cfg_` 前缀（避免和表单自身属性撞名），
+ * 落库前统一去掉；顺便丢掉空值，避免把已有凭据覆盖成空串。
+ */
+const tidyConfig = (value) => {
+  const source = value && typeof value === "object" ? value : {};
+  const clean = {};
+  for (const [key, raw] of Object.entries(source)) {
+    const name = String(key).replace(/^cfg_/, "").trim();
+    if (!name) continue;
+    if (raw == null) continue;
+    const text = typeof raw === "string" ? raw.trim() : raw;
+    if (text === "") continue;
+    clean[name] = text;
+  }
+  return clean;
+};
 const fail = (res, error) => {
   const status = error.status || 500;
   if (status >= 500) console.error("[memories]", error);
@@ -418,7 +435,7 @@ async function api(req, res, url) {
         "INSERT INTO drives (name, driver, config, root, mount_path, visibility, enabled, quota_bytes, max_file_bytes, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         String(body.name || DRIVERS[body.driver].label).slice(0, 40),
         body.driver,
-        JSON.stringify(body.config || {}),
+        JSON.stringify(tidyConfig(body.config)),
         String(body.root || "/"),
         String(body.mount_path || "").slice(0, 60),
         body.visibility === "public" ? "public" : "members",
@@ -487,10 +504,23 @@ async function api(req, res, url) {
       }
       if (method === "POST") {
         const body = await readJson(req);
+        // 配置按「补丁」处理：只覆盖提交上来的键，其余原样保留，
+        // 避免「保存修改」时把没渲染出来的凭据清空。
+        const patch = body.config && typeof body.config === "object" ? tidyConfig(body.config) : null;
+        let merged = null;
+        if (patch) {
+          let existing = {};
+          try {
+            existing = JSON.parse(drive.config || "{}");
+          } catch {
+            existing = {};
+          }
+          merged = JSON.stringify({ ...tidyConfig(existing), ...patch });
+        }
         run(
           "UPDATE drives SET name = COALESCE(?, name), config = COALESCE(?, config), root = COALESCE(?, root), mount_path = COALESCE(?, mount_path), enabled = COALESCE(?, enabled), visibility = COALESCE(?, visibility), quota_bytes = COALESCE(?, quota_bytes), max_file_bytes = COALESCE(?, max_file_bytes) WHERE id = ?",
           body.name ?? null,
-          body.config ? JSON.stringify(body.config) : null,
+          merged,
           body.root ?? null,
           body.mount_path == null ? null : String(body.mount_path).slice(0, 60),
           body.enabled == null ? null : body.enabled ? 1 : 0,

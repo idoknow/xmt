@@ -606,6 +606,12 @@ if (driveForm) {
 
   const fieldOf = (name) => driveForm.querySelector(`[name="${name}"]`);
   const cfgField = (key) => fieldsBox?.querySelector(`[name="cfg_${key}"]`);
+  /** 老数据里可能存成 cfg_cookie 这种带前缀的键，回填时统一剥掉 */
+  const tidyKeys = (value) => {
+    const out = {};
+    for (const [key, raw] of Object.entries(value || {})) out[String(key).replace(/^cfg_/, "")] = raw;
+    return out;
+  };
   const hiddenList = () => (hiddenInput?.value || "").split("\n").map((item) => item.trim()).filter(Boolean);
 
   function renderHidden() {
@@ -659,7 +665,7 @@ if (driveForm) {
     fieldOf("quota_gb").value = drive?.quota_bytes ? (drive.quota_bytes / GB).toFixed(2) : "";
     fieldOf("max_file_gb").value = drive?.max_file_bytes ? (drive.max_file_bytes / GB).toFixed(2) : "";
     fieldOf("driver").disabled = Boolean(drive);
-    renderConfig(drive?.driver || "local", drive?.config || {});
+    renderConfig(drive?.driver || "local", tidyKeys(drive?.config || {}));
     setHiddenList(drive?.hidden || []);
     if (submitBtn) submitBtn.textContent = drive ? "保存修改" : "添加存储";
     if (cancelBtn) cancelBtn.hidden = !drive;

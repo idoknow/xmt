@@ -87,8 +87,11 @@ export function webdavDriver({ address, username = "", password = "", root = "" 
     return out;
   };
 
-  const request = async (method, relPath, { body, extra = {}, raw = false } = {}) => {
-    const res = await fetch(joinUrl(base, relPath), { method, headers: { ...headers(), ...extra }, body });
+  const request = async (method, relPath, { body, extra = {}, raw = false, rawJoin = false } = {}) => {
+    const url = rawJoin
+      ? `${trimSlash(base)}/${String(relPath).replace(/^\/+/, "")}`
+      : joinUrl(base, relPath);
+    const res = await fetch(url, { method, headers: { ...headers(), ...extra }, body });
     if (!raw && !res.ok && res.status !== 207) {
       const text = await res.text().catch(() => "");
       throw Object.assign(new Error(`WebDAV ${method} ${relPath} → ${res.status} ${text.slice(0, 200)}`), {
@@ -96,6 +99,99 @@ export function webdavDriver({ address, username = "", password = "", root = "" 
       });
     }
     return res;
+  };
+
+  /**
+   * 直接按绝对 URL 发 PROPFIND。
+   * 只在「服务端返回的 href 与我们拼出来的路径对不上」时用：有时目录名里的 & 只有原样发才认。
+   */
+  const propfindAbsolute = async (absoluteUrl, depth = "1") => {
+    const res = await fetch(absoluteUrl, {
+      method: "PROPFIND",
+      headers: { ...headers(), depth, "content-type": "application/xml; charset=UTF-8" },
+    });
+    if (!res.ok && res.status !== 207) {
+      await res.text().catch(() => "");
+      return { status: res.status, items: [], url: absoluteUrl };
+    }
+    return { status: res.status, items: parseProps(await res.text()), url: absoluteUrl };
+  };
+
+  const PROP_BODY =
+    '<?xml version="1.0"?><d:propfind xmlns:d="DAV:"><d:prop><d:resourcetype/><d:getcontentlength/><d:getcontenttype/><d:getlastmodified/><d:displayname/></d:prop></d:propfind>';
+
+  /** 列一个目录，返回原始项（含 href），失败返回 status */
+  const propfindDir = async (dir, depth = "1") => {
+    const cleanDir = String(dir || "/").trim() || "/";
+    const plain = cleanDir.replace(/\/+$/, "");
+    const forms = cleanDir === "/" ? ["/"] : [`${plain}/`, plain];
+    const tried = [];
+    let lastStatus = 0;
+    for (const form of forms) {
+      for (const rawJoin of [false, true]) {
+        const url = rawJoin ? `${trimSlash(base)}/${form.replace(/^\/+/, "")}` : joinUrl(base, form);
+        const res = await fetch(url, {
+          method: "PROPFIND",
+          headers: { ...headers(), depth, "content-type": "application/xml; charset=UTF-8" },
+          body: PROP_BODY,
+        });
+        lastStatus = res.status;
+        if (res.ok || res.status === 207) {
+          return { ok: true, status: res.status, items: parseProps(await res.text()), url };
+        }
+        await res.text().catch(() => "");
+        tried.push(`${res.status} ${decodeHref(url)}`);
+      }
+    }
+    return { status: lastStatus, items: [], url: decodeHref(joinUrl(base, forms[0])), tried };
+  };
+
+  /** 把一次 PROPFIND 的结果转成相对路径条目 */
+  const toEntries = (items, baseUrl) => {
+    const basePath = decodeHref(new URL(baseUrl).pathname).replace(/\/+$/, "");
+    const out = [];
+    for (const item of items) {
+      const itemPath = item.href.replace(/\/+$/, "");
+      if (!itemPath) continue;
+      const rel = relativePath(item.href, basePath);
+      const normalized = rel.replace(/\/+$/, "") || "/";
+      if (normalized === "/" || normalized === "") continue; // 目录自身
+      const name = item.display || normalized.split("/").filter(Boolean).pop() || normalized;
+      out.push({ name, path: normalized, isDir: item.isDir, size: item.size, modified: item.modified });
+    }
+    return out;
+  };
+
+  /**
+   * 按名字回上一层找出这条的真实 href，返回可直接请求的绝对地址。
+   * 用于服务端只认自己给的 href（名字里带 & 时 %26 不被识别）的情况。
+   */
+  const resolveAbsolute = async (target) => {
+    const plain = String(target || "/").replace(/\/+$/, "");
+    const name = plain.split("/").filter(Boolean).pop() || "";
+    if (!name) return null;
+    const parentPath = plain.split("/").slice(0, -1).join("/") || "/";
+    const parent = await propfindDir(parentPath, "1");
+    if (!parent.ok) return null;
+    const match = parent.items.find((item) => {
+      const tail = decodeHref(item.href).replace(/\/+$/, "").split("/").filter(Boolean).pop() || "";
+      return decodeHref(tail) === name || decodeXml(item.display || "") === name;
+    });
+    if (!match) return null;
+    const href = decodeXml(match.href);
+    const absolute = /^https?:\/\//i.test(href) ? href : new URL(href, base).toString();
+    for (const candidate of [encodeURI(absolute), absolute]) {
+      try {
+        const res = await fetch(candidate, {
+          method: "PROPFIND",
+          headers: { ...headers(), depth: "0", "content-type": "application/xml; charset=UTF-8" },
+          body: PROP_BODY,
+        });
+        await res.text().catch(() => "");
+        if (res.ok || res.status === 207) return candidate;
+      } catch {}
+    }
+    return null;
   };
 
   const statOf = async (target) => {
@@ -122,6 +218,13 @@ export function webdavDriver({ address, username = "", password = "", root = "" 
         if (wantName && decodeHref(gotName) !== wantName) continue;
         return { path: target, isDir: item.isDir, size: item.size, modified: item.modified };
       }
+      // 兜底：走上一层找真实 href
+      const absolute = await resolveAbsolute(target);
+      if (absolute) {
+        const deep = await propfindAbsolute(absolute, "0");
+        const [item] = deep.items || [];
+        if (item) return { path: target, isDir: item.isDir, size: item.size, modified: item.modified };
+      }
       return null;
     } catch {
       return null;
@@ -133,49 +236,37 @@ export function webdavDriver({ address, username = "", password = "", root = "" 
     base,
 
     async list(dir = "/") {
-      const propBody =
-        '<?xml version="1.0"?><d:propfind xmlns:d="DAV:"><d:prop><d:resourcetype/><d:getcontentlength/><d:getcontenttype/><d:getlastmodified/><d:displayname/></d:prop></d:propfind>';
       const clean = String(dir || "/").trim() || "/";
-      // 有的服务器对 /a/ 认、对 /a 不认，反过来也有；两个都试一次
-      const candidates = clean === "/" ? ["/"] : [`${clean.replace(/\/+$/, "")}/`, clean.replace(/\/+$/, "")];
-      const tried = [];
-      let res = null;
-      let lastStatus = 0;
-      let usedUrl = "";
-      for (const candidate of candidates) {
-        usedUrl = joinUrl(base, candidate);
-        res = await request("PROPFIND", candidate, {
-          body: propBody,
-          extra: { depth: "1", "content-type": "application/xml; charset=UTF-8" },
-          raw: true,
-        });
-        lastStatus = res.status;
-        if (res.ok || res.status === 207) break;
-        tried.push(`${lastStatus} ${decodeURIComponent(usedUrl)}`);
-        await res.text().catch(() => "");
+      const sortEntries = (items) => items.sort((a, b) => Number(b.isDir) - Number(a.isDir) || a.name.localeCompare(b.name, "zh"));
+
+      const hit = await propfindDir(clean, "1");
+      if (hit.ok) return sortEntries(toEntries(hit.items, hit.url));
+
+      // 404/405 之类：有的服务端只认它自己返回的 href（目录名里有 & 时尤其常见，
+      // 编码过的 %26 反而不匹配），于是回到上一层按名字找回这条，再用它的 href 直接请求。
+      const plain = clean.replace(/\/+$/, "");
+      const wantName = plain.split("/").filter(Boolean).pop() || "";
+      if (wantName) {
+        const parentPath = plain.split("/").slice(0, -1).join("/") || "/";
+        const parent = await propfindDir(parentPath, "1");
+        if (parent.ok) {
+          const match = parent.items.find((item) => {
+            const tail = decodeHref(item.href).replace(/\/+$/, "").split("/").filter(Boolean).pop() || "";
+            return decodeHref(tail) === wantName || decodeXml(item.display || "") === wantName;
+          });
+          if (match) {
+            const href = decodeXml(match.href);
+            const absolute = /^https?:\/\//i.test(href) ? href : new URL(href, base).toString();
+            for (const candidate of [encodeURI(absolute), absolute]) {
+              const deep = await propfindAbsolute(candidate, "1");
+              if (deep.status === 207) return sortEntries(toEntries(deep.items, deep.url));
+            }
+          }
+        }
       }
-      if (!res || (!res.ok && res.status !== 207)) {
-        throw Object.assign(new Error(`WebDAV 列目录失败 ${lastStatus}（${tried[0] || usedUrl}）`), { status: 502 });
-      }
-      const xml = await res.text();
-      const basePath = decodeHref(new URL(usedUrl.endsWith("/") ? usedUrl : `${usedUrl}/`).pathname).replace(/\/+$/, "");
-      const out = [];
-      for (const item of parseProps(xml)) {
-        const itemPath = item.href.replace(/\/+$/, "");
-        if (!itemPath) continue;
-        const rel = relativePath(item.href, basePath);
-        const normalized = rel.replace(/\/+$/, "") || "/";
-        if (normalized === "/" || normalized === "") continue; // 目录自身
-        const name = item.display || normalized.split("/").filter(Boolean).pop() || normalized;
-        out.push({
-          name,
-          path: normalized,
-          isDir: item.isDir,
-          size: item.size,
-          modified: item.modified,
-        });
-      }
-      return out.sort((a, b) => Number(b.isDir) - Number(a.isDir) || a.name.localeCompare(b.name, "zh"));
+
+      const tried = hit.tried?.length ? `；试过 ${hit.tried.join(" / ")}` : "";
+      throw Object.assign(new Error(`WebDAV 列目录失败 ${hit.status}（${hit.url}）${tried}`), { status: 502 });
     },
 
     stat: statOf,
@@ -249,10 +340,19 @@ export function webdavDriver({ address, username = "", password = "", root = "" 
     async download(target) {
       const info = await statOf(target);
       if (info?.isDir) throw Object.assign(new Error("这是一个目录，不能直接下载"), { status: 400 });
-      const res = await fetch(joinUrl(base, target), { headers: headers() });
-      if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        throw Object.assign(new Error(`WebDAV 下载失败 ${res.status}${text ? ` ${text.slice(0, 120)}` : ""}`), { status: 502 });
+      const urls = [joinUrl(base, target)];
+      const resolved = await resolveAbsolute(target).catch(() => null);
+      if (resolved && !urls.includes(resolved)) urls.push(resolved);
+      let res = null;
+      let last = 0;
+      for (const url of urls) {
+        res = await fetch(url, { headers: headers() });
+        last = res.status;
+        if (res.ok) break;
+        await res.text().catch(() => "");
+      }
+      if (!res || !res.ok) {
+        throw Object.assign(new Error(`WebDAV 下载失败 ${last}（${decodeHref(urls[0])}）`), { status: 502 });
       }
       return {
         stream: res.body,
