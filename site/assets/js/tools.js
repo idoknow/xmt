@@ -617,3 +617,22 @@ $$(".tool__drop").forEach((drop) => {
     input.dispatchEvent(new Event("change"));
   });
 });
+
+/* ---------- 视图切换：首页磁贴 / 单个工具 ---------- */
+
+const views = $$("[data-view]");
+const homeView = $("[data-tools-home]");
+
+function route() {
+  const id = (location.hash || "").replace(/^#\/?/, "").trim();
+  const target = views.find((view) => view.dataset.view === id) || null;
+  if (homeView) homeView.hidden = Boolean(target);
+  views.forEach((view) => {
+    view.hidden = view !== target;
+  });
+  document.body.classList.toggle("is-tool", Boolean(target));
+  if (target) window.scrollTo({ top: 0 });
+}
+
+window.addEventListener("hashchange", route);
+route();

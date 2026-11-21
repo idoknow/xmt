@@ -708,3 +708,178 @@ input[type="range"] {
   height: 1rem;
   accent-color: var(--vermilion);
 }
+
+/* ---------- 首页磁贴与单工具视图 ---------- */
+
+.page-tools [hidden] {
+  display: none !important;
+}
+
+.tools-home__grid {
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+}
+
+.tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-height: 9.6rem;
+  padding: 1.25rem 1.25rem 1.1rem;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--paper);
+  color: var(--ink);
+  text-decoration: none;
+  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tile::before {
+  content: "";
+  position: absolute;
+  inset-block: 1.25rem;
+  inset-inline-start: 0;
+  width: 2px;
+  background: var(--vermilion);
+  transform: scaleY(0);
+  transform-origin: top;
+  transition: transform 0.25s ease;
+}
+
+.tile:hover,
+.tile:focus-visible {
+  border-color: color-mix(in srgb, var(--vermilion) 55%, var(--rule));
+  transform: translateY(-2px);
+  box-shadow: 0 18px 28px -26px rgba(20, 19, 27, 0.55);
+}
+
+.tile:hover::before,
+.tile:focus-visible::before {
+  transform: scaleY(1);
+}
+
+.tile__no {
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+}
+
+.tile__name {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 1.3rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.tile__desc {
+  margin: 0;
+  flex: 1;
+  font-size: 0.82rem;
+  line-height: 1.7;
+  color: var(--ink-soft, var(--muted));
+}
+
+.tile__go {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--vermilion);
+}
+
+.tool-back {
+  display: inline-block;
+  margin-block-end: 1.1rem;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.tool-back:hover {
+  color: var(--vermilion);
+}
+
+.tool-view .tool {
+  padding: 1.6rem 1.5rem 1.4rem;
+}
+
+.tool-view .tool__head h2 {
+  font-size: clamp(1.35rem, 2.6vw, 1.75rem);
+}
+
+.tool-view .tool__opts {
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+}
+
+@media (max-width: 560px) {
+  .tool-view .tool {
+    padding: 1.2rem 1.05rem 1.1rem;
+  }
+
+  .tile {
+    min-height: 8.4rem;
+  }
+}
+
+/* 进入单个工具后不再重复大标题 */
+.page-tools.is-tool .page-head {
+  display: none;
+}
+
+.page-tools.is-tool .tool-view {
+  padding-block-start: 1.6rem;
+}
+
+/* 工具内部：参数面板两列，颜色与位置占满一行 */
+.tool__body--split {
+  grid-template-columns: minmax(0, 26rem) minmax(0, 1fr);
+}
+
+.tool__opts--grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.tool__opts--grid .field:has(.field__color),
+.tool__opts--grid .field:has(select) {
+  grid-column: 1 / -1;
+}
+
+.tool__opts--grid .field__color {
+  width: 100%;
+  height: 2.1rem;
+  padding: 0.2rem;
+}
+
+@media (max-width: 720px) {
+  .tool__body--split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* 覆盖外层 auto-fit：参数面板固定两列（特异性更高才生效） */
+.tool-view .tool__opts--grid,
+.page-tools .tool__opts--grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem 1.1rem;
+}
+
+.tool-view .tool__opts--grid > .field:has(.field__color),
+.tool-view .tool__opts--grid > .field:has(select) {
+  grid-column: 1 / -1;
+}
+
+/* 颜色块加内描边，白色也看得见 */
+.tool-view .field__color {
+  box-shadow: inset 0 0 0 1px rgba(31, 30, 53, 0.22);
+  border-radius: 2px;
+}
+
+.tool-view .tool__actions {
+  margin-block-start: 1.1rem;
+}

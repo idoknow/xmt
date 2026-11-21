@@ -41,20 +41,61 @@
           <p class="page-head__lead">
             图片转换、压缩、改尺寸、裁剪、加水印都在你自己的浏览器里完成，文件不上传、不留存。
           </p>
-          <nav class="tool-index" aria-label="工具索引">
-            <a href="#convert"><span>01</span>格式转换</a>
-            <a href="#compress"><span>02</span>图片压缩</a>
-            <a href="#resize"><span>03</span>尺寸调整</a>
-            <a href="#crop"><span>04</span>裁剪</a>
-            <a href="#watermark"><span>05</span>加水印</a>
-            <a href="#links"><span>06</span>工具清单</a>
-            <a href="#software"><span>07</span>常用软件</a>
-          </nav>
         </div>
       </section>
 
-      <section class="section" id="convert">
+      <section class="section tools-home" data-tools-home>
         <div class="wrap">
+          <div class="tools-home__grid">
+            <a class="tile" href="#convert" data-goto="convert">
+              <span class="tile__no">01</span>
+              <h2 class="tile__name">格式转换</h2>
+              <p class="tile__desc">JPG / PNG / WebP 互转，一次可以选多张。</p>
+              <span class="tile__go">打开</span>
+            </a>
+            <a class="tile" href="#compress" data-goto="compress">
+              <span class="tile__no">02</span>
+              <h2 class="tile__name">图片压缩</h2>
+              <p class="tile__desc">按体积或边长压，肉眼几乎看不出差别。</p>
+              <span class="tile__go">打开</span>
+            </a>
+            <a class="tile" href="#resize" data-goto="resize">
+              <span class="tile__no">03</span>
+              <h2 class="tile__name">尺寸调整</h2>
+              <p class="tile__desc">按像素或百分比缩放，可锁比例。</p>
+              <span class="tile__go">打开</span>
+            </a>
+            <a class="tile" href="#crop" data-goto="crop">
+              <span class="tile__no">04</span>
+              <h2 class="tile__name">裁剪</h2>
+              <p class="tile__desc">拖出想要的框，或直接填数值。</p>
+              <span class="tile__go">打开</span>
+            </a>
+            <a class="tile" href="#watermark" data-goto="watermark">
+              <span class="tile__no">05</span>
+              <h2 class="tile__name">加水印</h2>
+              <p class="tile__desc">文字水印，位置、字号、透明度都能调。</p>
+              <span class="tile__go">打开</span>
+            </a>
+            <a class="tile" href="#links" data-goto="links">
+              <span class="tile__no">06</span>
+              <h2 class="tile__name">工具清单</h2>
+              <p class="tile__desc">站外好用的图片工具，管理员维护。</p>
+              <span class="tile__go">打开</span>
+            </a>
+            <a class="tile" href="#software" data-goto="software">
+              <span class="tile__no">07</span>
+              <h2 class="tile__name">常用软件</h2>
+              <p class="tile__desc">按设备与用途分类的软件下载。</p>
+              <span class="tile__go">打开</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section class="section tool-view" id="convert" data-view="convert">
+        <div class="wrap">
+          <a class="tool-back" href="#/" data-back>← 全部工具</a>
           <div class="tool">
             <header class="tool__head">
               <span class="tool__no">01</span>
@@ -93,8 +134,9 @@
         </div>
       </section>
 
-      <section class="section" id="compress">
+      <section class="section tool-view" id="compress" data-view="compress">
         <div class="wrap">
+          <a class="tool-back" href="#/" data-back>← 全部工具</a>
           <div class="tool">
             <header class="tool__head">
               <span class="tool__no">02</span>
@@ -135,8 +177,9 @@
         </div>
       </section>
 
-      <section class="section" id="resize">
+      <section class="section tool-view" id="resize" data-view="resize">
         <div class="wrap">
+          <a class="tool-back" href="#/" data-back>← 全部工具</a>
           <div class="tool">
             <header class="tool__head">
               <span class="tool__no">03</span>
@@ -195,8 +238,9 @@
         </div>
       </section>
 
-      <section class="section" id="crop">
+      <section class="section tool-view" id="crop" data-view="crop">
         <div class="wrap">
+          <a class="tool-back" href="#/" data-back>← 全部工具</a>
           <div class="tool">
             <header class="tool__head">
               <span class="tool__no">04</span>
@@ -247,8 +291,9 @@
         </div>
       </section>
 
-      <section class="section" id="watermark">
+      <section class="section tool-view" id="watermark" data-view="watermark">
         <div class="wrap">
+          <a class="tool-back" href="#/" data-back>← 全部工具</a>
           <div class="tool">
             <header class="tool__head">
               <span class="tool__no">05</span>
@@ -311,8 +356,9 @@
         </div>
       </section>
 
-      <section class="section" id="links">
+      <section class="section tool-view" id="links" data-view="links">
         <div class="wrap">
+          <a class="tool-back" href="#/" data-back>← 全部工具</a>
           <p class="section__no">Tools · 导航</p>
           <h2 class="section__title">在线图片工具</h2>
           <p class="section__lead">站外还有一批好用的图像工具，按管理员整理的清单。</p>
@@ -322,8 +368,9 @@
         </div>
       </section>
 
-      <section class="section" id="software">
+      <section class="section tool-view" id="software" data-view="software">
         <div class="wrap">
+          <a class="tool-back" href="#/" data-back>← 全部工具</a>
           <p class="section__no">Software · 软件</p>
           <h2 class="section__title">常用软件</h2>
           <p class="section__lead">按设备与用途分类的软件下载，附下载线路。</p>
