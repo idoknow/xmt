@@ -323,3 +323,57 @@
     transition: none;
   }
 }
+
+/* ---------- 图床：输出格式 / CDN 线路 / 存储位置 ---------- */
+.im-opts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.7rem 0.9rem;
+  margin-block: 1.1rem 0.2rem;
+  padding: 0.95rem 1rem 1rem;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--ink) 2.5%, transparent);
+}
+
+.im-opt {
+  display: grid;
+  gap: 0.32rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-family: var(--mono);
+  letter-spacing: 0.04em;
+}
+
+.im-opt select {
+  width: 100%;
+  height: 2.15rem;
+  padding: 0 0.5rem;
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 0.85rem;
+  letter-spacing: 0;
+  cursor: pointer;
+}
+
+.im-opt select:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--vermilion) 45%, transparent);
+  outline-offset: 1px;
+}
+
+.im-opts__hint {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+@media (max-width: 560px) {
+  .im-opts {
+    grid-template-columns: 1fr;
+    padding: 0.8rem 0.85rem 0.9rem;
+  }
+}

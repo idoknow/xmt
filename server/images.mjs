@@ -13,11 +13,37 @@ import { currentUser, isAdmin } from "./auth.mjs";
 export const PROVIDERS = {
   scdn: {
     name: "失控图床",
-    hint: "输出 WebP，支持查询图片信息",
+    hint: "可选输出格式、CDN 线路与存储位置，支持查询图片信息",
     endpoint: "https://img.scdn.io/api/v1.php",
     field: "image",
     max: 20 * 1024 * 1024,
     query: true,
+    options: {
+      formats: [
+        { value: "", label: "自动（静态转 WebP）" },
+        { value: "webp", label: "WebP" },
+        { value: "jpg", label: "JPG" },
+        { value: "png", label: "PNG" },
+        { value: "gif", label: "GIF" },
+        { value: "webp_animated", label: "动态 WebP" },
+      ],
+      cdns: [
+        { value: "", label: "自动选择" },
+        { value: "img.scdn.io", label: "海外 · 失控的防御系统" },
+        { value: "cloudflareimg.cdn.sn", label: "海外 · Cloudflare" },
+        { value: "cloudflarecnimg.scdn.io", label: "海外 · Cloudflare CN 优选" },
+        { value: "anycastimg.scdn.io", label: "海外 · Anycast" },
+        { value: "edgeoneimg.cdn.sn", label: "海外 · EdgeOne" },
+        { value: "esaimg.cdn1.vip", label: "大陆 · ESA" },
+        { value: "edgeoneimg.cdn1.vip", label: "大陆 · EdgeOne" },
+      ],
+      storages: [
+        { value: "", label: "默认（本站服务器）" },
+        { value: "local", label: "本站服务器" },
+        { value: "telegram", label: "Telegram" },
+        { value: "r2", label: "Cloudflare R2" },
+      ],
+    },
   },
   tc360: {
     name: "360 图床",
@@ -64,12 +90,19 @@ db.exec(TABLE);
 
 /* ---------- 上传与查询 ---------- */
 
-async function forward(provider, file) {
+async function forward(provider, file, options = {}) {
   const info = PROVIDERS[provider];
   const bytes = fs.readFileSync(file.path);
   const type = file.type || "application/octet-stream";
   const form = new FormData();
   form.append(info.field, new Blob([bytes], { type }), file.filename || "image");
+
+  const allowed = (list, value) => (list || []).some((item) => item.value === value);
+  if (info.options) {
+    if (options.format && allowed(info.options.formats, options.format)) form.append("outputFormat", options.format);
+    if (options.cdn && allowed(info.options.cdns, options.cdn)) form.append("cdn_domain", options.cdn);
+    if (options.storage && allowed(info.options.storages, options.storage)) form.append("storage_destination", options.storage);
+  }
 
   const response = await fetch(info.endpoint, { method: "POST", body: form, headers: info.referrer ? { referer: "" } : {} });
   const text = await response.text();
@@ -168,6 +201,40 @@ export function imagePage({ site, user, total }) {
   <div class="wrap">
     <div class="im-providers">${chips}</div>
 
+    <div class="im-opts" data-opts hidden>
+      <label class="im-opt"><span>输出格式</span>
+        <select data-opt="format">
+          <option value="">自动（静态转 WebP）</option>
+          <option value="webp">WebP</option>
+          <option value="jpg">JPG</option>
+          <option value="png">PNG</option>
+          <option value="gif">GIF</option>
+          <option value="webp_animated">动态 WebP</option>
+        </select>
+      </label>
+      <label class="im-opt"><span>CDN 线路</span>
+        <select data-opt="cdn">
+          <option value="">自动选择</option>
+          <option value="img.scdn.io">海外 · 失控的防御系统</option>
+          <option value="cloudflareimg.cdn.sn">海外 · Cloudflare</option>
+          <option value="cloudflarecnimg.scdn.io">海外 · Cloudflare CN 优选</option>
+          <option value="anycastimg.scdn.io">海外 · Anycast</option>
+          <option value="edgeoneimg.cdn.sn">海外 · EdgeOne</option>
+          <option value="esaimg.cdn1.vip">大陆 · ESA</option>
+          <option value="edgeoneimg.cdn1.vip">大陆 · EdgeOne</option>
+        </select>
+      </label>
+      <label class="im-opt"><span>存储位置</span>
+        <select data-opt="storage">
+          <option value="">默认（本站服务器）</option>
+          <option value="local">本站服务器</option>
+          <option value="telegram">Telegram</option>
+          <option value="r2">Cloudflare R2</option>
+        </select>
+      </label>
+      <p class="im-opts__hint">这三项只对失控图床生效；其他图床不支持选参数。</p>
+    </div>
+
     <div class="im-drop" data-drop>
       <input type="file" accept="image/*" multiple hidden data-file />
       <div class="im-drop__icon" aria-hidden="true">
@@ -234,9 +301,18 @@ export async function handleImages(req, res, url, user) {
     }
 
     try {
-      const result = await forward(provider, file);
+      const result = await forward(provider, file, {
+        format: String(uploaded.fields.format || ""),
+        cdn: String(uploaded.fields.cdn || ""),
+        storage: String(uploaded.fields.storage || ""),
+      });
       const id = randomUUID();
-      const meta = JSON.stringify({ ...result.meta, filename: result.filename });
+      const options = {
+        format: String(uploaded.fields.format || ""),
+        cdn: String(uploaded.fields.cdn || ""),
+        storage: String(uploaded.fields.storage || ""),
+      };
+      const meta = JSON.stringify({ ...result.meta, filename: result.filename, options });
       run(
         "INSERT INTO image_uploads (id, user_id, provider, url, filename, size, mime, note, meta, created_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
         id,
@@ -261,7 +337,7 @@ export async function handleImages(req, res, url, user) {
           size: file.size,
           mime: file.type || "",
           note: "",
-          meta: { ...result.meta, filename: result.filename },
+          meta: { ...result.meta, filename: result.filename, options },
           createdAt: now(),
         },
       });

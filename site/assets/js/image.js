@@ -8,6 +8,20 @@ const LOGGED_IN = Boolean(document.querySelector("[data-user-id]")?.dataset.user
 let provider = "scdn";
 let total = Number($("[data-total]")?.dataset.total || 0);
 
+// 只有失控图床支持输出格式 / CDN 线路 / 存储位置
+const PROVIDERS = { scdn: { opts: true } };
+const optsBox = $("[data-opts]");
+const opts = () => ({
+  format: $('[data-opt="format"]')?.value || "",
+  cdn: $('[data-opt="cdn"]')?.value || "",
+  storage: $('[data-opt="storage"]')?.value || "",
+});
+function syncOpts() {
+  if (!optsBox) return;
+  optsBox.hidden = !PROVIDERS[provider]?.opts;
+}
+syncOpts();
+
 const drop = $("[data-drop]");
 const fileInput = $("[data-file]");
 const bar = $("[data-bar]");
@@ -79,6 +93,11 @@ function renderResult(item) {
     button.addEventListener("click", () => copy(formats(item)[button.dataset.copyFormat] || item.url, button));
   });
   if (item.note) node.querySelector("[data-note]").textContent = item.note;
+  const wanted = PROVIDERS[item.provider]?.opts ? item.meta?.options?.format : "";
+  const ext = (item.url.match(/\.([a-z0-9]+)(?:\?|$)/i) || [])[1] || "";
+  if (wanted && ext && ext.toLowerCase() !== wanted.toLowerCase() && !(wanted === "webp_animated" && ext === "webp")) {
+    node.querySelector("[data-note]").textContent = `图床没有按所选格式转换，实际返回 .${ext}`;
+  }
   results.prepend(node);
 }
 
@@ -100,6 +119,9 @@ function uploadOne(file) {
     const body = new FormData();
     body.append("file", file, file.name);
     body.append("provider", provider);
+    if (PROVIDERS[provider]?.opts) {
+      for (const [key, value] of Object.entries(opts())) if (value) body.append(key, value);
+    }
 
     const request = new XMLHttpRequest();
     request.open("POST", "/memories/api/images/upload");
@@ -159,6 +181,7 @@ $$("[data-provider]").forEach((button) => {
     provider = button.dataset.provider;
     $$("[data-provider]").forEach((item) => item.classList.toggle("is-on", item === button));
     setHint();
+    syncOpts();
   });
 });
 
