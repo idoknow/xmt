@@ -112,5 +112,31 @@ export function localDriver({ root }) {
     async filePath(target) {
       return safeJoin(root, target);
     },
+
+    // 磁盘剩余量：块大小 × 可用块数（拿不到就返回 null，由上层显示「未获取」）
+    async capacity() {
+      const statfs = (await import("node:fs/promises")).statfs;
+      // 存储目录可能还没建出来，往上找第一个存在的目录问磁盘
+      const candidates = [];
+      let current = path.resolve(root);
+      for (let i = 0; i < 6; i += 1) {
+        candidates.push(current);
+        const parent = path.dirname(current);
+        if (parent === current) break;
+        current = parent;
+      }
+      for (const dir of candidates) {
+        try {
+          const info = await statfs(dir);
+          const unit = Number(info.bsize) || 0;
+          const total = unit * Number(info.blocks || 0);
+          const free = unit * Number(info.bavail ?? info.bfree ?? 0);
+          if (total) return { total, free };
+        } catch {
+          continue;
+        }
+      }
+      return null;
+    },
   };
 }

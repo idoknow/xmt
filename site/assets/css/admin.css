@@ -802,6 +802,54 @@
   color: var(--vermilion);
 }
 
+/* 隐藏目录 chips 的删除按钮 */
+.a-chip__x {
+  border: 0;
+  background: none;
+  padding: 0 0.1rem;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.a-chip__x:hover {
+  color: var(--vermilion);
+}
+
+/* 目录选择里的「隐藏 / 已隐藏」 */
+.a-pick__go {
+  flex: 1 1 auto;
+  border: 0;
+  background: none;
+  padding: 0;
+  text-align: start;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.a-pick__go:hover {
+  color: var(--vermilion);
+}
+
+.a-pick__toggle {
+  flex: none;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: none;
+  padding: 0.1rem 0.55rem;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  cursor: pointer;
+}
+
+.a-pick__toggle.is-on {
+  border-color: color-mix(in srgb, var(--vermilion) 50%, transparent);
+  color: var(--vermilion);
+}
+
 .a-dialog > .a-hint {
   padding: 0 0.8rem 0.7rem;
 }

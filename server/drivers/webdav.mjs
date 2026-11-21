@@ -261,5 +261,39 @@ export function webdavDriver({ address, username = "", password = "", root = "" 
         encoding: res.headers.get("content-encoding") || "",
       };
     },
+
+    /**
+     * 容量：RFC 4331 的 quota-used-bytes / quota-available-bytes。
+     * 服务器不支持就返回 null（上层让管理员手填）。
+     */
+    async capacity() {
+      const propBody =
+        '<?xml version="1.0"?><d:propfind xmlns:d="DAV:"><d:prop><d:quota-used-bytes/><d:quota-available-bytes/></d:prop></d:propfind>';
+      for (const form of ["/", ""]) {
+        try {
+          const res = await request("PROPFIND", form, {
+            body: propBody,
+            extra: { depth: "0", "content-type": "application/xml; charset=UTF-8" },
+            raw: true,
+          });
+          if (!res.ok && res.status !== 207) {
+            await res.text().catch(() => "");
+            continue;
+          }
+          const xml = await res.text();
+          const used = Number(/<(?:[\w-]+:)?quota-used-bytes[^>]*>(\d+)</i.exec(xml)?.[1] || 0);
+          const avail = Number(/<(?:[\w-]+:)?quota-available-bytes[^>]*>(\d+)</i.exec(xml)?.[1] || 0);
+          // np=0 常见于「无限」；available 常见 -1 / 一个很大的数
+          if (!used && !avail) continue;
+          if (avail > 0 && Number.isSafeInteger(used + avail) && used + avail < Number.MAX_SAFE_INTEGER) {
+            return { total: used + avail, free: avail };
+          }
+          return { total: 0, free: Math.max(avail, 0) };
+        } catch {
+          continue;
+        }
+      }
+      return null;
+    },
   };
 }

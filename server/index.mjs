@@ -415,7 +415,7 @@ async function api(req, res, url) {
       const body = await readJson(req);
       if (!DRIVERS[body.driver]) throw Object.assign(new Error("未知存储类型"), { status: 400 });
       run(
-        "INSERT INTO drives (name, driver, config, root, mount_path, visibility, enabled, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO drives (name, driver, config, root, mount_path, visibility, enabled, quota_bytes, max_file_bytes, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         String(body.name || DRIVERS[body.driver].label).slice(0, 40),
         body.driver,
         JSON.stringify(body.config || {}),
@@ -423,6 +423,8 @@ async function api(req, res, url) {
         String(body.mount_path || "").slice(0, 60),
         body.visibility === "public" ? "public" : "members",
         body.enabled === false || body.enabled === 0 ? 0 : 1,
+        Math.max(0, Math.trunc(Number(body.quota_bytes) || 0)),
+        Math.max(0, Math.trunc(Number(body.max_file_bytes) || 0)),
         now(),
       );
       const created = get("SELECT id FROM drives ORDER BY id DESC LIMIT 1");
@@ -461,16 +463,40 @@ async function api(req, res, url) {
         const list = await driver.list(drive.root || "/");
         return json(res, { ok: true, ms: Date.now() - started, sample: list.slice(0, 5) });
       }
+      if (parts[2] === "capacity" && method === "POST") {
+        const driver = driverFor(drive);
+        const started = Date.now();
+        let value = null;
+        if (typeof driver.capacity === "function") {
+          try {
+            value = await driver.capacity();
+          } catch (error) {
+            value = null;
+          }
+        }
+        // 拿到就顺手写进库里，下次进页面直接显示
+        if (value?.total) run("UPDATE drives SET quota_bytes = ? WHERE id = ?", Math.max(0, Math.trunc(value.total)), drive.id);
+        return json(res, {
+          ok: true,
+          ms: Date.now() - started,
+          supported: Boolean(value),
+          total: value?.total || 0,
+          free: value?.free || 0,
+          quota_bytes: get("SELECT quota_bytes FROM drives WHERE id = ?", drive.id)?.quota_bytes || 0,
+        });
+      }
       if (method === "POST") {
         const body = await readJson(req);
         run(
-          "UPDATE drives SET name = COALESCE(?, name), config = COALESCE(?, config), root = COALESCE(?, root), mount_path = COALESCE(?, mount_path), enabled = COALESCE(?, enabled), visibility = COALESCE(?, visibility) WHERE id = ?",
+          "UPDATE drives SET name = COALESCE(?, name), config = COALESCE(?, config), root = COALESCE(?, root), mount_path = COALESCE(?, mount_path), enabled = COALESCE(?, enabled), visibility = COALESCE(?, visibility), quota_bytes = COALESCE(?, quota_bytes), max_file_bytes = COALESCE(?, max_file_bytes) WHERE id = ?",
           body.name ?? null,
           body.config ? JSON.stringify(body.config) : null,
           body.root ?? null,
           body.mount_path == null ? null : String(body.mount_path).slice(0, 60),
           body.enabled == null ? null : body.enabled ? 1 : 0,
           body.visibility ? (body.visibility === "public" ? "public" : "members") : null,
+          body.quota_bytes == null ? null : Math.max(0, Math.trunc(Number(body.quota_bytes) || 0)),
+          body.max_file_bytes == null ? null : Math.max(0, Math.trunc(Number(body.max_file_bytes) || 0)),
           drive.id,
         );
         if (body.hidden != null) setHidden(drive.id, body.hidden);

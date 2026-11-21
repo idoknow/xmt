@@ -208,7 +208,7 @@ export function uploadDialog() {
   return `<dialog class="m-modal" data-upload>
   <form method="dialog" class="m-modal__form" data-upload-form>
     <h2>上传到 Memories</h2>
-    <p class="m-modal__hint">照片和视频都行。照片单张不超过 30MB，视频不超过 512MB。</p>
+    <p class="m-modal__hint">照片和视频都行。照片单张不超过 250MB，视频不超过 10GB；存储如果单独设了上限，以存储的为准。</p>
     <label class="m-drop" data-drop>
       <input type="file" name="files" accept="image/*,video/*" multiple data-file />
       <span class="m-drop__text">点这里选文件，或者把文件拖进来</span>

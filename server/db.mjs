@@ -130,6 +130,9 @@ function ensureColumn(table, column, ddl) {
 
 ensureColumn("drives", "mount_path", "mount_path TEXT NOT NULL DEFAULT ''");
 ensureColumn("drives", "sort_order", "sort_order INTEGER NOT NULL DEFAULT 0");
+// 0 表示「不知道 / 跟随全局默认」
+ensureColumn("drives", "quota_bytes", "quota_bytes INTEGER NOT NULL DEFAULT 0");
+ensureColumn("drives", "max_file_bytes", "max_file_bytes INTEGER NOT NULL DEFAULT 0");
 
 export const setting = (key, fallback = null) => {
   const row = get("SELECT value FROM settings WHERE key = ?", key);

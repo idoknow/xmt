@@ -31,12 +31,15 @@ async function writeMeta(id, meta) {
   await fsp.writeFile(metaOf(id), JSON.stringify(meta), "utf8");
 }
 
-function limitFor(user, name) {
-  if (user.role === "admin") return { kind: kindOf(name), limit: config.limits.admin };
+function limitFor(user, name, drive = null) {
   const kind = kindOf(name);
-  if (kind === "image") return { kind, limit: config.limits.userImage };
-  if (kind === "video") return { kind, limit: config.limits.userVideo };
-  return { kind, limit: 0 };
+  let limit;
+  if (user.role === "admin") limit = config.limits.admin;
+  else if (kind === "image") limit = config.limits.userImage;
+  else if (kind === "video") limit = config.limits.userVideo;
+  else return { kind, limit: 0 };
+  const own = Number(drive?.max_file_bytes) || 0;
+  return { kind, limit: own > 0 ? own : limit };
 }
 
 async function initUpload(req, res, user) {
@@ -51,7 +54,7 @@ async function initUpload(req, res, user) {
   if (!name) throw fail(400, "缺少文件名");
   if (size <= 0) throw fail(400, "文件是空的");
 
-  const { kind, limit } = limitFor(user, name);
+  const { kind, limit } = limitFor(user, name, drive);
   if (!limit) throw fail(400, "只能上传照片和视频");
   if (size > limit) {
     const mb = limit / 1024 / 1024;

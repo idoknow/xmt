@@ -90,7 +90,10 @@ export async function upload({ user, drive, folder, files }) {
   for (const file of files) {
     const kind = kindOf(file.filename);
     const size = file.size;
-    const limit = isAdmin ? config.limits.admin : kind === "image" ? config.limits.userImage : config.limits.userVideo;
+    const byRole = isAdmin ? config.limits.admin : kind === "image" ? config.limits.userImage : config.limits.userVideo;
+    // 存储自己配了单文件上限就用它的（管理员可在存储里手动设置，未设则为 0 = 跟随角色默认）
+    const own = Number(drive?.max_file_bytes) || 0;
+    const limit = own > 0 ? own : byRole;
     if (!isAdmin && kind === "file") {
       rejected.push({ name: file.filename, reason: "只能上传照片和视频" });
       await unlink(file.path).catch(() => {});

@@ -1,7 +1,7 @@
 // 管理台（AList 风格）的页面骨架与四个分页：文件 / 存储 / 成员 / 设置。
 import { DRIVERS } from "./drives.mjs";
 import { displayName, escapeHtml as e } from "./util.mjs";
-import { assetVersion, fmtSize, shell } from "./ui.mjs";
+import { assetVersion, driveFieldSpecs, fmtSize, shell } from "./ui.mjs";
 
 const NAV = [
   { key: "files", label: "文件", href: "/memories/admin/files", hint: "浏览、上传、改名、移动" },
@@ -184,6 +184,13 @@ export function adminFilesPage({
 /* ---------- 存储 ---------- */
 
 export function adminStoragesPage({ site, user, drives }) {
+  const capText = (bytes) => {
+    const value = Number(bytes) || 0;
+    if (!value) return "未获取";
+    if (value >= 1024 ** 4) return `${(value / 1024 ** 4).toFixed(1)} TB`;
+    if (value >= 1024 ** 3) return `${(value / 1024 ** 3).toFixed(value >= 100 * 1024 ** 3 ? 0 : 1)} GB`;
+    return `${Math.max(1, Math.round(value / 1024 ** 2))} MB`;
+  };
   const rows = drives
     .map(
       (drive) => `<tr>
@@ -191,12 +198,15 @@ export function adminStoragesPage({ site, user, drives }) {
       <td class="a-mono" data-label="挂载">${e(drive.mount_path || `/ ${drive.name}`)}</td>
       <td data-label="驱动">${e(DRIVERS[drive.driver]?.label || drive.driver)}</td>
       <td class="a-mono" data-label="根">${e(drive.root || "/")}</td>
+      <td data-label="容量">${capText(drive.quota_bytes)}</td>
+      <td data-label="单文件">${drive.max_file_bytes ? capText(drive.max_file_bytes) : '<span class="a-hint">默认</span>'}</td>
       <td data-label="状态">${drive.enabled ? '<span class="a-tag a-tag--ok">启用</span>' : '<span class="a-tag">停用</span>'}</td>
       <td data-label="可见">${drive.visibility === "public" ? "公开" : "成员"}</td>
       <td data-label="隐藏">${drive.hidden?.length ? `${drive.hidden.length} 个` : "—"}</td>
       <td><div class="a-actions__row">
         <a class="a-btn a-btn--tiny" href="/memories/admin/files?drive=${drive.id}&path=/">打开</a>
         <button class="a-btn a-btn--tiny" type="button" data-drive-edit="${drive.id}">编辑</button>
+        <button class="a-btn a-btn--tiny" type="button" data-drive-cap="${drive.id}">刷新容量</button>
         <button class="a-btn a-btn--tiny" type="button" data-drive-test="${drive.id}">测试</button>
         <button class="a-btn a-btn--tiny a-btn--danger" type="button" data-drive-del="${drive.id}">删除</button>
       </div></td>
@@ -213,6 +223,8 @@ export function adminStoragesPage({ site, user, drives }) {
     visibility: drive.visibility,
     enabled: Boolean(drive.enabled),
     hidden: drive.hidden || [],
+    quota_bytes: Number(drive.quota_bytes) || 0,
+    max_file_bytes: Number(drive.max_file_bytes) || 0,
     config: JSON.parse(drive.config || "{}"),
   }));
 
@@ -226,6 +238,10 @@ export function adminStoragesPage({ site, user, drives }) {
       <label><span>挂载路径</span><input name="mount_path" placeholder="/139" /></label>
       <label><span>根路径</span><input name="root" value="/" placeholder="/" /></label>
       <label><span>可见性</span><select name="visibility"><option value="members">成员可见</option><option value="public">公开</option></select></label>
+      <label><span>总容量（GB）</span><input name="quota_gb" type="number" min="0" step="0.1" placeholder="0 = 未获取" />
+        <span class="a-hint">填 0 表示不显示；点「刷新容量」可从存储自动读取</span></label>
+      <label><span>单文件上限（GB）</span><input name="max_file_gb" type="number" min="0" step="0.1" placeholder="0 = 跟随默认" />
+        <span class="a-hint">0 表示用默认（照片 250MB / 视频 10GB）；填了就按这个存储自己的上限</span></label>
       <label class="a-form__check"><input type="checkbox" name="enabled" checked /><span>启用</span></label>
       <label class="a-form__wide"><span>隐藏目录</span>
         <div class="a-pick" data-hidden-box>
@@ -257,11 +273,24 @@ export function adminStoragesPage({ site, user, drives }) {
     <p class="a-hint" data-pick-note></p>
   </dialog>
 
+  <dialog class="a-dialog" data-dialog>
+    <form method="dialog" data-dialog-form>
+      <div class="a-dialog__head"><strong data-dialog-title>提示</strong><button class="a-btn a-btn--tiny" type="button" data-dialog-close>关闭</button></div>
+      <div class="a-dialog__body" data-dialog-body></div>
+      <p class="a-note a-note--bad" data-dialog-error hidden></p>
+      <div class="a-dialog__foot">
+        <button class="a-btn" type="button" data-dialog-cancel>取消</button>
+        <button class="a-btn a-btn--primary" type="button" data-dialog-ok hidden>确定</button>
+      </div>
+    </form>
+  </dialog>
+
   <table class="a-table">
-    <thead><tr><th>名称</th><th>挂载</th><th>驱动</th><th>根</th><th>状态</th><th>可见</th><th>隐藏</th><th></th></tr></thead>
-    <tbody>${rows || `<tr><td colspan="8" class="a-empty">还没有存储。</td></tr>`}</tbody>
+    <thead><tr><th>名称</th><th>挂载</th><th>驱动</th><th>根</th><th>容量</th><th>单文件</th><th>状态</th><th>可见</th><th>隐藏</th><th></th></tr></thead>
+    <tbody>${rows || `<tr><td colspan="10" class="a-empty">还没有存储。</td></tr>`}</tbody>
   </table>
-  <script type="application/json" id="drives-data">${JSON.stringify(drivesData).replace(/</g, "\\u003c")}</script>`;
+  <script type="application/json" id="drives-data">${JSON.stringify(drivesData).replace(/</g, "\\u003c")}</script>
+  <script type="application/json" id="drive-specs">${JSON.stringify(driveFieldSpecs()).replace(/</g, "\\u003c")}</script>`;
 
   return layout({ site, user, section: "storages", title: "存储", body });
 }
