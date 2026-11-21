@@ -1757,3 +1757,53 @@ html.is-busy {
   outline-offset: 1px;
   border-color: color-mix(in srgb, var(--vermilion) 60%, var(--rule));
 }
+
+/* 成员列表：QQ 头像 + 昵称 */
+.a-member {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.a-member__text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.a-member__text strong {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.a-ava {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 50%;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--ink) 8%, var(--paper-2));
+  color: var(--muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.a-ava__text {
+  line-height: 1;
+}
+
+.a-ava__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

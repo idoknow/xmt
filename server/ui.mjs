@@ -55,7 +55,7 @@ export const fmtDuration = (seconds) => {
 const roleLabel = { owner: "超级管理员", admin: "管理员", user: "成员" };
 
 /** 头像：字母垫底，图片盖在上面；图挂了就露出字母，不至于空一个圈 */
-const avatarTag = (user, className = "m-user__img", textClass = "m-user__text") => {
+export const avatarTag = (user, className = "m-user__img", textClass = "m-user__text") => {
   const src = user.avatar || qqAvatar(user.qq);
   const letter = String(user?.name || "").trim() ? displayName(user).slice(0, 1) : String(user?.qq || "?").slice(-2);
   const fallback = `<span class="${textClass}" aria-hidden="true">${e(letter)}</span>`;

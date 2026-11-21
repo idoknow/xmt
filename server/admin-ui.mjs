@@ -23,7 +23,7 @@ const iconKind = (name) => {
 
 const iconOf = (kind) => `<span class="a-ico a-ico--${kind}" aria-hidden="true">${ICON[kind] || ICON.file}</span>`;
 import { displayName, escapeHtml as e } from "./util.mjs";
-import { assetVersion, driveFieldSpecs, fmtSize, shell } from "./ui.mjs";
+import { assetVersion, avatarTag, driveFieldSpecs, fmtSize, shell } from "./ui.mjs";
 
 const NAV = [
   { key: "files", label: "文件", href: "/memories/admin/files", hint: "浏览、上传、改名、移动" },
@@ -409,7 +409,7 @@ export function adminUsersPage({ site, user, users }) {
         </select>`
         : `<span class="a-tag${rank === 3 ? " a-tag--ok" : ""}">${e(roleLabel[row.role] || row.role)}</span>`;
       return `<tr>
-      <td><strong>${e(displayName(row))}</strong><small class="a-mono">QQ ${e(row.qq || "未绑定")}</small></td>
+      <td><div class="a-member"><span class="a-ava">${avatarTag(row, "a-ava__img", "a-ava__text")}</span><div class="a-member__text"><strong>${e(displayName(row))}</strong><small class="a-mono">QQ ${e(row.qq || "未绑定")}</small></div></div></td>
       <td data-label="备注">${e(row.note || "—")}</td>
       <td data-label="角色">${e(roleLabel[row.role] || row.role)}</td>
       <td data-label="状态">${row.status === "active" ? '<span class="a-tag a-tag--ok">正常</span>' : '<span class="a-tag">停用</span>'}</td>
