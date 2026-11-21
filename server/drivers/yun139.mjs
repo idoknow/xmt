@@ -257,7 +257,14 @@ export function yun139Driver(cfg = {}) {
     },
 
     async stat(target) {
-      return { path: target, fileId: idOf(target), isDir: false, size: 0, modified: null };
+      const clean = target === "/" || target === "" ? "/" : target.replace(/\/+$/, "");
+      if (clean === "/") return { path: "/", fileId: rootFolderId, name: "移动云盘", isDir: true, size: 0, modified: null };
+      // 139 没有「按 id 查一条」的公开接口，只能列父目录再挑出来
+      const parent = clean.slice(0, clean.lastIndexOf("/")) || "/";
+      const list = await this.list(parent).catch(() => []);
+      const hit = list.find((item) => item.path === clean);
+      if (hit) return hit;
+      return { path: clean, fileId: idOf(clean), name: idOf(clean), isDir: false, size: 0, modified: null };
     },
 
     async ensureDir() {

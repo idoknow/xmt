@@ -1,3 +1,8 @@
+/* [hidden] 一律不渲染：.a-grid/.a-table/.a-selbar 自带 display，会盖过浏览器默认规则 */
+[hidden] {
+  display: none !important;
+}
+
 /* 管理台（AList 风格）：左侧栏 + 文件/存储/成员/设置。
    只在 /memories/admin* 加载，画廊与详情页不受影响。 */
 

@@ -1,3 +1,8 @@
+/* [hidden] 一律不渲染：.a-grid/.a-table/.a-selbar 自带 display，会盖过浏览器默认规则 */
+[hidden] {
+  display: none !important;
+}
+
 /* Memories：在站点版式之上的一层。只用 style.css 里的纸/墨/朱红三色令牌。 */
 
 .m-body {

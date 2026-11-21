@@ -170,7 +170,9 @@ document.addEventListener("click", (event) => {
   const box = $("[data-pick]", row);
   if (!box) return;
   box.checked = !box.checked;
-  box.dispatchEvent(new MouseEvent("click", { bubbles: false }));
+  const all = boxes();
+  lastIndex = all.indexOf(box);
+  syncSelection();
 });
 
 /* ---------- 上传 ---------- */
@@ -549,12 +551,34 @@ const nameOf = (path) => String(path).split("/").filter(Boolean).pop() || "";
 const viewIcon = (kind) =>
   kind === "video" ? "▶" : kind === "audio" ? "♪" : kind === "pdf" ? "PDF" : kind === "image" ? "▣" : kind === "dir" ? "▤" : "·";
 
+const TYPE_NAMES = [
+  [/^image\//, "图片"],
+  [/^video\//, "视频"],
+  [/^audio\//, "音频"],
+  [/^application\/pdf$/, "PDF 文档"],
+  [/^text\//, "文本"],
+  [/zip|compressed|tar|7z|rar/, "压缩包"],
+  [/word|document/, "Word 文档"],
+  [/sheet|excel/, "表格"],
+  [/presentation|powerpoint/, "演示文稿"],
+];
+
+const typeText = (info) => {
+  if (info.isDir) return "目录";
+  const mime = String(info.mime || "");
+  const hit = TYPE_NAMES.find(([rule]) => rule.test(mime));
+  if (hit) return mime ? hit[1] + " · " + mime : hit[1];
+  const ext = String(info.name || "").split(".").pop()?.toLowerCase() || "";
+  if (ext) return ext.toUpperCase() + " 文件" + (mime ? " · " + mime : "");
+  return mime || "未知";
+};
+
 const infoRows = (info) => {
   const rows = [
     ["名称", info.name],
     ["位置", info.path],
     ["存储", info.driveName || "—"],
-    ["类型", info.isDir ? "目录" : info.mime || "未知"],
+    ["类型", typeText(info)],
     ["大小", info.isDir ? "—" : fmt(info.size)],
     ["分辨率", info.width && info.height ? info.width + " × " + info.height : "—"],
     ["时长", info.duration ? fmtDuration(info.duration) : "—"],
