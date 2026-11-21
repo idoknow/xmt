@@ -86,8 +86,8 @@ const profile = (user) => {
 
 export function shell({ title, site, user, body, bodyClass = "", scripts = "", head = "" }) {
   const nav = user
-    ? `<a href="/memories">媒体库</a><a href="/memories/files">文件</a>${profile(user)}`
-    : `<a href="/memories">媒体库</a><a href="/memories/files">文件</a><a href="/memories/login">登录</a>`;
+    ? `<a href="/tools">工具</a><a href="/memories">媒体库</a><a href="/memories/files">文件</a>${profile(user)}`
+    : `<a href="/tools">工具</a><a href="/memories">媒体库</a><a href="/memories/files">文件</a><a href="/memories/login">登录</a>`;
 
   return `<!doctype html>
 <html lang="zh-CN" data-page="memories">

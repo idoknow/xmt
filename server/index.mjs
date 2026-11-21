@@ -48,6 +48,7 @@ import { detailPage, driveFieldSpecs, fmtSize, galleryPage, loginPage, myPage, s
 import { fileInfoOf, handleAdmin } from "./admin.mjs";
 import { pageBrowser, rawBrowser } from "./browser.mjs";
 import { handleUploads } from "./uploads.mjs";
+import { handleToolsAdmin, toolsDataHandler } from "./tools.mjs";
 import { streamPath } from "./filestream.mjs";
 
 bootstrap(config.adminQQ);
@@ -677,6 +678,7 @@ const server = http.createServer(async (req, res) => {
       return sendFile(req, res, appAsset("js/app.js"), { cache: "no-cache" });
     }
 
+    if (pathname === "/tools/data") return toolsDataHandler(req, res);
     if (pathname === "/memories" || pathname === "/memories/") return pageGallery(req, res, url);
     if (pathname === "/memories/login") return html(res, 200, loginPage({ site: siteOf(), error: url.searchParams.get("error") || "" }));
     if (pathname === "/memories/logout") {
@@ -701,6 +703,9 @@ const server = http.createServer(async (req, res) => {
       } catch (error) {
         return send(res, error.status || 500, error.message || "读取失败");
       }
+    }
+    if (pathname === "/memories/admin/tools" || pathname === "/memories/admin/software") {
+      return await handleToolsAdmin(req, res, url);
     }
     if (pathname.startsWith("/memories/admin")) return handleAdmin(req, res, url);
     if (pathname.startsWith("/memories/a/")) return pageDetail(req, res, pathname.slice("/memories/a/".length));
@@ -728,6 +733,7 @@ const server = http.createServer(async (req, res) => {
     }
     if (pathname.startsWith("/memories/dav")) return handleDav(req, res, pathname.slice("/memories/dav".length));
 
+    if (pathname.startsWith("/memories/api/tools/")) return await handleToolsAdmin(req, res, url);
     if (pathname.startsWith("/memories/api")) {
       if (req.method === "GET" && pathname === "/memories/api/state") {
         const user = currentUser(req);

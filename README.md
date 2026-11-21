@@ -102,11 +102,26 @@ node deploy/rollout.mjs   # 只切镜像并校验
   - `/memories/admin/storages`：存储列表 + 表单（名称/类型/挂载路径/根路径/可见性/总容量/单文件上限/启用/隐藏目录），可编辑、测试、删除、直接打开，「刷新容量」可让服务端去问存储本身有多大。
   - `/memories/admin/users`：加成员（只填 QQ）、改角色、停用、移除。
   - `/memories/admin/settings`：站点标题与介绍、管理员 QQ、OAuth 凭据。
+  - `/memories/admin/tools`：前台「在线图片工具」清单（名称 / 链接 / 说明 / 分类 / 排序，可隐藏）。
+  - `/memories/admin/software`：前台「常用软件」清单（分类 / 适配设备 / 大小 / 说明 / 多条下载线路）。
+  - 这两份清单由 `server/tools.mjs` 输出到 `/tools/data`，前台页面 `/tools` 打开时拉取并渲染。
   - 这些页面只在管理台加载（`assets/css/admin.css` + `assets/js/admin.js`），画廊不背这部分体积。
 
 ```bash
 node .tmp/cluster-prep.mjs   # 建 Secret 与 PVC（一次性；脚本里带 token，别提交）
 ```
+
+## 在线工具
+
+`/tools` 是纯前端页面（`site/tools.html` + `assets/js/tools.js` + `assets/css/tools.css`），图片全程在浏览器里用 Canvas 处理，不上传服务器：
+
+- 格式转换：JPG / PNG / WebP 互转，可批量；JPG 透明区域填白，GIF 只取首帧。
+- 图片压缩：三种口径——目标大小（二分质量 + 必要时缩边）、限制最长边、缩小到百分比；统一输出 WebP。
+- 尺寸调整：百分比或像素（可锁定宽高比）；SVG 会栅格化成 PNG。
+- 裁剪：按像素输入，预览里的裁剪框可直接拖动。
+- 加水印：文字水印，位置九宫格 + 平铺，支持字号 / 颜色 / 透明度 / 旋转。
+
+清单类内容（在线图片工具、常用软件）来自数据库，在 `/memories/admin/tools` 与 `/memories/admin/software` 维护，前台通过 `/tools/data` 读取。
 
 ## 域名
 

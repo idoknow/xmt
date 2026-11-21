@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>在线工具 — 桂林中学新媒体</title>
+    <meta name="description" content="图片格式转换、压缩、改尺寸、裁剪、加水印，全部在浏览器本地完成，图片不会上传。" />
+    <link rel="icon" href="/assets/img/school-emblem-336.webp" type="image/webp" />
+    <link rel="preload" href="/assets/fonts/newsreader-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="/assets/css/style.css" />
+    <link rel="stylesheet" href="/assets/css/tools.css" />
+    <meta name="theme-color" content="#f6f3ec" />
+  </head>
+  <body class="page-tools">
+    <header class="masthead">
+      <div class="masthead__inner">
+        <a class="brand" href="/">
+          <span class="brand__mark"><img src="/assets/img/school-emblem-336.webp" width="336" height="336" alt="桂林中学校徽" decoding="async" /></span>
+          <span class="brand__text">
+            <span class="brand__name">桂林中学新媒体</span>
+            <span class="brand__sub">XMT · Guilin Middle School</span>
+          </span>
+        </a>
+        <nav class="nav" aria-label="主导航">
+          <a href="/">首页</a>
+          <a href="/orgs">组织</a>
+          <a href="/media">媒体资源</a>
+          <a href="/cloud">云上桂中</a>
+          <a href="/tools" aria-current="page">工具</a>
+          <a href="/memories">媒体库</a>
+        </nav>
+        <div class="tools"></div>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="page-head">
+        <div class="wrap">
+          <p class="eyebrow">Utilities</p>
+          <h1>在线工具</h1>
+          <p class="page-head__lead">
+            图片转换、压缩、改尺寸、裁剪、加水印都在你自己的浏览器里完成，文件不上传、不留存。
+          </p>
+        </div>
+      </section>
+
+      <section class="section" id="convert">
+        <div class="wrap">
+          <div class="tool">
+            <header class="tool__head">
+              <span class="tool__no">01</span>
+              <h2>格式转换</h2>
+              <p>选择本地图片，转成 JPG / PNG / WebP 后下载。可以一次选多张。</p>
+            </header>
+            <div class="tool__body">
+              <label class="tool__drop">
+                <input type="file" accept="image/*" data-file="convert" multiple />
+                <span class="tool__drop-ico" aria-hidden="true">＋</span>
+                <span class="tool__drop-text">选择图片，或拖到这里</span>
+                <span class="tool__drop-hint" data-picked="convert">还没有选择文件</span>
+              </label>
+              <div class="tool__opts">
+                <label class="field">
+                  <span class="field__label">目标格式</span>
+                  <select data-opt="convert.format" class="field__input">
+                    <option value="image/webp">WebP（体积最小）</option>
+                    <option value="image/jpeg">JPG（兼容最好）</option>
+                    <option value="image/png">PNG（保留透明）</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span class="field__label">质量 <b data-out-label="convert.quality">92</b></span>
+                  <input type="range" min="40" max="100" value="92" step="1" data-opt="convert.quality" />
+                </label>
+              </div>
+              <div class="tool__actions">
+                <button type="button" class="btn btn--primary" data-run="convert">开始转换</button>
+                <span class="tool__status" data-status="convert"></span>
+              </div>
+              <ul class="results" data-out="convert"></ul>
+              <p class="tool__note">JPG 不支持透明，透明区域会填成白色；GIF 动图只转第一帧。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="compress">
+        <div class="wrap">
+          <div class="tool">
+            <header class="tool__head">
+              <span class="tool__no">02</span>
+              <h2>图片压缩</h2>
+              <p>按目标大小、目标分辨率或想减少的百分比压缩，尽量保住画质。</p>
+            </header>
+            <div class="tool__body">
+              <label class="tool__drop">
+                <input type="file" accept="image/*" data-file="compress" />
+                <span class="tool__drop-ico" aria-hidden="true">＋</span>
+                <span class="tool__drop-text">选择一张图片</span>
+                <span class="tool__drop-hint" data-picked="compress">还没有选择文件</span>
+              </label>
+              <div class="tool__opts">
+                <label class="field">
+                  <span class="field__label">压缩方式</span>
+                  <select data-opt="compress.mode" class="field__input">
+                    <option value="size">压到指定大小（KB）</option>
+                    <option value="edge">限制最长边（像素）</option>
+                    <option value="percent">缩小到百分比</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span class="field__label" data-label-for="compress">目标大小</span>
+                  <span class="field__row">
+                    <input type="number" min="10" step="10" value="300" data-opt="compress.value" class="field__input" />
+                    <span class="field__unit" data-unit="compress">KB</span>
+                  </span>
+                </label>
+              </div>
+              <div class="tool__actions">
+                <button type="button" class="btn btn--primary" data-run="compress">压缩</button>
+                <span class="tool__status" data-status="compress"></span>
+              </div>
+              <ul class="results" data-out="compress"></ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="resize">
+        <div class="wrap">
+          <div class="tool">
+            <header class="tool__head">
+              <span class="tool__no">03</span>
+              <h2>尺寸调整</h2>
+              <p>按百分比或像素设定尺寸，支持 JPG、PNG、WebP、GIF、SVG。</p>
+            </header>
+            <div class="tool__body">
+              <label class="tool__drop">
+                <input type="file" accept="image/*" data-file="resize" />
+                <span class="tool__drop-ico" aria-hidden="true">＋</span>
+                <span class="tool__drop-text">选择一张图片</span>
+                <span class="tool__drop-hint" data-picked="resize">还没有选择文件</span>
+              </label>
+              <div class="tool__opts">
+                <label class="field">
+                  <span class="field__label">方式</span>
+                  <select data-opt="resize.mode" class="field__input">
+                    <option value="percent">按百分比</option>
+                    <option value="pixel">按像素</option>
+                  </select>
+                </label>
+                <label class="field" data-show="percent">
+                  <span class="field__label">缩放比例</span>
+                  <span class="field__row">
+                    <input type="number" min="5" max="400" step="1" value="50" data-opt="resize.percent" class="field__input" />
+                    <span class="field__unit">%</span>
+                  </span>
+                </label>
+                <label class="field" data-show="pixel" hidden>
+                  <span class="field__label">宽度</span>
+                  <span class="field__row">
+                    <input type="number" min="1" step="1" value="1920" data-opt="resize.width" class="field__input" />
+                    <span class="field__unit">px</span>
+                  </span>
+                </label>
+                <label class="field" data-show="pixel" hidden>
+                  <span class="field__label">高度</span>
+                  <span class="field__row">
+                    <input type="number" min="1" step="1" value="1080" data-opt="resize.height" class="field__input" />
+                    <span class="field__unit">px</span>
+                  </span>
+                </label>
+                <label class="field field--check" data-show="pixel" hidden>
+                  <input type="checkbox" data-opt="resize.lock" checked />
+                  <span>保持宽高比</span>
+                </label>
+              </div>
+              <div class="tool__actions">
+                <button type="button" class="btn btn--primary" data-run="resize">调整尺寸</button>
+                <span class="tool__status" data-status="resize"></span>
+              </div>
+              <ul class="results" data-out="resize"></ul>
+              <p class="tool__note">SVG 会按目标尺寸栅格化成 PNG；GIF 输出静态图。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="crop">
+        <div class="wrap">
+          <div class="tool">
+            <header class="tool__head">
+              <span class="tool__no">04</span>
+              <h2>裁剪图片</h2>
+              <p>输入起点与宽高（像素）精确裁剪，预览里可以直接拖动裁剪框。</p>
+            </header>
+            <div class="tool__body tool__body--split">
+              <div class="tool__side">
+                <label class="tool__drop">
+                  <input type="file" accept="image/*" data-file="crop" />
+                  <span class="tool__drop-ico" aria-hidden="true">＋</span>
+                  <span class="tool__drop-text">选择一张图片</span>
+                  <span class="tool__drop-hint" data-picked="crop">还没有选择文件</span>
+                </label>
+                <div class="tool__opts tool__opts--grid">
+                  <label class="field">
+                    <span class="field__label">起点 X</span>
+                    <input type="number" min="0" step="1" value="0" data-opt="crop.x" class="field__input" />
+                  </label>
+                  <label class="field">
+                    <span class="field__label">起点 Y</span>
+                    <input type="number" min="0" step="1" value="0" data-opt="crop.y" class="field__input" />
+                  </label>
+                  <label class="field">
+                    <span class="field__label">宽</span>
+                    <input type="number" min="1" step="1" value="800" data-opt="crop.w" class="field__input" />
+                  </label>
+                  <label class="field">
+                    <span class="field__label">高</span>
+                    <input type="number" min="1" step="1" value="800" data-opt="crop.h" class="field__input" />
+                  </label>
+                  <label class="field field--check">
+                    <input type="checkbox" data-opt="crop.square" />
+                    <span>裁成正方形</span>
+                  </label>
+                </div>
+                <div class="tool__actions">
+                  <button type="button" class="btn btn--primary" data-run="crop">裁剪并下载</button>
+                  <span class="tool__status" data-status="crop"></span>
+                </div>
+              </div>
+              <div class="crop-stage" data-stage="crop">
+                <img alt="" data-preview="crop" />
+                <span class="crop-box" data-cropbox></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="watermark">
+        <div class="wrap">
+          <div class="tool">
+            <header class="tool__head">
+              <span class="tool__no">05</span>
+              <h2>加水印</h2>
+              <p>输入文字，挑位置、大小、颜色与透明度；可以铺满整张图。</p>
+            </header>
+            <div class="tool__body tool__body--split">
+              <div class="tool__side">
+                <label class="tool__drop">
+                  <input type="file" accept="image/*" data-file="watermark" />
+                  <span class="tool__drop-ico" aria-hidden="true">＋</span>
+                  <span class="tool__drop-text">选择一张图片</span>
+                  <span class="tool__drop-hint" data-picked="watermark">还没有选择文件</span>
+                </label>
+                <div class="tool__opts">
+                  <label class="field">
+                    <span class="field__label">水印文字</span>
+                    <input type="text" value="桂林中学新媒体" data-opt="watermark.text" class="field__input" maxlength="40" />
+                  </label>
+                  <div class="tool__opts tool__opts--grid">
+                    <label class="field">
+                      <span class="field__label">字号 <b data-out-label="watermark.size">4</b>%</span>
+                      <input type="range" min="1" max="14" step="0.5" value="4" data-opt="watermark.size" />
+                    </label>
+                    <label class="field">
+                      <span class="field__label">透明度 <b data-out-label="watermark.opacity">55</b>%</span>
+                      <input type="range" min="5" max="100" step="1" value="55" data-opt="watermark.opacity" />
+                    </label>
+                    <label class="field">
+                      <span class="field__label">旋转 <b data-out-label="watermark.angle">-20</b>°</span>
+                      <input type="range" min="-90" max="90" step="1" value="-20" data-opt="watermark.angle" />
+                    </label>
+                    <label class="field">
+                      <span class="field__label">颜色</span>
+                      <input type="color" value="#ffffff" data-opt="watermark.color" class="field__color" />
+                    </label>
+                  </div>
+                  <label class="field">
+                    <span class="field__label">位置</span>
+                    <select data-opt="watermark.position" class="field__input">
+                      <option value="bottom-right">右下角</option>
+                      <option value="bottom-left">左下角</option>
+                      <option value="top-right">右上角</option>
+                      <option value="top-left">左上角</option>
+                      <option value="center">正中</option>
+                      <option value="tile">平铺满图</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="tool__actions">
+                  <button type="button" class="btn btn--primary" data-run="watermark">生成并下载</button>
+                  <span class="tool__status" data-status="watermark"></span>
+                </div>
+              </div>
+              <div class="wm-stage" data-stage="watermark">
+                <img alt="" data-preview="watermark" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="links">
+        <div class="wrap">
+          <p class="section__no">Tools · 导航</p>
+          <h2 class="section__title">在线图片工具</h2>
+          <p class="section__lead">站外还有一批好用的图像工具，按管理员整理的清单。</p>
+          <ul class="link-list" data-links>
+            <li class="link-row link-row--muted"><span class="link-row__name">清单整理中</span><span class="link-row__meta">管理员会在后台添加</span></li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="section" id="software">
+        <div class="wrap">
+          <p class="section__no">Software · 软件</p>
+          <h2 class="section__title">常用软件</h2>
+          <p class="section__lead">按设备与用途分类的软件下载，附下载线路。</p>
+          <div class="soft-grid" data-software>
+            <p class="m-empty">清单整理中。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section section--quiet">
+        <div class="wrap">
+          <p class="prose-note">
+            这些工具全部在本地运行，图片不会离开你的设备。若浏览器较老（不支持 <code>createImageBitmap</code>），部分功能会退回兼容模式。
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="wrap footer__inner">
+        <div class="footer__col">
+          <p class="footer__title">桂林中学新媒体</p>
+          <p>团委学生会新媒体运营部 · 时光驿客 · Life 摄影社团</p>
+        </div>
+        <div class="footer__col">
+          <p class="footer__title">站点</p>
+          <p><a href="/orgs">组织</a> · <a href="/media">媒体资源</a> · <a href="/cloud">云上桂中</a> · <a href="/tools">在线工具</a> · <a href="/memories">媒体库</a></p>
+        </div>
+        <div class="footer__col">
+          <p class="footer__title">联系</p>
+          <p>抖音号 <span class="mono">glzx1905</span></p>
+          <p>由学生维护，内容以归档为主。</p>
+        </div>
+      </div>
+      <div class="wrap footer__base">
+        <span>© <span data-year>2026</span> 桂林中学新媒体</span>
+        <span class="mono">XMT</span>
+      </div>
+    </footer>
+
+    <script src="/assets/js/site.js" type="module"></script>
+    <script src="/assets/js/tools.js" type="module"></script>
+  </body>
+</html>

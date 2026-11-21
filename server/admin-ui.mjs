@@ -7,10 +7,12 @@ const NAV = [
   { key: "files", label: "文件", href: "/memories/admin/files", hint: "浏览、上传、改名、移动" },
   { key: "storages", label: "存储", href: "/memories/admin/storages", hint: "挂载与驱动配置" },
   { key: "users", label: "成员", href: "/memories/admin/users", hint: "QQ 与权限" },
+  { key: "tools", label: "在线工具", href: "/memories/admin/tools", hint: "前台工具页的链接清单" },
+  { key: "software", label: "软件", href: "/memories/admin/software", hint: "软件下载与线路" },
   { key: "settings", label: "设置", href: "/memories/admin/settings", hint: "站点与登录" },
 ];
 
-function layout({ site, user, section, title, body, scripts = "" }) {
+export function layout({ site, user, section, title, body, scripts = "" }) {
   const nav = NAV.map(
     (item) => `<a class="a-nav__item${item.key === section ? " is-on" : ""}" href="${item.href}">
       <span class="a-nav__label">${e(item.label)}</span>

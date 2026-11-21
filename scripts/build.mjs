@@ -79,7 +79,7 @@ function validate(file, html, filesSet) {
   const problems = [];
   const targets = [...html.matchAll(/\b(?:href|src)="(\/[^"#?]*)/g)].map((m) => m[1]);
   /* 由 Node 服务端直接处理的路径，不产生静态文件 */
-  const dynamic = /^\/(memories|healthz\.txt|build\.txt)(\/|$)/;
+  const dynamic = /^\/(memories|tools|healthz\.txt|build\.txt)(\/|$)/;
 
   for (const target of targets) {
     if (target === "/" || dynamic.test(target)) continue;

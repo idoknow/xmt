@@ -1377,3 +1377,20 @@ html.is-busy {
     inline-size: 100%;
   }
 }
+
+.a-link-row {
+  display: grid;
+  grid-template-columns: minmax(0, 10rem) minmax(0, 1fr) auto;
+  gap: 0.45rem;
+  align-items: center;
+  margin-block: 0.45rem;
+}
+@media (max-width: 720px) {
+  .a-link-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .a-link-row [data-link-url] {
+    grid-column: 1 / -1;
+    order: 3;
+  }
+}

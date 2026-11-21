@@ -114,6 +114,30 @@ CREATE TABLE IF NOT EXISTS audit (
   at      TEXT NOT NULL,
   ip      TEXT
 );
+
+CREATE TABLE IF NOT EXISTS tool_links (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  name       TEXT NOT NULL,
+  url        TEXT NOT NULL,
+  note       TEXT NOT NULL DEFAULT '',
+  category   TEXT NOT NULL DEFAULT '',
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  enabled    INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS software (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  name       TEXT NOT NULL,
+  category   TEXT NOT NULL DEFAULT '',
+  devices    TEXT NOT NULL DEFAULT '',
+  size       TEXT NOT NULL DEFAULT '',
+  note       TEXT NOT NULL DEFAULT '',
+  links      TEXT NOT NULL DEFAULT '[]',
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  enabled    INTEGER NOT NULL DEFAULT 1,
+  updated_at TEXT NOT NULL
+);
 `);
 
 /* ---------- 小工具 ---------- */

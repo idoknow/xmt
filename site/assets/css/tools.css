@@ -1,0 +1,447 @@
+/* 在线工具页：只放这一页用得到的样式，其余沿用 style.css 的纸面/墨色令牌。 */
+
+.page-tools .page-head {
+  padding-block-end: 0.5rem;
+}
+
+.tool {
+  border: 1px solid var(--rule);
+  background: var(--paper);
+  padding: clamp(1.1rem, 3vw, 2rem);
+}
+
+.tool__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.2rem 0.9rem;
+  align-items: baseline;
+  margin-block-end: 1.2rem;
+}
+
+.tool__no {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  color: var(--vermilion);
+  border: 1px solid color-mix(in srgb, var(--vermilion) 45%, transparent);
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+  grid-row: 1 / span 2;
+}
+
+.tool__head h2 {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: clamp(1.15rem, 2.2vw, 1.5rem);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.tool__head p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.65;
+}
+
+.tool__body {
+  display: grid;
+  gap: 1rem;
+}
+
+.tool__body--split {
+  grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .tool__body--split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.tool__side {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.tool__drop {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 0.3rem;
+  padding: 1.4rem 1rem;
+  border: 1px dashed color-mix(in srgb, var(--ink) 26%, transparent);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.tool__drop:hover,
+.tool__drop.is-over {
+  border-color: var(--vermilion);
+  background: color-mix(in srgb, var(--vermilion) 4%, transparent);
+}
+
+.tool__drop input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.tool__drop-ico {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 1px solid var(--rule);
+  color: var(--vermilion);
+  font-family: var(--mono);
+}
+
+.tool__drop-text {
+  font-size: 0.9rem;
+}
+
+.tool__drop-hint {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.tool__opts {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.tool__opts--grid {
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  align-items: end;
+}
+
+.field {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.field__label {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.field__label b {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.field__input,
+.field input[type="text"],
+.field input[type="number"],
+.field select {
+  font: inherit;
+  font-size: 0.88rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--paper-2);
+  color: var(--ink);
+  width: 100%;
+}
+
+.field__input:focus,
+.field select:focus,
+.field input:focus {
+  outline: 2px solid color-mix(in srgb, var(--vermilion) 45%, transparent);
+  outline-offset: 1px;
+}
+
+.field__row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.field__unit {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.field__color {
+  width: 100%;
+  height: 2.1rem;
+  padding: 0.1rem;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--paper-2);
+}
+
+.field--check {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+}
+
+.field input[type="range"] {
+  width: 100%;
+  accent-color: var(--vermilion);
+}
+
+.tool__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.btn {
+  font: inherit;
+  font-size: 0.86rem;
+  padding: 0.5rem 1.1rem;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.btn:hover {
+  border-color: var(--vermilion);
+  color: var(--vermilion);
+}
+
+.btn--primary {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+.btn--primary:hover {
+  background: var(--vermilion);
+  border-color: var(--vermilion);
+  color: #fff;
+}
+
+.tool__status {
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+
+.tool__note {
+  margin: 0;
+  font-size: 0.76rem;
+  color: var(--muted);
+  border-inline-start: 2px solid var(--rule);
+  padding-inline-start: 0.7rem;
+}
+
+.results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.results__item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.55rem 0.2rem;
+  border-bottom: 1px solid var(--rule);
+  font-size: 0.84rem;
+}
+
+.results__name {
+  overflow-wrap: anywhere;
+}
+
+.results__meta {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.results__save {
+  font-size: 0.76rem;
+  text-decoration: none;
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 0.15rem 0.7rem;
+}
+
+.results__save:hover {
+  color: #fff;
+  background: var(--vermilion);
+  border-color: var(--vermilion);
+}
+
+.results__empty {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+/* 裁剪 / 水印舞台 */
+.crop-stage,
+.wm-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 12rem;
+  padding: 0.6rem;
+  border: 1px solid var(--rule);
+  background:
+    repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--ink) 4%, transparent) 0deg 90deg, transparent 90deg 180deg) 0 0 / 16px 16px,
+    var(--paper-2);
+  overflow: hidden;
+}
+
+.crop-stage img,
+.wm-stage img {
+  max-width: 100%;
+  max-height: 26rem;
+  display: block;
+}
+
+.crop-stage img:not([src]),
+.wm-stage img:not([src]) {
+  display: none;
+}
+
+.crop-box {
+  position: absolute;
+  border: 1px solid var(--vermilion);
+  box-shadow: 0 0 0 9999px color-mix(in srgb, #000 42%, transparent);
+  cursor: grab;
+  touch-action: none;
+}
+
+.crop-box:active {
+  cursor: grabbing;
+}
+
+/* 软件清单 */
+.soft-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+  gap: 1rem;
+  margin-block-start: 1.2rem;
+}
+
+.soft {
+  border: 1px solid var(--rule);
+  padding: 1rem 1.1rem;
+  display: grid;
+  gap: 0.6rem;
+  background: var(--paper);
+}
+
+.soft__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.soft__name {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.soft__tag {
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.08em;
+  color: var(--vermilion);
+  border: 1px solid color-mix(in srgb, var(--vermilion) 40%, transparent);
+  border-radius: 999px;
+  padding: 0.05rem 0.45rem;
+  white-space: nowrap;
+}
+
+.soft__meta {
+  margin: 0;
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.78rem;
+}
+
+.soft__meta div {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.soft__meta dt {
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  color: var(--muted);
+  min-width: 2.4rem;
+  letter-spacing: 0.06em;
+}
+
+.soft__meta dd {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.soft__note {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.soft__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.soft__link {
+  font-size: 0.76rem;
+  text-decoration: none;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 0.2rem 0.75rem;
+  color: var(--ink);
+}
+
+.soft__link:hover {
+  background: var(--vermilion);
+  border-color: var(--vermilion);
+  color: #fff;
+}
+
+.soft__empty {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.m-empty {
+  font-family: var(--mono);
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tool__drop,
+  .btn,
+  .results__save {
+    transition: none;
+  }
+}
