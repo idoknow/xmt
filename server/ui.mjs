@@ -77,7 +77,6 @@ const profile = (user) => {
         </div>
         <a role="menuitem" href="/memories/my">我的上传</a>
         <a role="menuitem" href="/memories/files">文件</a>
-        <a role="menuitem" href="/memories">全部媒体</a>
         ${user.role === "admin" || user.role === "owner" ? '<a role="menuitem" href="/memories/admin">后台管理</a>' : ""}
         <a role="menuitem" class="m-user__out" href="/memories/logout">退出登录</a>
       </div>
@@ -158,15 +157,34 @@ const card = (item) => {
   </a>`;
 };
 
-export function browsePage({ site, user, drives, drive, path: currentPath, entries = [], error = "", canUpload = false }) {
+const ICON_FOLDER = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h4l2 2.5h7A1.5 1.5 0 0 1 19 10v7a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 3 17z"/></svg>`;
+const ICON_FILE = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M6 3.5h7l5 5v12H6z"/><path d="M13 3.5V9h5"/></svg>`;
+
+export function browsePage({
+  site,
+  user,
+  drives,
+  drive,
+  path: currentPath,
+  pretty = "/",
+  entries = [],
+  error = "",
+  limit = "",
+  canUpload = false,
+}) {
   const crumbs = [];
-  const segments = String(currentPath || "/").split("/").filter(Boolean);
+  const prettyParts = String(pretty || "/").split("/").filter(Boolean);
   let walk = "";
-  crumbs.push(`<a href="/memories/files${drive ? `?drive=${drive.id}` : ""}">根目录</a>`);
-  for (const segment of segments) {
-    walk += `/${segment}`;
-    crumbs.push(`<a href="/memories/files?drive=${drive?.id}&path=${encodeURIComponent(walk)}">${e(segment)}</a>`);
-  }
+  crumbs.push(`<a href="/memories/files${drive ? `?drive=${drive.id}` : ""}">${e(drive ? drive.name : "文件")}</a>`);
+  String(currentPath || "/")
+    .split("/")
+    .filter(Boolean)
+    .forEach((segment, index) => {
+      walk += `/${segment}`;
+      crumbs.push(
+        `<a href="/memories/files?drive=${drive?.id}&path=${encodeURIComponent(walk)}">${e(prettyParts[index] || segment)}</a>`,
+      );
+    });
 
   const chips = drives
     .map(
@@ -188,7 +206,7 @@ export function browsePage({ site, user, drives, drive, path: currentPath, entri
           )}/</a>`
         : `<a class="m-row__name" href="${url}" target="_blank" rel="noreferrer">${e(entry.name)}</a>`;
       return `<li class="m-row">
-        <span class="m-row__ico" aria-hidden="true">${entry.isDir ? "▸" : "·"}</span>
+        <span class="m-row__ico${entry.isDir ? " is-dir" : ""}" aria-hidden="true">${entry.isDir ? ICON_FOLDER : ICON_FILE}</span>
         ${name}
         <span class="m-row__meta">${entry.isDir ? "" : fmtSize(entry.size)}</span>
         ${entry.isDir ? "" : `<a class="m-row__dl" href="${url}&download=1">下载</a>`}
@@ -205,8 +223,9 @@ export function browsePage({ site, user, drives, drive, path: currentPath, entri
 <div class="m-toolbar">
   <div class="m-chips">${chips}</div>
   ${canUpload ? `<label class="m-btn m-btn--primary">上传<input type="file" multiple hidden data-browse-upload data-drive="${drive.id}" data-folder="${e(currentPath)}" /></label>` : ""}
+  ${canUpload && limit ? `<span class="m-toolbar__hint">${e(limit)}</span>` : ""}
 </div>
-<nav class="m-crumbs">${crumbs.join('<span aria-hidden="true">/</span>')}</nav>
+<nav class="m-crumbs">${crumbs.join('<span class="m-crumbs__sep" aria-hidden="true">/</span>')}</nav>
 ${error ? `<p class="m-alert">${e(error)}</p>` : ""}
 ${rows ? `<ul class="m-rows">${rows}</ul>` : `<p class="m-empty">${drive ? "这个目录是空的。" : "还没有可查看的存储。"}</p>`}`;
 

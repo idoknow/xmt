@@ -1,6 +1,6 @@
 // 管理台「文件」页：选中、自定义弹窗（新建/改名/移动/复制/删除/预览）、上传。
 const params = new URLSearchParams(location.search);
-const DRIVE = params.get("drive") || "";
+const DRIVE = params.get("drive") || document.querySelector("[data-drive-id]")?.dataset.driveId || "";
 const PATH = params.get("path") || "/";
 
 const $ = (selector, root = document) => root.querySelector(selector);
@@ -946,7 +946,12 @@ if (driveForm) {
   const pickNote = $("[data-pick-note]", picker || document);
   const pickUp = $("[data-pick-up]", picker || document);
   const pickHide = $("[data-pick-hide-here]", picker || document);
-  const pick = { driveId: null, path: "/" };
+  const pickPublicHere = $("[data-pick-public-here]", picker || document);
+  const publicChips = $("[data-public-chips]");
+  const publicEmpty = $("[data-public-empty]");
+  const publicInput = $("[data-public-input]");
+  const publicOpen = $("[data-public-open]");
+  const pick = { driveId: null, path: "/", mode: "hidden" };
 
   const fieldOf = (name) => driveForm.querySelector(`[name="${name}"]`);
   const cfgField = (key) => fieldsBox?.querySelector(`[name="cfg_${key}"]`);
@@ -957,6 +962,29 @@ if (driveForm) {
     return out;
   };
   const hiddenList = () => (hiddenInput?.value || "").split("\n").map((item) => item.trim()).filter(Boolean);
+  const publicList = () => (publicInput?.value || "").split("\n").map((item) => item.trim()).filter(Boolean);
+  const setPublicList = (list) => {
+    if (publicInput) publicInput.value = [...new Set(list)].join("\n");
+    renderPublic();
+  };
+
+  function renderPublic() {
+    const list = publicList();
+    if (publicChips) {
+      publicChips.innerHTML = list
+        .map(
+          (path) =>
+            `<li class="a-chip"><i class="a-dot is-on" aria-hidden="true"></i>${esc(path)}<button type="button" class="a-chip__x" data-public-remove="${esc(
+              path,
+            )}" aria-label="移出前台">×</button></li>`,
+        )
+        .join("");
+    }
+    if (publicEmpty) {
+      publicEmpty.hidden = list.length > 0;
+      publicEmpty.textContent = "没有限定：所有目录都能在前台看到（绿点）。";
+    }
+  }
 
   function renderHidden() {
     const list = hiddenList();
@@ -1013,6 +1041,8 @@ if (driveForm) {
     fieldOf("driver").disabled = Boolean(drive);
     renderConfig(drive?.driver || "local", tidyKeys(drive?.config || {}));
     setHiddenList(drive?.hidden || []);
+    if (publicInput) publicInput.value = (drive?.public || []).join("\n");
+    renderPublic();
     if (submitBtn) submitBtn.textContent = drive ? "保存修改" : "添加存储";
     if (cancelBtn) cancelBtn.hidden = !drive;
     driveForm.classList.toggle("is-editing", Boolean(drive));
@@ -1045,6 +1075,7 @@ if (driveForm) {
       quota_bytes: gb("quota_gb"),
       max_file_bytes: gb("max_file_gb"),
       hidden: hiddenList(),
+      public: publicList(),
       config,
     };
     if (submitBtn) submitBtn.disabled = true;
@@ -1070,7 +1101,7 @@ if (driveForm) {
     driveForm.scrollIntoView({ behavior: "smooth", block: "center" });
     fieldOf("name")?.focus();
   });
-  $("[data-hidden-open]")?.addEventListener("click", () => openPicker(pick.driveId));
+  $("[data-hidden-open]")?.addEventListener("click", () => openPicker(driveForm.dataset.driveId, "hidden"));
 
   driveForm.addEventListener("click", (event) => {
     const remove = event.target.closest("[data-hidden-remove]");
@@ -1087,27 +1118,54 @@ if (driveForm) {
     try {
       const data = await api(`/memories/api/drives/${encodeURIComponent(pick.driveId)}/browse?path=${encodeURIComponent(path)}`, null, "GET");
       const entries = (data.entries || []).filter((item) => item.isDir);
+      const pub = publicList();
+      const limited = pub.length > 0;
       pickList.innerHTML =
         entries
-          .map(
-            (item) => `<div class="a-pick__item">
+          .map((item) => {
+            const open = !limited || pub.some((prefix) => item.path === prefix || item.path.startsWith(`${prefix}/`));
+            if (pick.mode === "public") {
+              return `<div class="a-pick__item">
+              <i class="a-dot ${open ? "is-on" : ""}" aria-hidden="true"></i>
+              <button class="a-pick__go" type="button" data-pick-enter="${esc(item.path)}">${esc(item.name)}</button>
+              <button class="a-pick__toggle ${open ? "is-on" : ""}" type="button" data-pick-public="${esc(item.path)}">${
+                open ? "前台可操作" : "已移出"
+              }</button>
+            </div>`;
+            }
+            return `<div class="a-pick__item">
               <button class="a-pick__go" type="button" data-pick-enter="${esc(item.path)}">${esc(item.name)}</button>
               <button class="a-pick__toggle ${item.hidden ? "is-on" : ""}" type="button" data-pick-toggle="${esc(item.path)}">${
                 item.hidden ? "已隐藏" : "隐藏"
               }</button>
-            </div>`,
-          )
+            </div>`;
+          })
           .join("") || `<p class="a-hint">这一层没有子目录。</p>`;
-      if (pickNote) pickNote.textContent = `共 ${entries.length} 个子目录`;
-      if (pickHide) pickHide.textContent = hiddenList().includes(path) ? "取消隐藏此目录" : "隐藏此目录";
+      if (pickNote) {
+        pickNote.textContent =
+          pick.mode === "public"
+            ? limited
+              ? `共 ${entries.length} 个子目录；只显示下面这些可操作的目录（${pub.length} 条规则）`
+              : `共 ${entries.length} 个子目录；当前全部可操作`
+            : `共 ${entries.length} 个子目录`;
+      }
+      if (pickHide) {
+        pickHide.hidden = pick.mode !== "hidden";
+        pickHide.textContent = hiddenList().includes(path) ? "取消隐藏此目录" : "隐藏此目录";
+      }
+      if (pickPublicHere) {
+        pickPublicHere.hidden = pick.mode !== "public" || path === "/";
+        pickPublicHere.textContent = pub.includes(path) ? "移出前台" : "加入前台";
+      }
     } catch (error) {
       pickList.innerHTML = `<p class="a-note a-note--bad">${esc(error.message)}</p>`;
     }
   }
 
-  function openPicker(driveId) {
+  function openPicker(driveId, mode = "hidden") {
+    pick.mode = mode;
     const current = [...index.keys()][0];
-    pick.driveId = String(driveId || current || "");
+    pick.driveId = String(driveId || driveForm.dataset.driveId || current || "");
     if (!pick.driveId) return alert("先保存这份存储，再选择目录。");
     if (picker && !picker.open) picker.showModal();
     loadPick("/");
@@ -1116,6 +1174,22 @@ if (driveForm) {
   pickUp?.addEventListener("click", () => {
     const parent = pick.path.replace(/\/+$/, "").split("/").slice(0, -1).join("/") || "/";
     loadPick(parent || "/");
+  });
+
+  pickPublicHere?.addEventListener("click", () => {
+    const path = pick.path;
+    if (!path || path === "/") return;
+    const list = publicList();
+    setPublicList(list.includes(path) ? list.filter((item) => item !== path) : [...list, path]);
+    loadPick(path);
+  });
+
+  publicOpen?.addEventListener("click", () => openPicker(driveForm.dataset.driveId, "public"));
+
+  driveForm.addEventListener("click", (event) => {
+    const remove = event.target.closest("[data-public-remove]");
+    if (!remove) return;
+    setPublicList(publicList().filter((path) => path !== remove.dataset.publicRemove));
   });
 
   pickHide?.addEventListener("click", () => {
@@ -1134,6 +1208,14 @@ if (driveForm) {
       const path = toggle.dataset.pickToggle;
       const list = hiddenList();
       setHiddenList(list.includes(path) ? list.filter((item) => item !== path) : [...list, path]);
+      loadPick(pick.path);
+      return;
+    }
+    const pubToggle = event.target.closest("[data-pick-public]");
+    if (pubToggle) {
+      const path = pubToggle.dataset.pickPublic;
+      const list = publicList();
+      setPublicList(list.includes(path) ? list.filter((item) => item !== path) : [...list, path]);
       loadPick(pick.path);
     }
   });

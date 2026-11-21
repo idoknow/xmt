@@ -1,5 +1,27 @@
 // 管理台（AList 风格）的页面骨架与四个分页：文件 / 存储 / 成员 / 设置。
 import { DRIVERS } from "./drives.mjs";
+
+const ICON = {
+  dir: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h4l2 2.5h7A1.5 1.5 0 0 1 19 10v7a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 3 17z"/></svg>',
+  image: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l4.5-4.5L13 17l3-3 4 4"/></svg>',
+  video: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="M10.5 9.5l4.5 2.5-4.5 2.5z"/></svg>',
+  audio: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M9 17V6.5l8-1.5V15"/><circle cx="7" cy="17" r="2"/><circle cx="15" cy="15" r="2"/></svg>',
+  pdf: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6 3.5h7l5 5v12H6z"/><path d="M13 3.5V9h5"/><path d="M9 14h6M9 17h4"/></svg>',
+  archive: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 6.5h16v13H4z"/><path d="M4 6.5L6 3.5h12l2 3"/><path d="M10.5 11h3"/></svg>',
+  file: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6 3.5h7l5 5v12H6z"/><path d="M13 3.5V9h5"/></svg>',
+};
+
+const iconKind = (name) => {
+  const ext = String(name).toLowerCase().split(".").pop();
+  if (["png", "jpg", "jpeg", "webp", "gif", "avif", "heic", "bmp"].includes(ext)) return "image";
+  if (["mp4", "webm", "mov", "m4v", "mkv"].includes(ext)) return "video";
+  if (["mp3", "wav", "flac", "aac", "m4a", "ogg"].includes(ext)) return "audio";
+  if (ext === "pdf") return "pdf";
+  if (["zip", "rar", "7z", "tar", "gz"].includes(ext)) return "archive";
+  return "file";
+};
+
+const iconOf = (kind) => `<span class="a-ico a-ico--${kind}" aria-hidden="true">${ICON[kind] || ICON.file}</span>`;
 import { displayName, escapeHtml as e } from "./util.mjs";
 import { assetVersion, driveFieldSpecs, fmtSize, shell } from "./ui.mjs";
 
@@ -141,7 +163,7 @@ export function adminFilesPage({
              entry.name,
            )}">删除</button>`;
       return `<tr data-path="${e(entry.path)}" data-dir="${entry.isDir ? "1" : "0"}" data-kind="${kind}">
-        <td class="a-cell-name"><button type="button" class="a-tick" data-pick data-value="${e(entry.path)}" ${
+        <td class="a-cell-name">${iconOf(kind)}<button type="button" class="a-tick" data-pick data-value="${e(entry.path)}" ${
           entry.isDir ? 'data-dir="1"' : ""
         } aria-pressed="false" aria-label="选择 ${e(entry.name)}"></button>${name}</td>
         <td class="a-cell-path a-mono" hidden>${e(entry.display || entry.path)}</td>
@@ -160,9 +182,7 @@ const cards = entries
       const thumb =
         kind === "image"
           ? `<img src="${raw}" alt="${e(entry.name)}" loading="lazy" decoding="async" />`
-          : `<span class="a-grid__ico a-grid__ico--${kind}">${
-              kind === "video" ? "▶" : kind === "audio" ? "♪" : kind === "pdf" ? "PDF" : kind === "dir" ? "▤" : "·"
-            }</span>`;
+          : `<span class="a-grid__ico a-grid__ico--${kind}">${iconKind(entry.name) === "dir" ? ICON.dir : ICON[iconKind(entry.name)] || ICON.file}</span>`;
       return `<div class="a-grid__card" data-path="${e(entry.path)}" data-dir="${entry.isDir ? "1" : "0"}" data-kind="${kind}" data-name="${e(
         entry.name,
       )}" data-size="${entry.size || 0}">
@@ -204,7 +224,7 @@ const cards = entries
     <button class="a-view" type="button" data-view="grid">网格</button>
     <button class="a-view" type="button" data-view="detail">详情</button>
   </div>
-  <table class="a-table a-table--files" data-table>
+  <table class="a-table a-table--files" data-table data-drive-id="${drive?.id || ""}">
     <thead><tr><th><span class="a-th-name"><button type="button" class="a-tick a-tick--all" data-pick-all aria-pressed="false" aria-label="全选"></button>名称</span></th><th class="a-cell-path" hidden>路径</th><th>大小</th><th>修改时间</th><th></th></tr></thead>
     <tbody>${rows || `<tr><td class="a-empty" colspan="6">这个目录是空的。</td></tr>`}</tbody>
   </table>
@@ -254,6 +274,7 @@ export function adminStoragesPage({ site, user, drives }) {
       <td data-label="状态">${drive.enabled ? '<span class="a-tag a-tag--ok">启用</span>' : '<span class="a-tag">停用</span>'}</td>
       <td data-label="可见">${drive.visibility === "public" ? "公开" : "成员"}</td>
       <td data-label="隐藏">${drive.hidden?.length ? `${drive.hidden.length} 个` : "—"}</td>
+      <td data-label="前台">${drive.public?.length ? `${drive.public.length} 个目录` : '<span class="a-hint">全部</span>'}</td>
       <td><div class="a-actions__row">
         <a class="a-btn a-btn--tiny" href="/memories/admin/files?drive=${drive.id}&path=/">打开</a>
         <button class="a-btn a-btn--tiny" type="button" data-drive-edit="${drive.id}">编辑</button>
@@ -276,6 +297,7 @@ export function adminStoragesPage({ site, user, drives }) {
     visibility: drive.visibility,
     enabled: Boolean(drive.enabled),
     hidden: drive.hidden || [],
+    public: drive.public || [],
     quota_bytes: Number(drive.quota_bytes) || 0,
     max_file_bytes: Number(drive.max_file_bytes) || 0,
     config: JSON.parse(drive.config || "{}"),
@@ -314,6 +336,17 @@ export function adminStoragesPage({ site, user, drives }) {
           <input type="hidden" name="hidden" data-hidden-input value="" />
         </div>
       </label>
+      <label class="a-form__wide"><span>前台可操作区</span>
+        <div class="a-pick" data-public-box>
+          <p class="a-hint" data-public-empty>没有限定：所有目录都能在前台看到（绿点）。</p>
+          <ul class="a-pick__chips" data-public-chips></ul>
+          <div class="a-pick__row">
+            <button class="a-btn a-btn--tiny" type="button" data-public-open>选择目录</button>
+            <span class="a-hint">挑了目录就只显示这些；不挑等于全部。可选。</span>
+          </div>
+          <input type="hidden" name="public" data-public-input value="" />
+        </div>
+      </label>
       <div class="a-form__actions">
         <button class="a-btn a-btn--primary" type="submit" data-drive-submit>添加存储</button>
         <button class="a-btn" type="button" data-drive-cancel hidden>取消</button>
@@ -328,7 +361,9 @@ export function adminStoragesPage({ site, user, drives }) {
       <button class="a-btn a-btn--tiny" type="button" data-pick-up>← 上一级</button>
       <code data-pick-path>/</code>
       <button class="a-btn a-btn--tiny" type="button" data-pick-hide-here hidden>隐藏此目录</button>
+      <button class="a-btn a-btn--tiny" type="button" data-pick-public-here hidden>加入前台</button>
     </div>
+    <p class="a-legend"><i class="a-dot is-on" aria-hidden="true"></i>前台可操作<i class="a-dot" aria-hidden="true"></i>前台不可操作</p>
     <div class="a-pick__list" data-pick-list></div>
     <p class="a-hint" data-pick-note></p>
   </dialog>
@@ -346,8 +381,8 @@ export function adminStoragesPage({ site, user, drives }) {
   </dialog>
 
   <table class="a-table">
-    <thead><tr><th>名称</th><th>挂载</th><th>驱动</th><th>根</th><th>说明</th><th>容量</th><th>单文件</th><th>允许上传</th><th>状态</th><th>可见</th><th>隐藏</th><th></th></tr></thead>
-    <tbody>${rows || `<tr><td colspan="12" class="a-empty">还没有存储。</td></tr>`}</tbody>
+    <thead><tr><th>名称</th><th>挂载</th><th>驱动</th><th>根</th><th>说明</th><th>容量</th><th>单文件</th><th>允许上传</th><th>状态</th><th>可见</th><th>隐藏</th><th>前台</th><th></th></tr></thead>
+    <tbody>${rows || `<tr><td colspan="13" class="a-empty">还没有存储。</td></tr>`}</tbody>
   </table>
   <script type="application/json" id="drives-data">${JSON.stringify(drivesData).replace(/</g, "\\u003c")}</script>
   <script type="application/json" id="drive-specs">${JSON.stringify(driveFieldSpecs()).replace(/</g, "\\u003c")}</script>`;

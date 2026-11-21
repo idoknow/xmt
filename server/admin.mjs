@@ -11,11 +11,11 @@ import { config, paths } from "./config.mjs";
 import { allUsers, currentUser, isAdmin } from "./auth.mjs";
 import { driverFor, forgetDriver } from "./drives.mjs";
 import { streamPath } from "./filestream.mjs";
-import { hiddenPrefixes, setHidden, stats, upload } from "./media.mjs";
+import { hiddenPrefixes, publicPrefixes, setHidden, setPublic, stats, upload } from "./media.mjs";
 import { parseMultipart } from "./multipart.mjs";
 import { probeMedia } from "./probe.mjs";
 import { writeZip } from "./zip.mjs";
-import { escapeHtml, html, mimeOf, readJson, redirect, send, sendFile, sendJson } from "./util.mjs";
+import { escapeHtml, html, mimeOf, readJson, redirect, send, sendFile, sendJson, prettyPath } from "./util.mjs";
 import { adminFilesPage, adminSettingsPage, adminStoragesPage, adminUsersPage } from "./admin-ui.mjs";
 
 const siteOf = () => ({ title: setting("site.title", "Memories"), intro: setting("site.intro", "") });
@@ -34,7 +34,12 @@ function limitHint(user, drive) {
   return `图片 ≤ ${readable(config.limits?.userImage)}、视频 ≤ ${readable(config.limits?.userVideo)}（默认上限，存储里没设）`;
 }
 
-const drivesAll = () => all("SELECT * FROM drives ORDER BY sort_order, id").map((drive) => ({ ...drive, hidden: hiddenPrefixes(drive.id) }));
+const drivesAll = () =>
+  all("SELECT * FROM drives ORDER BY sort_order, id").map((drive) => ({
+    ...drive,
+    hidden: hiddenPrefixes(drive.id),
+    public: publicPrefixes(drive.id),
+  }));
 
 const driveOf = (id) => {
   const drive = get("SELECT * FROM drives WHERE id = ?", Number(id));
@@ -77,20 +82,6 @@ const sortEntries = (entries, key, dir) => {
     return String(left).localeCompare(String(right), "zh-Hans-CN") * sign;
   });
 };
-
-// 驱动给的路径可能是 ID（139 就是这样），界面上按名称显示
-export async function prettyPath(driver, target) {
-  const clean = target === "/" || !target ? "/" : String(target).replace(/\/+$/, "");
-  if (clean === "/") return "/";
-  const segments = clean.split("/").filter(Boolean);
-  const names = [];
-  for (let index = 0; index < segments.length; index += 1) {
-    const sub = "/" + segments.slice(0, index + 1).join("/");
-    const info = await driver.stat(sub).catch(() => null);
-    names.push(info?.name || segments[index]);
-  }
-  return "/" + names.join("/");
-}
 
 function pageFiles(req, res, url) {
   const user = currentUser(req);

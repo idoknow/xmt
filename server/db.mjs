@@ -66,6 +66,12 @@ CREATE TABLE IF NOT EXISTS drive_hidden (
   PRIMARY KEY (drive_id, prefix)
 );
 
+CREATE TABLE IF NOT EXISTS drive_public (
+  drive_id   INTEGER NOT NULL REFERENCES drives(id) ON DELETE CASCADE,
+  prefix     TEXT NOT NULL,
+  PRIMARY KEY (drive_id, prefix)
+);
+
 CREATE TABLE IF NOT EXISTS media (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
   drive_id   INTEGER NOT NULL REFERENCES drives(id) ON DELETE CASCADE,

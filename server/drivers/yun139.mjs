@@ -286,8 +286,29 @@ export function yun139Driver(cfg = {}) {
       return { path: clean, fileId: idOf(clean), name: idOf(clean), isDir: false, size: 0, modified: null };
     },
 
-    async ensureDir() {
-      throw Object.assign(new Error("139 暂不支持新建目录"), { status: 501 });
+    async ensureDir(target) {
+      const clean = String(target || "/").replace(/\/+$/, "") || "/";
+      if (clean === "/") return "/";
+      const segments = clean.split("/").filter(Boolean);
+      let parent = "/";
+      for (const name of segments) {
+        const list = await this.list(parent).catch(() => []);
+        const hit = list.find((item) => item.isDir && item.name === name);
+        if (hit) {
+          parent = hit.path;
+          continue;
+        }
+        const created = await call("/file/create", { parentFileId: idOf(parent), name, type: "folder" });
+        const fileId = created?.fileId || created?.fileID || created?.data?.fileId;
+        if (!fileId) throw Object.assign(new Error("139 新建目录失败（没有返回 fileId）"), { status: 502 });
+        listCache.delete(parent);
+        parent = joinPath(parent, fileId);
+      }
+      return parent;
+    },
+
+    async mkdir(target) {
+      return this.ensureDir(target);
     },
 
     async download(target) {

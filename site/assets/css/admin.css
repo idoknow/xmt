@@ -1,4 +1,4 @@
-/* [hidden] 一律不渲染：.a-grid/.a-table/.a-selbar 自带 display，会盖过浏览器默认规则 */
+﻿/* [hidden] 一律不渲染：.a-grid/.a-table/.a-selbar 自带 display，会盖过浏览器默认规则 */
 [hidden] {
   display: none !important;
 }
@@ -1343,8 +1343,8 @@ html.is-busy {
 }
 
 .a-tick.is-partial {
-  background: color-mix(in srgb, var(--vermilion) 60%, var(--paper));
-  border-color: var(--vermilion);
+  background: color-mix(in srgb, var(--vermilion) 10%, var(--paper));
+  border-color: color-mix(in srgb, var(--vermilion) 55%, var(--rule));
 }
 
 .a-tick.is-partial::after {
@@ -1352,7 +1352,7 @@ html.is-busy {
   position: absolute;
   inset: 42% 24%;
   border-radius: 1px;
-  background: #fff;
+  background: var(--vermilion);
 }
 
 .a-tick--all {
@@ -1394,3 +1394,116 @@ html.is-busy {
     order: 3;
   }
 }
+
+/* ---------- 表单对齐与状态点 ---------- */
+.a-form__grid > label > input,
+.a-form__grid > label > select {
+  height: 2.1rem;
+}
+
+.a-form__grid > label > input[name="root"],
+.a-form__grid > label > input[name="mount_path"] {
+  font-family: var(--mono);
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
+}
+
+.a-unit {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.a-unit input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 2.1rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--mono);
+}
+
+.a-unit em {
+  font-style: normal;
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  color: var(--muted);
+}
+
+.a-dot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--vermilion) 65%, transparent);
+  flex: 0 0 auto;
+}
+
+.a-dot.is-on {
+  background: #2f8f57;
+}
+
+.a-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0.2rem 0 0.55rem;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+
+.a-legend .a-dot {
+  margin-inline-start: 0.7rem;
+}
+
+.a-legend .a-dot:first-of-type {
+  margin-inline-start: 0;
+}
+
+.a-pick__item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ---------- 文件/目录图标 ---------- */
+.a-ico {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.05rem;
+  height: 1.05rem;
+  margin-inline-end: 0.45rem;
+  vertical-align: -0.15rem;
+  color: var(--muted);
+}
+
+.a-ico svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.a-ico--dir {
+  color: var(--ink);
+}
+
+.a-ico--image {
+  color: #2f8f57;
+}
+
+.a-ico--video {
+  color: #b4552f;
+}
+
+.a-ico--pdf {
+  color: #9a3b3b;
+}
+
+.a-grid__ico svg {
+  width: 1.6rem;
+  height: 1.6rem;
+}
+
+

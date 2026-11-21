@@ -41,6 +41,34 @@ export const setHidden = (driveId, prefixes) => {
   return list;
 };
 
+/* ---------- 前台可操作区 ---------- */
+// drive_public 里存「允许前台浏览的前缀」。一个存储没有任何记录时视为「全部可浏览」，
+// 一旦管理员挑了目录，就只显示这些前缀（加上它们的子目录）。
+const normalizePrefixes = (prefixes) =>
+  [...new Set(
+    (Array.isArray(prefixes) ? prefixes : String(prefixes || "").split(/\r?\n/))
+      .map((item) => String(item).trim().replace(/\/+$/, ""))
+      .filter((item) => item && item !== "/")
+      .map((item) => (item.startsWith("/") ? item : `/${item}`)),
+  )];
+
+export const publicPrefixes = (driveId) =>
+  all("SELECT prefix FROM drive_public WHERE drive_id = ? ORDER BY prefix", driveId).map((row) => row.prefix);
+
+export const isPublicPath = (driveId, filePath) => {
+  if (!driveId || !filePath) return true;
+  const prefixes = publicPrefixes(driveId);
+  if (!prefixes.length) return true;
+  return prefixes.some((prefix) => filePath === prefix || filePath.startsWith(`${prefix}/`));
+};
+
+export const setPublic = (driveId, prefixes) => {
+  const list = normalizePrefixes(prefixes);
+  run("DELETE FROM drive_public WHERE drive_id = ?", driveId);
+  for (const prefix of list) run("INSERT INTO drive_public (drive_id, prefix) VALUES (?, ?)", driveId, prefix);
+  return list;
+};
+
 export const kindOf = (name) => {
   const ext = path.extname(name).toLowerCase();
   if (IMAGE_EXT.has(ext)) return "image";

@@ -1543,3 +1543,27 @@ html[data-view="list"] .m-card__name {
   background: color-mix(in srgb, var(--vermilion) 6%, transparent);
   font-size: 0.82rem;
 }
+
+/* ---------- 文件列表图标与徽标 ---------- */
+.m-row__ico svg {
+  display: block;
+}
+
+.m-row__ico.is-dir {
+  color: var(--ink);
+}
+
+.m-crumbs__sep {
+  color: var(--muted);
+  padding: 0 0.15rem;
+}
+
+.m-toolbar__hint {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+
+.m-chips + .m-btn {
+  margin-inline-start: auto;
+}

@@ -166,3 +166,17 @@ export const sendFile = (req, res, filePath, { mime, cache = "public, max-age=31
 };
 
 export { gzipSync };
+
+// 驱动给的路径可能是 ID（139 就是这样），界面上按名称显示
+export async function prettyPath(driver, target) {
+  const clean = target === "/" || !target ? "/" : String(target).replace(/\/+$/, "");
+  if (clean === "/") return "/";
+  const segments = clean.split("/").filter(Boolean);
+  const names = [];
+  for (let index = 0; index < segments.length; index += 1) {
+    const sub = "/" + segments.slice(0, index + 1).join("/");
+    const info = await driver.stat(sub).catch(() => null);
+    names.push(info?.name || segments[index]);
+  }
+  return "/" + names.join("/");
+}

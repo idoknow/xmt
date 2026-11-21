@@ -29,7 +29,7 @@ import {
   onlineCount,
 } from "./auth.mjs";
 import { DRIVERS, driverFor, forgetDriver } from "./drives.mjs";
-import { countMedia, duplicateMedia, moveMedia, queryMedia, removeMedia, renameMedia, stats, updateMeta, upload, userFolder, hiddenPrefixes, isHidden, setHidden } from "./media.mjs";
+import { countMedia, duplicateMedia, moveMedia, queryMedia, removeMedia, renameMedia, stats, updateMeta, upload, userFolder, hiddenPrefixes, isHidden, setHidden, publicPrefixes, setPublic, isPublicPath } from "./media.mjs";
 import { parseMultipart } from "./multipart.mjs";
 import {
   cookie,
@@ -548,6 +548,7 @@ async function api(req, res, url) {
       );
       const created = get("SELECT id FROM drives ORDER BY id DESC LIMIT 1");
       if (body.hidden != null) setHidden(created.id, body.hidden);
+      if (body.public != null) setPublic(created.id, body.public);
       return json(res, { ok: true, id: created.id });
     }
     if (parts[1]) {
@@ -560,12 +561,14 @@ async function api(req, res, url) {
         const started = Date.now();
         const list = await driver.list(dir);
         const hidden = hiddenPrefixes(drive.id);
+        const visible = publicPrefixes(drive.id);
         const mark = (item) => ({
           name: item.name,
           path: item.path,
           isDir: Boolean(item.isDir),
           size: item.size || 0,
           hidden: hidden.some((prefix) => item.path === prefix || String(item.path).startsWith(`${prefix}/`)),
+          public: !visible.length || visible.some((prefix) => item.path === prefix || String(item.path).startsWith(`${prefix}/`)),
         });
         const entries = list.map(mark);
         return json(res, {
@@ -573,6 +576,7 @@ async function api(req, res, url) {
           path: dir,
           ms: Date.now() - started,
           hidden,
+          public: visible,
           entries,
         });
       }
@@ -634,8 +638,9 @@ async function api(req, res, url) {
           drive.id,
         );
         if (body.hidden != null) setHidden(drive.id, body.hidden);
+        if (body.public != null) setPublic(drive.id, body.public);
         forgetDriver(drive.id);
-        return json(res, { ok: true, hidden: hiddenPrefixes(drive.id) });
+        return json(res, { ok: true, hidden: hiddenPrefixes(drive.id), public: publicPrefixes(drive.id) });
       }
       if (method === "DELETE") {
         run("DELETE FROM drives WHERE id = ?", drive.id);
