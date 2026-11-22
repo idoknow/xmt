@@ -82,6 +82,11 @@
   content: "← ";
   color: var(--muted);
 }
+.m-top__user {
+  display: flex;
+  align-items: center;
+  margin-inline-start: auto;
+}
 
 .m-main {
   padding: 2.6rem 0 4rem;
@@ -892,12 +897,27 @@ html[data-view="list"] .m-card__name {
   .m-foot__inner {
     width: calc(100% - 2rem);
   }
-  /* 页头：导航单独一行，横向滚动，标签不折行 */
+  /* 页头：品牌与头像同一行，导航独占下一行横向滚动，标签不折行 */
   .m-top__inner {
-    gap: 0.45rem 0.7rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.45rem 0.6rem;
     padding-block: 0.5rem;
+    align-items: center;
+  }
+  .m-brand {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+  }
+  .m-top__user {
+    grid-column: 2;
+    grid-row: 1;
+    margin-inline-start: 0;
   }
   .m-nav {
+    grid-column: 1 / -1;
+    grid-row: 2;
     width: 100%;
     flex-wrap: nowrap;
     gap: 0.9rem;

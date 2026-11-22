@@ -79,6 +79,20 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") $("[data-sort][open]")?.removeAttribute("open");
 });
 
+/* 头像下拉：同样的交互口径 */
+document.addEventListener("click", (event) => {
+  for (const box of $$("[data-profile][open]")) {
+    if (!box.contains(event.target)) box.removeAttribute("open");
+  }
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  const box = $("[data-profile][open]");
+  if (!box) return;
+  box.removeAttribute("open");
+  box.querySelector("summary")?.focus();
+});
+
 /* ---------- 多选与分享（只在画廊里生效，后台文件页有自己的选中逻辑）---------- */
 
 const galleryRoot = document.querySelector("[data-gallery]") || document.querySelector(".m-grid");

@@ -84,9 +84,11 @@ const profile = (user) => {
 };
 
 export function shell({ title, site, user, body, bodyClass = "", scripts = "", head = "" }) {
-  const nav = user
-    ? `<a href="/memories/files">媒体库</a><a href="/memories/links">分享链接</a><a href="/image">图床</a>${profile(user)}`
-    : `<a href="/memories/files">媒体库</a><a href="/memories/links">分享链接</a><a href="/image">图床</a><a href="/memories/login">登录</a>`;
+  // 头像下拉不放在 nav 里：手机端 nav 是横向滚动容器，会把绝对定位的子弹层裁掉
+  const nav = `<a href="/memories/files">媒体库</a><a href="/memories/links">分享链接</a><a href="/image">图床</a>${
+    user ? "" : `<a href="/memories/login">登录</a>`
+  }`;
+  const account = user ? `<div class="m-top__user">${profile(user)}</div>` : "";
 
   return `<!doctype html>
 <html lang="zh-CN" data-page="memories">
@@ -124,6 +126,7 @@ ${head}
     <nav class="m-nav">${nav}
       <a href="/" class="m-nav__back">回站点</a>
     </nav>
+    ${account}
   </div>
 </header>
 <main class="m-main">${body}</main>
