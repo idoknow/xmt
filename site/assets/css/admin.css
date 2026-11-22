@@ -878,20 +878,28 @@
   }
 
   .a-nav {
-    grid-auto-flow: column;
-    grid-auto-columns: 1fr;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-auto-flow: row;
     gap: 0.3rem;
-    overflow-x: auto;
+    overflow: visible;
   }
 
   .a-nav__item {
-    padding: 0.4rem 0.5rem;
+    justify-items: center;
+    padding: 0.42rem 0.45rem;
     box-shadow: none !important;
     border: 1px solid transparent;
   }
 
   .a-nav__item.is-on {
     border-color: color-mix(in srgb, var(--vermilion) 35%, transparent);
+    box-shadow: none !important;
+  }
+
+  .a-nav__label {
+    font-size: 0.8rem;
+    letter-spacing: 0;
+    white-space: nowrap;
   }
 
   .a-nav__hint {
@@ -1897,7 +1905,7 @@
     -webkit-overflow-scrolling: touch;
   }
   .a-card .a-table {
-    min-width: 36rem;
+    min-width: 0;
   }
   .a-toolbar {
     flex-wrap: wrap;
@@ -1945,8 +1953,156 @@
   .a-main {
     padding: 0.9rem 0.7rem 3rem;
   }
+  /* 表单控件按 border-box 算宽度，避免长出卡片被裁 */
+  .a-form input,
+  .a-form select,
+  .a-form textarea,
+  .a-form__grid > label,
+  .a-form label {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+  }
   .a-scroll > .a-table {
-    min-width: 32rem;
+    min-width: 27rem;
+  }
+  /* 文件表转卡片：名称一行、大小与时间一行、按钮一行 */
+  .a-scroll > .a-table--files {
+    min-width: 0;
+  }
+  .a-table--files,
+  .a-table--files tbody,
+  .a-table--files tr,
+  .a-table--files td {
+    display: block;
+    width: auto;
+  }
+  .a-table--files thead {
+    display: none;
+  }
+  .a-table--files tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.28rem 0.6rem;
+    padding: 0.62rem 0.1rem;
+    border-block-end: 1px solid var(--rule);
+  }
+  .a-table--files tbody tr:hover {
+    background: none;
+  }
+  .a-table--files td {
+    padding: 0;
+    border: 0;
+  }
+  .a-table--files td.a-cell-name {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+  }
+  .a-table--files .a-cell-name__main {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .a-table--files td.a-num {
+    grid-column: 1;
+    padding-inline-start: 2.1rem;
+    color: var(--muted);
+    font-size: 0.72rem;
+    text-align: start;
+  }
+  .a-table--files td.a-mono {
+    grid-column: 2;
+    color: var(--muted);
+    font-size: 0.72rem;
+    text-align: end;
+    white-space: nowrap;
+  }
+  .a-table--files td.a-actions {
+    grid-column: 1 / -1;
+    padding-inline-start: 2.1rem;
+  }
+  .a-table--files .a-actions__row {
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+  /* 其余表格同样转卡片：单元格用 data-label 生成小标签 */
+  .a-scroll > .a-table:not(.a-table--files) {
+    min-width: 0;
+  }
+  .a-table:not(.a-table--files),
+  .a-table:not(.a-table--files) tbody,
+  .a-table:not(.a-table--files) tr,
+  .a-table:not(.a-table--files) td {
+    display: block;
+    width: auto;
+  }
+  .a-table:not(.a-table--files) thead {
+    display: none;
+  }
+  .a-table:not(.a-table--files) tbody tr {
+    display: block;
+    padding: 0.7rem 0.1rem;
+    border-block-end: 1px solid var(--rule);
+  }
+  .a-table:not(.a-table--files) tbody tr:hover {
+    background: none;
+  }
+  .a-table:not(.a-table--files) td {
+    padding: 0.14rem 0;
+    border: 0;
+    text-align: start;
+  }
+  .a-table:not(.a-table--files) td[data-label] {
+    display: grid;
+    grid-template-columns: 4.8rem minmax(0, 1fr);
+    align-items: baseline;
+    justify-items: start;
+    gap: 0.5rem;
+  }
+  .a-table:not(.a-table--files) td[data-label]::before {
+    content: attr(data-label);
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.04em;
+  }
+  .a-table:not(.a-table--files) td:first-child {
+    padding-block-end: 0.35rem;
+  }
+  .a-table:not(.a-table--files) td:first-child > div:not([class]),
+  .a-table:not(.a-table--files) .a-name-cell > div:not([class]) {
+    display: grid;
+    gap: 0.15rem;
+    min-width: 0;
+  }
+  .a-table:not(.a-table--files) td:first-child .a-mono,
+  .a-table:not(.a-table--files) td:first-child small {
+    color: var(--muted);
+    font-size: 0.72rem;
+    overflow-wrap: anywhere;
+  }
+  .a-table:not(.a-table--files) td:last-child {
+    padding-block-start: 0.4rem;
+  }
+  .a-table:not(.a-table--files) .a-actions__row {
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+  .a-table:not(.a-table--files) .a-num,
+  .a-table:not(.a-table--files) td[data-label].a-mono {
+    text-align: start;
+  }
+  .a-table--files .a-empty,
+  .a-table:not(.a-table--files) .a-empty {
+    padding: 1.2rem 0;
+    text-align: start;
   }
   .a-main .a-table th,
   .a-main .a-table td {
@@ -1960,6 +2116,10 @@
     display: grid;
     gap: 0.45rem;
   }
+  .a-page__head h1,
+  .a-hero h1 {
+    font-size: clamp(1.35rem, 6.4vw, 1.75rem);
+  }
   .a-page__aside {
     display: flex;
     flex-wrap: wrap;
@@ -1968,6 +2128,15 @@
   .a-toolbar {
     flex-wrap: wrap;
     gap: 0.4rem;
+  }
+  .a-bar--tabs,
+  .a-selbar {
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+  .a-crumb {
+    flex-wrap: wrap;
+    row-gap: 0.2rem;
   }
   .a-form__grid,
   .a-form--row {
@@ -2002,5 +2171,11 @@
     max-width: none;
     white-space: normal;
     overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 560px) {
+  .a-form__grid--links {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
