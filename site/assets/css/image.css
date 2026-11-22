@@ -571,6 +571,11 @@
   letter-spacing: 0.03em;
 }
 
+/* display:grid 会盖掉 [hidden]，纯展示的弹窗必须显式藏掉备注输入框 */
+.im-dialog__field[hidden] {
+  display: none;
+}
+
 .im-dialog__field input {
   height: 2.2rem;
   padding: 0 0.6rem;
