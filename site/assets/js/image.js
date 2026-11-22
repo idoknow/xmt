@@ -95,14 +95,29 @@ function dialogNode() {
   return el;
 }
 
-function openDialog({ title = "", body = "", rows = [], input = null, okText = "确定", cancelText = "取消", danger = false, onlyOk = false }) {
+function openDialog({
+  title = "",
+  body = "",
+  rows = [],
+  input = null,
+  okText = "确定",
+  cancelText = "取消",
+  danger = false,
+  onlyOk = false,
+  onReady = null,
+}) {
   const el = dialogNode();
   const form = el.querySelector("form");
   $("[data-dialog-title]", el).textContent = title;
 
   const bodyBox = $("[data-dialog-body]", el);
-  const list = Array.isArray(rows) ? rows.filter((row) => row && row.value != null && row.value !== "") : [];
-  bodyBox.innerHTML = `${body}${list.length ? `<dl class="im-dialog__rows">${list.map((row) => `<dt>${escapeAttr(row.label)}</dt><dd>${escapeAttr(row.value)}</dd>`).join("")}</dl>` : ""}`;
+
+  // 内容可以先给个占位（比如「正在查询…」），拿到数据后再用 set 换掉
+  const paint = (nextBody = "", nextRows = []) => {
+    const list = Array.isArray(nextRows) ? nextRows.filter((row) => row && row.value != null && row.value !== "") : [];
+    bodyBox.innerHTML = `${nextBody}${list.length ? `<dl class="im-dialog__rows">${list.map((row) => `<dt>${escapeAttr(row.label)}</dt><dd>${escapeAttr(row.value)}</dd>`).join("")}</dl>` : ""}`;
+  };
+  paint(body, rows);
 
   const field = $("[data-dialog-field]", el);
   const inputEl = $("[data-dialog-input]", el);
@@ -142,6 +157,7 @@ function openDialog({ title = "", body = "", rows = [], input = null, okText = "
       if (event.key === "Escape") onCancel();
     }, { once: true });
     el.showModal();
+    if (onReady) onReady({ set: paint, el });
     if (input) setTimeout(() => { inputEl.focus(); inputEl.select(); }, 30);
     else okButton.focus();
   });
@@ -372,6 +388,14 @@ function formatList(items) {
         ${item.note ? `<span class="im-item__note">${item.note}</span>` : ""}
       </div>
       <div class="im-item__acts"></div>`;
+    // 点缩略图直接看大图
+    node.querySelector(".im-item__thumb")?.addEventListener("click", () => {
+      showDialog({
+        title: "预览",
+        body: `<figure class="im-dialog__figure"><img class="im-dialog__preview" src="${escapeAttr(item.url)}" alt="" referrerpolicy="no-referrer" /><figcaption>${escapeAttr(item.providerName || "")} · ${fmt(item.size)}</figcaption></figure><p class="im-dialog__hint"><a href="${escapeAttr(item.url)}" target="_blank" rel="noopener noreferrer">在新标签打开原图</a></p>`,
+      });
+    });
+
     const acts = node.querySelector(".im-item__acts");
     const add = (label, handler) => {
       const button = document.createElement("button");
@@ -386,26 +410,35 @@ function formatList(items) {
     if (LOGGED_IN) {
       if (item.provider === "scdn") {
         add("信息", async () => {
-          try {
-            const response = await fetch(`/memories/api/images/${item.id}/meta`);
-            const data = await response.json();
-            if (!data.ok) throw new Error(data.error || "没有信息");
-            const info = data.info || {};
-            await showDialog({
-              title: "图片信息",
-              rows: [
-                { label: "文件名", value: info.filename },
-                { label: "大小", value: info.size_display },
-                { label: "上传时间", value: info.upload_date },
-                { label: "存储", value: info.storage_location || info.storage_backend },
-                { label: "标签", value: info.tags },
-                { label: "描述", value: info.content_description },
-              ],
-            });
-          } catch (error) {
-            await showDialog({ title: "查不到信息", body: `<p>${escapeAttr(error.message)}</p>` });
-          }
+        // 先把弹窗弹出来（带加载动画），再等接口回数据填进去
+        let ready;
+        const opened = new Promise((resolve) => {
+          ready = resolve;
         });
+        const closed = showDialog({
+          title: "图片信息",
+          body: '<p class="im-wait"><span class="im-wait__spin" aria-hidden="true"></span>正在查询这张图的信息…</p>',
+          onReady: (handle) => ready(handle),
+        });
+        const handle = await opened;
+        try {
+          const response = await fetch(`/memories/api/images/${item.id}/meta`);
+          const data = await response.json();
+          if (!data.ok) throw new Error(data.error || "没有信息");
+          const info = data.info || {};
+          handle.set("", [
+            { label: "文件名", value: info.filename },
+            { label: "大小", value: info.size_display },
+            { label: "上传时间", value: info.upload_date },
+            { label: "存储", value: info.storage_location || info.storage_backend },
+            { label: "标签", value: info.tags },
+            { label: "描述", value: info.content_description },
+          ]);
+        } catch (error) {
+          handle.set(`<p class="im-wait im-wait--error">查不到信息：${escapeAttr(error.message)}</p>`);
+        }
+        await closed;
+      });
       }
       add("备注", async () => {
         const result = await askText({

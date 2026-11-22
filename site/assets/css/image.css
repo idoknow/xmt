@@ -613,3 +613,85 @@
   border-color: color-mix(in srgb, var(--vermilion) 55%, var(--rule));
   color: var(--vermilion);
 }
+
+/* ---------- 图床：缩略图预览与查询等待 ---------- */
+.im-item__thumb {
+  cursor: zoom-in;
+}
+
+.im-dialog__figure {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  justify-items: center;
+}
+
+.im-dialog__figure img {
+  display: block;
+  max-width: min(100%, 32rem);
+  max-height: 62vh;
+  padding: 0.4rem;
+  border-radius: 4px;
+  background: #fff;
+  object-fit: contain;
+}
+
+.im-dialog__figure figcaption {
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.im-dialog__hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+
+.im-dialog__hint a {
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--ink) 35%, transparent);
+}
+
+.im-dialog__hint a:hover {
+  color: var(--vermilion);
+  border-bottom-color: currentColor;
+}
+
+.im-wait {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.6rem 0 0.2rem;
+  font-size: 0.86rem;
+  color: var(--ink-soft);
+}
+
+.im-wait--error {
+  color: var(--vermilion);
+}
+
+.im-wait__spin {
+  flex: none;
+  width: 0.9rem;
+  height: 0.9rem;
+  border: 1.5px solid color-mix(in srgb, var(--ink) 18%, transparent);
+  border-top-color: var(--vermilion);
+  border-radius: 50%;
+  animation: im-spin 0.7s linear infinite;
+}
+
+@keyframes im-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .im-wait__spin {
+    animation-duration: 2.4s;
+  }
+}

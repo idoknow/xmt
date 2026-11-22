@@ -236,19 +236,25 @@ export async function fileAction(req, res, scope = "") {
           skipped.push(target);
           continue;
         }
-        // 目录：连里面所有文件一起隐藏；文件：只隐藏自己
+        // 目录：把里面所有路径也一起记下来；网络盘列举失败时退回「只记这个前缀」，
+        // 因为过滤是按前缀匹配的，光记前缀已经能挡住整个目录。
         const paths = [target];
-        const stat = await driver.stat(target);
-        if (stat?.isDir) {
-          const stack = [target];
-          while (stack.length) {
-            const dir = stack.pop();
-            const list = await driver.list(dir);
-            for (const item of list) {
-              paths.push(item.path);
-              if (item.isDir) stack.push(item.path);
+        try {
+          const stat = await driver.stat(target);
+          if (stat?.isDir) {
+            const stack = [target];
+            while (stack.length) {
+              const dir = stack.pop();
+              const list = await driver.list(dir);
+              for (const item of list) {
+                paths.push(item.path);
+                if (item.isDir) stack.push(item.path);
+              }
             }
           }
+        } catch (error) {
+          // 远端盘（如移动云盘）偶尔列举失败，这不影响隐藏本身
+          paths.length = 1;
         }
         addHidden(drive.id, paths);
         changed.push(...paths);
