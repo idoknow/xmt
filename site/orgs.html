@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="/assets/css/style.css" />
     <link rel="canonical" href="https://xmt.idoknow.top/orgs" />
   </head>
-  <body>
+  <body id="top">
     <a class="skip" href="#main">跳到正文</a>
 
     <header class="masthead">
@@ -27,7 +27,6 @@
           <a href="/">首页</a>
           <a href="/orgs" aria-current="page">组织</a>
           <a href="/media">媒体资源</a>
-          <a href="/cloud">云上桂中</a>
           <a href="/tools">工具</a>
           <a href="/image">图床</a>
           <a href="/memories">媒体库</a>
@@ -144,43 +143,52 @@
         </div>
       </section>
     </main>
-
-    <footer class="footer">
+    <footer class="footer" id="footer">
       <div class="wrap">
-        <div class="footer__grid">
-          <div>
-            <div class="footer__brand">
-              <img src="/assets/img/school-emblem-336.webp" alt="" width="336" height="336" loading="lazy" decoding="async" />
-              <div>
-                <strong>桂林中学新媒体</strong>
-                <span>团委学生会新媒体运营部</span>
-              </div>
+        <div class="footer__lead">
+          <div class="footer__brand">
+            <img src="/assets/img/school-emblem-336.webp" alt="桂林中学校徽" width="336" height="336" decoding="async" />
+            <div class="footer__id">
+              <strong>桂林中学新媒体</strong>
+              <span>XMT · Guilin Middle School</span>
             </div>
-            <p style="margin-top: 0.9rem; max-width: 26em">
-              由学生维护，内容以归档为主。
-            </p>
           </div>
-          <div>
+          <p class="footer__line">
+            团委学生会新媒体运营部的站点。活动、社团与影像按类归档，由学生维护。
+          </p>
+        </div>
+
+        <div class="footer__cols">
+          <nav class="footer__col" aria-label="页脚 · 站点">
             <h2>站点</h2>
             <ul>
               <li><a href="/">首页</a></li>
               <li><a href="/orgs">组织</a></li>
               <li><a href="/media">媒体资源</a></li>
-              <li><a href="/cloud">云上桂中</a></li>
             </ul>
-          </div>
-          <div>
+          </nav>
+          <nav class="footer__col" aria-label="页脚 · 工具">
+            <h2>工具</h2>
+            <ul>
+              <li><a href="/memories">媒体库</a></li>
+              <li><a href="/image">图床</a></li>
+              <li><a href="/tools">在线工具</a></li>
+            </ul>
+          </nav>
+          <div class="footer__col">
             <h2>联系</h2>
             <ul>
               <li><a href="https://yun.139.com/shareweb/#/w/i/2yA8EAgJqXUbz" target="_blank" rel="noopener noreferrer">移动云盘资料库</a></li>
-              <li>团委学生会新媒体运营部</li>
+              <li><a href="https://v.douyin.com/WQSM2axNI2Q/" target="_blank" rel="noopener noreferrer">抖音 · glzx1905</a></li>
+              <li><a href="/memories">投稿与上传</a></li>
             </ul>
           </div>
         </div>
+
         <div class="footer__base">
           <span>© <span data-year>2026</span> 桂林中学团委学生会新媒体运营部</span>
-        <a class="footer__icp" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">桂ICP备2020008331号-1</a>
-          <span>Guilin Middle School · XMT</span>
+          <a class="footer__icp" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">桂ICP备2020008331号-1</a>
+          <a class="footer__up" href="#top">回到顶部 ↑</a>
         </div>
       </div>
     </footer>

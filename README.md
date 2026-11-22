@@ -13,7 +13,7 @@ site/                 源文件（可直接读、可直接用浏览器打开）
   index.html          首页
   orgs.html           组织
   media.html          媒体资源
-  cloud.html          云上桂中（入口页：把外部地址集中摆在一处）
+
   404.html            未找到
   assets/css/style.css      站点样式
   assets/css/app.css        Memories 样式
@@ -53,7 +53,7 @@ PORT=1200 DATA_DIR=./data npm start
 - 加一个组织：`site/orgs.html` 复制一节 `entry`，同时 `site/index.html` 加一张 `org` 卡片。
 - 换标识图：把横向长方形图放进 `site/assets/img/`，改 `<img src>`；白底图会靠 `mix-blend-mode: multiply` 融进纸色，深色底图直接显示。
 - 补链接：`site/media.html` 里把「待上线」那行改成 `<a>`，`<span class="link__meta">` 跟着改。移动云盘按学期/活动分多个分享，每个分享一行（`data-copy` 放提取码）；官方账号在 C 组，抖音有成卡片的 `.account` 区块（二维码图放 `assets/img/douyin-qr.webp`）。
-- 云上桂中：`site/cloud.html` 只是入口页，外部地址确定后把对应行的 `.link-row--muted` 去掉、`href` 换成真地址。
+- 全站页脚是同一份标记（`<footer class="footer">`），改一处就同步到首页/组织/媒体资源/工具/404。
 - 改完提交推 `main`，CI 会自动构建发布，约两三分钟。
 
 ## 部署
