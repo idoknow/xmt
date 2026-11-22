@@ -231,11 +231,11 @@ const cards = entries
     <button class="a-view" type="button" data-view="grid">网格</button>
     <button class="a-view" type="button" data-view="detail">详情</button>
   </div>
-  <div class="a-scroll"><table class="a-table a-table--files" data-table data-drive-id="${drive?.id || ""}">
+  <div class="a-scroll" data-region><table class="a-table a-table--files" data-table data-drive-id="${drive?.id || ""}">
     <thead><tr><th><span class="a-th-name"><button type="button" class="a-tick a-tick--all" data-pick-all aria-pressed="false" aria-label="全选"></button>名称</span></th><th class="a-cell-path" hidden>路径</th><th>大小</th><th>修改时间</th><th></th></tr></thead>
     <tbody>${rows || `<tr><td class="a-empty" colspan="6">这个目录是空的。</td></tr>`}</tbody>
   </table></div>
-  <div class="a-grid" data-grid hidden>${cards || '<p class="a-empty">这个目录是空的。</p>'}</div>
+  <div class="a-grid" data-grid data-region hidden>${cards || '<p class="a-empty">这个目录是空的。</p>'}</div>
   <p class="a-hint">点一行即可选中（按住 Shift 选一段）；删除会直接生效，139 上是进回收站。</p>
 
   <dialog class="a-dialog" data-dialog>
@@ -315,7 +315,7 @@ export function adminStoragesPage({ site, user, drives }) {
     <button class="a-btn a-btn--primary" type="button" data-add-toggle>＋ 添加存储</button>
     <span class="a-hint">点一下展开表单；行内「编辑」也会展开同一份表单。</span>
   </div>
-  <form class="a-form" data-add-drive data-drive-id="" hidden>
+  <form class="a-form" data-add-drive data-drive-id="" data-region hidden>
     <div class="a-form__grid">
       <label><span>名称</span><input name="name" required placeholder="移动云盘" /></label>
       <label><span>类型</span><select name="driver">${Object.entries(DRIVERS)
@@ -376,7 +376,7 @@ export function adminStoragesPage({ site, user, drives }) {
     </form>
   </dialog>
 
-  <div class="a-scroll"><table class="a-table">
+  <div class="a-scroll" data-region><table class="a-table">
     <thead><tr><th>名称</th><th>挂载</th><th>驱动</th><th>根</th><th>说明</th><th>容量</th><th>单文件</th><th>允许上传</th><th>状态</th><th>可见</th><th>隐藏</th><th>前台</th><th></th></tr></thead>
     <tbody>${rows || `<tr><td colspan="13" class="a-empty">还没有存储。</td></tr>`}</tbody>
   </table></div>
@@ -426,7 +426,7 @@ export function adminUsersPage({ site, user, users, total = null }) {
     .join("");
 
   const body = `
-  <form class="a-form" data-add-user>
+  <form class="a-form" data-add-user data-region>
     <div class="a-form__grid">
       <label><span>QQ 号</span><input name="qq" required pattern="\\d{5,12}" inputmode="numeric" placeholder="1692138502" /></label>
       <label><span>备注</span><input name="note" placeholder="高一 3 班 / 摄影社" /></label>
@@ -439,7 +439,7 @@ export function adminUsersPage({ site, user, users, total = null }) {
     </div>
   </form>
   <p class="a-hint">只填 QQ 号就能加人；昵称与头像等他第一次登录时从 Campux 同步，没加进来的 QQ 登录会被拒绝。</p>
-  <div class="a-scroll"><table class="a-table">
+  <div class="a-scroll" data-region><table class="a-table">
     <thead><tr><th>成员</th><th>备注</th><th>角色</th><th>文件</th><th>占用</th><th>状态</th><th>最近登录</th><th></th></tr></thead>
     <tbody>${rows || `<tr><td colspan="6" class="a-empty">还没有成员。</td></tr>`}</tbody>
   </table></div>`;
@@ -454,7 +454,7 @@ export function adminSettingsPage({ site, user, settings, counters }) {
   <p class="a-hint">站点统计：${counters.total.n || 0} 项内容 · ${fmtSize(counters.total.bytes)} · ${counters.users.n || 0} 位成员 · ${
     counters.shares.n || 0
   } 个分享</p>
-  <form class="a-form" data-settings>
+  <form class="a-form" data-settings data-region>
     <div class="a-form__grid">
       <label><span>站点标题</span><input name="site.title" value="${e(site.title || "")}" /></label>
       <label><span>介绍</span><input name="site.intro" value="${e(site.intro || "")}" /></label>

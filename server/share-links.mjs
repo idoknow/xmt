@@ -75,7 +75,7 @@ export function adminLinksPage({ site, user }) {
     .join("");
 
   const body = `
-  <form class="a-form" data-link-form>
+  <form class="a-form" data-link-form data-region>
     <input type="hidden" name="id" value="" />
     <div class="a-form__grid a-form__grid--links">
       <label><span>标题</span><input name="title" required maxlength="60" placeholder="中国移动云盘 ·「新媒体」" /></label>
@@ -90,7 +90,7 @@ export function adminLinksPage({ site, user }) {
     </div>
   </form>
   <p class="a-hint">前台「媒体库 → 分享链接」按这里的顺序展示；提取码在前台是一键复制的。</p>
-  <div class="a-scroll"><table class="a-table">
+  <div class="a-scroll" data-region><table class="a-table">
     <thead><tr><th>标题</th><th>链接</th><th>提取码</th><th>备注</th><th>排序</th><th></th></tr></thead>
     <tbody>${rows || `<tr><td colspan="6" class="a-empty">还没有分享链接。上面加一条试试。</td></tr>`}</tbody>
   </table></div>

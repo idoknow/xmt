@@ -114,41 +114,76 @@ let lastIndex = -1;
 
 const boxes = () => $$("[data-pick]");
 
-/* ---------- 加载提示 ---------- */
+/* ---------- 加载提示（就地显示，不占右上角） ---------- */
 
-const loading = document.createElement("div");
-loading.className = "a-loading";
-loading.hidden = true;
-loading.innerHTML = '<span class="a-spin" aria-hidden="true"></span><span>加载中…</span>';
-document.body.append(loading);
+// 谁要变就把遮罩加在谁身上：优先 [data-region]，其次附近的面板 / 滚动区 / 表单。
+const counts = new Map();
 
-let busyCount = 0;
-function busy(on = true) {
-  busyCount = Math.max(0, busyCount + (on ? 1 : -1));
-  loading.hidden = busyCount === 0;
-  document.documentElement.classList.toggle("is-busy", busyCount > 0);
+function regionOf(node) {
+  const start = node?.nodeType === 1 ? node : node?.parentElement;
+  return (
+    start?.closest?.("[data-region]") ||
+    start?.closest?.(".a-scroll, .a-grid, form, section, .a-panel") ||
+    document.querySelector("main [data-region]") ||
+    document.querySelector("main") ||
+    document.body
+  );
 }
 
-const withBusy = (promise) => {
-  busy(true);
-  return Promise.resolve(promise).finally(() => busy(false));
+function paint(el, on) {
+  if (!el) return;
+  const next = (counts.get(el) || 0) + (on ? 1 : -1);
+  if (next > 0) counts.set(el, next);
+  else counts.delete(el);
+
+  const box = el.querySelector(":scope > .a-busy");
+  if (counts.has(el)) {
+    el.dataset.busy = "1";
+    if (!box) {
+      const node = document.createElement("div");
+      node.className = "a-busy";
+      node.setAttribute("role", "status");
+      node.innerHTML = '<span class="a-spin" aria-hidden="true"></span><span class="a-busy__text">加载中…</span>';
+      el.append(node);
+    }
+  } else {
+    delete el.dataset.busy;
+    box?.remove();
+  }
+}
+
+let lastTarget = null;
+
+const busy = (node = lastTarget || document.activeElement, on = true) => paint(regionOf(node), on);
+
+const withBusy = (promise, node = lastTarget || document.activeElement) => {
+  const el = regionOf(node);
+  paint(el, true);
+  return Promise.resolve(promise).finally(() => paint(el, false));
 };
 
-// 站内跳转会整页刷新，先给个提示，别让人以为没反应
+// 站内跳转会整页刷新：先在即将变化的那块区域盖一层，别让人以为没反应
 document.addEventListener("click", (event) => {
-  const link = event.target.closest("a[href]");
-  if (!link || link.target === "_blank" || event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
-  if (link.hasAttribute("download")) return;
-  let url;
-  try {
-    url = new URL(link.href, location.href);
-  } catch {
-    return;
+  const target = event.target.closest("a[href], [data-hide], [data-show], [data-toggle-user], [data-remove-user], [data-drive-del], [data-drive-test], [data-drive-cap], [data-link-del], [data-toggle-link], [data-toggle-soft]");
+  if (!target) return;
+  lastTarget = target;
+  if (target.matches("a[href]")) {
+    if (target.target === "_blank" || event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
+    if (target.hasAttribute("download")) return;
+    let url;
+    try {
+      url = new URL(target.href, location.href);
+    } catch {
+      return;
+    }
+    if (url.origin !== location.origin || url.href === location.href) return;
   }
-  if (url.origin !== location.origin || url.href === location.href) return;
-  busy(true);
+  paint(regionOf(target), true);
 });
-document.addEventListener("submit", () => busy(true), true);
+document.addEventListener("submit", (event) => paint(regionOf(event.target), true), true);
+document.addEventListener("change", (event) => {
+  if (event.target.matches("select[data-role]")) paint(regionOf(event.target), true);
+});
 const isOn = (box) => box?.dataset.on === "1";
 
 const setOn = (box, value) => {

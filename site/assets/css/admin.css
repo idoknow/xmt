@@ -1,4 +1,4 @@
-﻿/* [hidden] 一律不渲染：.a-grid/.a-table/.a-selbar 自带 display，会盖过浏览器默认规则 */
+/* [hidden] 一律不渲染：.a-grid/.a-table/.a-selbar 自带 display，会盖过浏览器默认规则 */
 [hidden] {
   display: none !important;
 }
@@ -1181,22 +1181,38 @@
   .a-links__row { grid-template-columns: 1fr; }
 }
 
-/* ---------- 加载提示 ---------- */
-.a-loading {
-  position: fixed;
-  inset-block-start: 1rem;
-  inset-inline-end: 1rem;
-  z-index: 90;
+/* ---------- 加载提示（就地覆盖，不用右上角浮层） ---------- */
+[data-region] {
+  position: relative;
+}
+
+[data-region][data-busy="1"] {
+  min-height: 3.6rem;
+}
+
+.a-busy {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
-  padding: 0.5rem 0.85rem 0.5rem 0.6rem;
-  border: 1px solid var(--rule);
-  border-radius: 999px;
-  background: var(--paper);
-  box-shadow: 0 8px 20px -14px rgba(20, 19, 27, 0.6);
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
+  backdrop-filter: blur(1.5px);
   font-size: 0.78rem;
   color: var(--ink-soft);
+  animation: a-busy-in 0.18s ease-out;
+}
+
+.a-busy__text {
+  letter-spacing: 0.02em;
+}
+
+@keyframes a-busy-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .a-spin {
@@ -1212,8 +1228,9 @@
   to { transform: rotate(360deg); }
 }
 
-html.is-busy {
-  cursor: progress;
+@media (prefers-reduced-motion: reduce) {
+  .a-busy { animation: none; }
+  .a-spin { animation-duration: 2.2s; }
 }
 
 /* ---------- 列表里的勾选与表头 ---------- */
