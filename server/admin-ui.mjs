@@ -140,8 +140,8 @@ export function adminFilesPage({
     .map((entry) => {
       const kind = entry.isDir ? "dir" : kindOf(entry.name);
       const hiddenFlag = entry.hidden
-        ? '<button class="a-btn a-btn--tiny a-btn--warn" type="button" data-show data-path="${e(entry.path)}" title="让成员/游客重新看到">显示</button>'
-        : '<button class="a-btn a-btn--tiny" type="button" data-hide data-path="${e(entry.path)}" title="从成员/游客的视图里藏起来">隐藏</button>';
+        ? `<button class="a-btn a-btn--tiny a-btn--warn" type="button" data-show data-path="${e(entry.path)}" title="让成员/游客重新看到">显示</button>`
+        : `<button class="a-btn a-btn--tiny" type="button" data-hide data-path="${e(entry.path)}" title="从成员/游客的视图里藏起来">隐藏</button>`;
       const name = entry.isDir
         ? `<a class="a-name a-name--dir" href="/memories/admin/files?drive=${drive.id}&path=${encodeURIComponent(entry.path)}">${e(entry.name)}</a>`
         : `<button class="a-name a-name--file" type="button" data-preview="${e(entry.path)}" data-name="${e(entry.name)}" data-size="${
@@ -183,8 +183,8 @@ const cards = entries
     .map((entry) => {
       const kind = entry.isDir ? "dir" : kindOf(entry.name);
       const hiddenFlag = entry.hidden
-        ? '<button class="a-btn a-btn--tiny a-btn--warn" type="button" data-show data-path="${e(entry.path)}" title="让成员/游客重新看到">显示</button>'
-        : '<button class="a-btn a-btn--tiny" type="button" data-hide data-path="${e(entry.path)}" title="从成员/游客的视图里藏起来">隐藏</button>';
+        ? `<button class="a-btn a-btn--tiny a-btn--warn" type="button" data-show data-path="${e(entry.path)}" title="让成员/游客重新看到">显示</button>`
+        : `<button class="a-btn a-btn--tiny" type="button" data-hide data-path="${e(entry.path)}" title="从成员/游客的视图里藏起来">隐藏</button>`;
       const raw = `/memories/admin/files/raw?drive=${drive.id}&path=${encodeURIComponent(entry.path)}`;
       const thumb =
         kind === "image"

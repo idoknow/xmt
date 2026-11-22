@@ -927,6 +927,35 @@ syncSelection();
 
 /* ---------- 存储 ---------- */
 
+/* 行内操作 */
+async function setHiddenFlag(path, hidden) {
+  await act({ action: hidden ? "hide" : "show", targets: [path] });
+  location.reload();
+}
+
+document.addEventListener("click", async (event) => {
+  const hideBtn = event.target.closest("[data-hide]");
+  if (hideBtn) {
+    event.preventDefault();
+    if (!confirm("隐藏「" + hideBtn.dataset.path + "」？隐藏后成员与游客看不到，目录会连里面的内容一起隐藏。")) return;
+    try {
+      await setHiddenFlag(hideBtn.dataset.path, true);
+    } catch (error) {
+      openDialog({ title: "隐藏失败", body: `<p class="a-hint">${esc(error.message || "请稍后重试")}</p>` });
+    }
+    return;
+  }
+  const showBtn = event.target.closest("[data-show]");
+  if (showBtn) {
+    event.preventDefault();
+    try {
+      await setHiddenFlag(showBtn.dataset.path, false);
+    } catch (error) {
+      openDialog({ title: "显示失败", body: `<p class="a-hint">${esc(error.message || "请稍后重试")}</p>` });
+    }
+  }
+}, true);
+
 const driveForm = $("[data-add-drive]");
 
 if (driveForm) {
@@ -1222,34 +1251,6 @@ if (driveForm) {
 
   $$("[data-dialog-close]", picker || document).forEach((button) => button.addEventListener("click", () => picker?.close()));
 
-  /* 行内操作 */
-  async function setHiddenFlag(path, hidden) {
-    await act({ action: hidden ? "hide" : "show", targets: [path] });
-    location.reload();
-  }
-
-  document.addEventListener("click", async (event) => {
-    const hideBtn = event.target.closest("[data-hide]");
-    if (hideBtn) {
-      event.preventDefault();
-      if (!confirm("隐藏「" + hideBtn.dataset.path + "」？隐藏后成员与游客看不到，目录会连里面的内容一起隐藏。")) return;
-      try {
-        await setHiddenFlag(hideBtn.dataset.path, true);
-      } catch (error) {
-        openDialog({ title: "隐藏失败", body: `<p class="a-hint">${esc(error.message || "请稍后重试")}</p>` });
-      }
-      return;
-    }
-    const showBtn = event.target.closest("[data-show]");
-    if (showBtn) {
-      event.preventDefault();
-      try {
-        await setHiddenFlag(showBtn.dataset.path, false);
-      } catch (error) {
-        openDialog({ title: "显示失败", body: `<p class="a-hint">${esc(error.message || "请稍后重试")}</p>` });
-      }
-    }
-  }, true);
   document.addEventListener("click", (event) => {
     const edit = event.target.closest("[data-drive-edit]");
     if (edit) {
