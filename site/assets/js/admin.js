@@ -18,14 +18,21 @@ const fmt = (bytes) => {
 };
 
 async function api(path, body = null, method = "POST") {
-  const res = await fetch(path, {
-    method,
-    headers: body ? { "content-type": "application/json" } : {},
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok || data.ok === false) throw new Error(data.error || `请求失败（${res.status}）`);
-  return data;
+  // 写操作就把遮罩盖在触发它的那块区域上；读操作（GET）不打扰
+  const region = method === "GET" ? null : regionOf(lastTarget || document.activeElement);
+  if (region) paint(region, true);
+  try {
+    const res = await fetch(path, {
+      method,
+      headers: body ? { "content-type": "application/json" } : {},
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.ok === false) throw new Error(data.error || `请求失败（${res.status}）`);
+    return data;
+  } finally {
+    if (region) paint(region, false);
+  }
 }
 
 const rawUrl = (path, download = false) =>
@@ -130,7 +137,7 @@ function regionOf(node) {
   );
 }
 
-function paint(el, on) {
+function paint(el, on, hold = 0) {
   if (!el) return;
   const next = (counts.get(el) || 0) + (on ? 1 : -1);
   if (next > 0) counts.set(el, next);
@@ -146,7 +153,17 @@ function paint(el, on) {
       node.innerHTML = '<span class="a-spin" aria-hidden="true"></span><span class="a-busy__text">加载中…</span>';
       el.append(node);
     }
+    // 跳转型操作没人来收尾（比如点了链接又取消），到点自己收
+    if (hold) {
+      clearTimeout(el._busyTimer);
+      el._busyTimer = setTimeout(() => {
+        counts.delete(el);
+        delete el.dataset.busy;
+        el.querySelector(":scope > .a-busy")?.remove();
+      }, hold);
+    }
   } else {
+    clearTimeout(el._busyTimer);
     delete el.dataset.busy;
     box?.remove();
   }
@@ -164,25 +181,20 @@ const withBusy = (promise, node = lastTarget || document.activeElement) => {
 
 // 站内跳转会整页刷新：先在即将变化的那块区域盖一层，别让人以为没反应
 document.addEventListener("click", (event) => {
-  const target = event.target.closest("a[href], [data-hide], [data-show], [data-toggle-user], [data-remove-user], [data-drive-del], [data-drive-test], [data-drive-cap], [data-link-del], [data-toggle-link], [data-toggle-soft]");
+  const target = event.target.closest("a[href], [data-hide], [data-show], [data-toggle-user], [data-remove-user], [data-drive-del], [data-drive-test], [data-drive-cap], [data-link-del], [data-toggle-link], [data-toggle-soft], [data-role]");
   if (!target) return;
   lastTarget = target;
-  if (target.matches("a[href]")) {
-    if (target.target === "_blank" || event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
-    if (target.hasAttribute("download")) return;
-    let url;
-    try {
-      url = new URL(target.href, location.href);
-    } catch {
-      return;
-    }
-    if (url.origin !== location.origin || url.href === location.href) return;
+  if (!target.matches("a[href]")) return; // 按钮的遮罩由请求本身负责，见 api()
+  if (target.target === "_blank" || event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
+  if (target.hasAttribute("download")) return;
+  let url;
+  try {
+    url = new URL(target.href, location.href);
+  } catch {
+    return;
   }
-  paint(regionOf(target), true);
-});
-document.addEventListener("submit", (event) => paint(regionOf(event.target), true), true);
-document.addEventListener("change", (event) => {
-  if (event.target.matches("select[data-role]")) paint(regionOf(event.target), true);
+  if (url.origin !== location.origin || url.href === location.href) return;
+  paint(regionOf(target), true, 12000);
 });
 const isOn = (box) => box?.dataset.on === "1";
 
