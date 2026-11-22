@@ -1,4 +1,4 @@
-﻿/* 在线工具页：纸面/墨色令牌沿用 style.css，这里只放这一页用得到的结构与细节。 */
+/* 在线工具页：纸面/墨色令牌沿用 style.css，这里只放这一页用得到的结构与细节。 */
 
 /* ---------- 页头与索引 ---------- */
 
@@ -316,6 +316,7 @@ input[type="range"] {
   font-size: 0.76rem;
   line-height: 1.7;
   color: var(--muted);
+  overflow-wrap: anywhere;
 }
 
 /* ---------- 结果 ---------- */
@@ -406,6 +407,9 @@ input[type="range"] {
 /* ---------- 清单：工具链接 / 常用软件 ---------- */
 
 .page-tools .link-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
   border-top: 1px solid var(--rule);
 }
 
@@ -433,16 +437,22 @@ input[type="range"] {
 }
 
 .page-tools .link-row__name {
+  grid-column: 1;
+  grid-row: 1;
   font-family: var(--serif);
   font-size: 1rem;
+  overflow-wrap: anywhere;
 }
 
 .page-tools .link-row__meta {
-  grid-column: 1;
+  grid-column: 1 / -1;
   grid-row: 2;
+  max-width: none;
   color: var(--muted);
   font-size: 0.78rem;
   line-height: 1.6;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .soft-grid {
@@ -525,6 +535,7 @@ input[type="range"] {
   font-size: 0.79rem;
   line-height: 1.65;
   color: var(--muted);
+  overflow-wrap: anywhere;
 }
 
 .soft__links {

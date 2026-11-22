@@ -944,13 +944,18 @@ html[dir="rtl"] :is(.page-head__lead, .prose p, .prose-lede, .prose-note, .notic
 
 .link-row {
   display: grid;
-  grid-template-columns: 2.6rem minmax(0, 1fr) auto;
+  grid-template-columns: 2.6rem minmax(0, 1fr) minmax(0, auto);
   align-items: baseline;
   gap: 0.5rem 1rem;
   padding-block: 1.05rem;
   border-bottom: 1px solid var(--rule);
   transition: background 0.3s var(--ease), padding-inline 0.35s var(--ease),
     transform 0.4s var(--ease), box-shadow 0.4s var(--ease);
+}
+
+/* 清单里的说明可能很长：允许换行，别把整页撑宽 */
+.link-row > * {
+  min-width: 0;
 }
 
 .link-row:hover {
@@ -971,6 +976,7 @@ html[dir="rtl"] :is(.page-head__lead, .prose p, .prose-lede, .prose-note, .notic
   font-size: 1.0625rem;
   letter-spacing: 0.02em;
   line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .link-row__name small {
@@ -990,7 +996,23 @@ html[dir="rtl"] :is(.page-head__lead, .prose p, .prose-lede, .prose-note, .notic
   display: flex;
   align-items: center;
   gap: 0.55rem;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  max-width: 26rem;
+}
+
+@media (max-width: 720px) {
+  .link-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 0.3rem;
+  }
+
+  .link-row__meta {
+    grid-column: 1 / -1;
+    max-width: none;
+    letter-spacing: 0.06em;
+    line-height: 1.6;
+  }
 }
 
 .link-row--muted .link-row__name {
