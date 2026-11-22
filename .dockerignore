@@ -2,7 +2,6 @@ node_modules/
 .git/
 .tmp/
 site/
-scripts/
 deploy/
 dist/*.map
 *.log
