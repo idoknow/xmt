@@ -246,7 +246,8 @@ function pageGallery(req, res, url) {
     q: url.searchParams.get("q") || "",
     sort: url.searchParams.get("sort") || "new",
   };
-  const excludeHidden = !isAdmin(user);
+  // 隐藏对所有人生效（管理员在后台仍能看到并恢复）
+  const excludeHidden = true;
   const admin = isAdmin(user);
   const items = queryMedia({ ...query, excludeHidden }).map((item) =>
     admin ? { ...item, is_hidden: isHidden(item.drive_id, item.path) } : item,
@@ -266,7 +267,7 @@ function pageDetail(req, res, id) {
     Number(id),
   );
   if (!item) return html(res, 404, loginPage({ site: siteOf(), error: "这张图不在了" }));
-  if (!isAdmin(user) && isHidden(item.drive_id, item.path)) {
+  if (isHidden(item.drive_id, item.path)) {
     return html(res, 404, loginPage({ site: siteOf(), error: "这张图不在了" }));
   }
   if (isAdmin(user)) item.is_hidden = isHidden(item.drive_id, item.path);
@@ -279,7 +280,7 @@ function pageMy(req, res) {
   const user = currentUser(req);
   if (!user) return redirect(res, "/memories/login");
   userFolder(user);
-  const items = queryMedia({ owner: user.id, excludeHidden: !isAdmin(user) });
+  const items = queryMedia({ owner: user.id, excludeHidden: true });
   const drives = all("SELECT * FROM drives WHERE enabled = 1 ORDER BY id");
   html(res, 200, myPage({ site: siteOf(), user, items, folder: user.drive_root, drives }));
 }
@@ -803,7 +804,7 @@ const server = http.createServer(async (req, res) => {
       const item = get("SELECT * FROM media WHERE id = ?", Number(pathname.slice("/memories/f/".length)));
       if (!item) return send(res, 404, "Not Found");
       const viewer = currentUser(req);
-      if (!isAdmin(viewer) && isHidden(item.drive_id, item.path)) return send(res, 404, "Not Found");
+      if (isHidden(item.drive_id, item.path)) return send(res, 404, "Not Found");
       const wantDownload = url.searchParams.get("download") === "1";
       return streamMedia(req, res, item, { download: wantDownload, shareAllows: Boolean(viewer) || !wantDownload });
     }

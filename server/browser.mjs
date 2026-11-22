@@ -15,8 +15,9 @@ function visibleDrives(user) {
   );
 }
 
+// 隐藏对所有人（含管理员）生效：前台/媒体库看不到，后台仍然看得到并能恢复。
 function hiddenFor(drive, user) {
-  return isAdmin(user) ? [] : hiddenPrefixes(drive.id);
+  return hiddenPrefixes(drive.id);
 }
 
 function isHiddenPath(prefixes, target) {
@@ -90,6 +91,8 @@ export async function pageBrowser(req, res, url) {
   }
   const area = publicFor(drive, user);
   if (currentPath !== "/" && isOutside(area, currentPath)) return deny("这个目录没有开放。");
+  // 隐藏目录对所有人（含管理员）都当作不存在，避免直接猜路径打开
+  if (currentPath !== "/" && isHiddenPath(hiddenFor(drive, user), currentPath)) return deny("这个目录没有开放。");
 
   html(
     res,
@@ -124,6 +127,9 @@ export async function filesList(req, res, url) {
   }
   const area = publicFor(drive, user);
   if (currentPath !== "/" && isOutside(area, currentPath)) return sendJson(res, 403, { ok: false, error: "这个目录没有开放" });
+  if (currentPath !== "/" && isHiddenPath(hiddenFor(drive, user), currentPath)) {
+    return sendJson(res, 404, { ok: false, error: "这个目录没有开放" });
+  }
 
   try {
     const entries = await listEntries(drive, user, currentPath);
