@@ -50,6 +50,7 @@ import { fileAction, fileInfo, fileInfoOf, fileUpload, handleAdmin } from "./adm
 import { filesList, pageBrowser, rawBrowser } from "./browser.mjs";
 import { handleUploads } from "./uploads.mjs";
 import { handleToolsAdmin, toolsDataHandler } from "./tools.mjs";
+import { handleShareLinksAdmin, linksPage } from "./share-links.mjs";
 import { streamPath } from "./filestream.mjs";
 
 bootstrap(config.adminQQ);
@@ -775,6 +776,12 @@ const server = http.createServer(async (req, res) => {
     }
     if (pathname === "/memories/admin/tools" || pathname === "/memories/admin/software") {
       return await handleToolsAdmin(req, res, url);
+    }
+    if (pathname === "/memories/admin/links" || pathname.startsWith("/memories/api/links")) {
+      return await handleShareLinksAdmin(req, res, url);
+    }
+    if (pathname === "/memories/links") {
+      return html(res, 200, linksPage({ site: siteOf(), user: currentUser(req) }));
     }
     if (pathname.startsWith("/memories/admin")) return handleAdmin(req, res, url);
     if (pathname.startsWith("/memories/a/")) return pageDetail(req, res, pathname.slice("/memories/a/".length));

@@ -30,6 +30,7 @@ const NAV = [
   { key: "storages", label: "存储", href: "/memories/admin/storages", hint: "挂载与驱动配置" },
   { key: "users", label: "成员", href: "/memories/admin/users", hint: "QQ 与权限" },
   { key: "tools", label: "在线工具", href: "/memories/admin/tools", hint: "前台工具页的链接清单" },
+  { key: "links", label: "分享链接", href: "/memories/admin/links", hint: "资料库链接与提取码" },
   { key: "software", label: "软件", href: "/memories/admin/software", hint: "软件下载与线路" },
   { key: "settings", label: "设置", href: "/memories/admin/settings", hint: "站点与登录" },
 ];

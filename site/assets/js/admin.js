@@ -1389,3 +1389,78 @@ if (settingsForm) {
     }
   });
 }
+
+/* ---------- 分享链接 ---------- */
+
+const linkForm = $("[data-link-form]");
+if (linkForm) {
+  const dataEl = document.getElementById("links-data");
+  const rows = dataEl ? JSON.parse(dataEl.textContent || "[]") : [];
+  const cancelButton = $("[data-link-cancel]");
+  const submitButton = $("[data-link-submit]");
+
+  const resetForm = () => {
+    linkForm.reset();
+    linkForm.elements.id.value = "";
+    linkForm.elements.sort_order.value = "0";
+    submitButton.textContent = "添加链接";
+    cancelButton.hidden = true;
+  };
+
+  linkForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const data = new FormData(linkForm);
+    const body = {
+      title: String(data.get("title") || "").trim(),
+      url: String(data.get("url") || "").trim(),
+      code: String(data.get("code") || "").trim(),
+      note: String(data.get("note") || "").trim(),
+      sort_order: Number(data.get("sort_order")) || 0,
+    };
+    const id = String(data.get("id") || "").trim();
+    if (id) body.id = Number(id);
+    try {
+      submitButton.disabled = true;
+      await api("/memories/api/links", body);
+      location.reload();
+    } catch (error) {
+      alert(error.message);
+      submitButton.disabled = false;
+    }
+  });
+
+  cancelButton.addEventListener("click", resetForm);
+
+  document.addEventListener("click", async (event) => {
+    const edit = event.target.closest("[data-link-edit]");
+    if (edit) {
+      const row = rows.find((item) => String(item.id) === edit.dataset.linkEdit);
+      if (!row) return;
+      linkForm.elements.id.value = row.id;
+      linkForm.elements.title.value = row.title || "";
+      linkForm.elements.url.value = row.url || "";
+      linkForm.elements.code.value = row.code || "";
+      linkForm.elements.note.value = row.note || "";
+      linkForm.elements.sort_order.value = row.sort_order ?? 0;
+      submitButton.textContent = "保存修改";
+      cancelButton.hidden = false;
+      linkForm.scrollIntoView({ behavior: "smooth", block: "start" });
+      linkForm.elements.title.focus();
+      return;
+    }
+
+    const del = event.target.closest("[data-link-del]");
+    if (!del) return;
+    const row = rows.find((item) => String(item.id) === del.dataset.linkDel);
+    const name = row?.title || del.dataset.linkDel;
+    if (!confirm("删除分享链接「" + name + "」？")) return;
+    del.disabled = true;
+    try {
+      await api("/memories/api/links/" + encodeURIComponent(del.dataset.linkDel), {}, "DELETE");
+      location.reload();
+    } catch (error) {
+      alert(error.message);
+      del.disabled = false;
+    }
+  });
+}

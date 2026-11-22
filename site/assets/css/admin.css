@@ -1957,3 +1957,33 @@ html.is-busy {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* ---------- 分享链接 ---------- */
+
+.a-form__grid--links {
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 2.4fr) minmax(0, 0.8fr) minmax(0, 1.6fr) minmax(0, 0.55fr);
+}
+
+.a-links__title {
+  min-width: 13.5rem;
+}
+
+.a-links__url a {
+  display: block;
+  max-width: 17rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .a-form__grid--links {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .a-links__url a {
+    max-width: none;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}

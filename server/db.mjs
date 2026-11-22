@@ -132,6 +132,16 @@ CREATE TABLE IF NOT EXISTS tool_links (
   created_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS share_links (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  title      TEXT NOT NULL,
+  url        TEXT NOT NULL,
+  code       TEXT NOT NULL DEFAULT '',
+  note       TEXT NOT NULL DEFAULT '',
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS software (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
   name       TEXT NOT NULL,

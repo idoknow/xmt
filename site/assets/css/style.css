@@ -1189,6 +1189,24 @@ html[dir="rtl"] :is(.page-head__lead, .prose p, .prose-lede, .prose-note, .notic
   color: var(--faint);
 }
 
+.footer__words {
+  display: grid;
+  gap: 0.55rem;
+  max-width: 46em;
+}
+
+.footer__quote {
+  font-family: var(--serif);
+  font-size: clamp(0.95rem, 1.5vw, 1.1rem);
+  line-height: 1.7;
+  color: var(--ink-soft);
+  letter-spacing: 0.01em;
+}
+
+.footer__quote + .footer__quote {
+  color: var(--muted);
+}
+
 .footer__line {
   margin: 0;
   max-width: 40em;
@@ -1260,14 +1278,39 @@ html[dir="rtl"] :is(.page-head__lead, .prose p, .prose-lede, .prose-note, .notic
   color: var(--faint);
 }
 
-.footer__icp {
-  color: var(--faint);
-  border-bottom: 1px solid transparent;
+.footer__copy {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  color: var(--muted);
 }
 
-.footer__icp:hover {
-  color: var(--ink-soft);
-  border-bottom-color: var(--rule-strong);
+.footer__icp {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  padding: 0.18rem 0.6rem;
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  transition: color 0.25s var(--ease), border-color 0.25s var(--ease);
+}
+
+.footer__icp:hover,
+.footer__icp:focus-visible {
+  color: var(--vermilion);
+  border-color: color-mix(in srgb, var(--vermilion) 45%, transparent);
+}
+
+.footer__icp-dot {
+  width: 0.34rem;
+  height: 0.34rem;
+  border-radius: 50%;
+  background: var(--vermilion);
+  opacity: 0.75;
 }
 
 .footer__up {
