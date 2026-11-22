@@ -44,7 +44,7 @@ import {
   sendFile,
   sendJson,
 } from "./util.mjs";
-import { detailPage, driveFieldSpecs, fmtSize, galleryPage, loginPage, myPage, shareFilePage, sharePage, shell, assetVersion } from "./ui.mjs";
+import { detailPage, driveFieldSpecs, fmtSize, galleryPage, loginPage, myPage, shareFilePage, sharePage, shell, siteShell, assetVersion } from "./ui.mjs";
 import { handleImages, imagePage, imageTotal } from "./images.mjs";
 import { fileAction, fileInfo, fileInfoOf, fileUpload, handleAdmin } from "./admin.mjs";
 import { filesList, pageBrowser, rawBrowser } from "./browser.mjs";
@@ -693,10 +693,10 @@ const server = http.createServer(async (req, res) => {
       return html(
         res,
         200,
-        shell({
+        siteShell({
           title: "图床",
-          site,
-          user: viewer,
+          current: "image",
+          description: "在自己的浏览器里转格式、压体积、改尺寸、加文字，上传后一键复制链接、Markdown、HTML。",
           bodyClass: "page-image",
           head: `<link rel="stylesheet" href="/assets/css/image.css?v=${assetVersion()}" />`,
           scripts: `<script src="/assets/js/image.js?v=${assetVersion()}" defer></script>`,

@@ -142,6 +142,125 @@ ${scripts}
 </html>`;
 }
 
+/* ---------- 站点外壳（与静态页同一套页头/页脚，给服务端渲染的站点页面用） ---------- */
+
+const THEME_BOOT = `<script>
+  (function () {
+    try {
+      var theme = localStorage.getItem("xmt-theme") || "system";
+      if (theme !== "system") document.documentElement.dataset.theme = theme;
+      var dark = theme === "dark" || (theme === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute("content", dark ? "#14131b" : "#f6f3ec");
+    } catch (error) {}
+  })();
+</script>`;
+
+const SITE_FOOT = `<footer class="footer" id="footer">
+  <div class="wrap">
+    <div class="footer__lead">
+      <div class="footer__brand">
+        <img src="/assets/img/school-emblem-336.webp" alt="桂林中学校徽" width="336" height="336" decoding="async" />
+        <div class="footer__id">
+          <strong>桂林中学新媒体</strong>
+          <span>XMT · Guilin Middle School</span>
+        </div>
+      </div>
+      <div class="footer__words">
+        <p class="footer__quote">最普通的街景，只要按下快门的那一刻是真诚的，它就是杰作。</p>
+        <p class="footer__quote">百年学府，风华正茂。桂中的校园藏着许多美好的点点滴滴。</p>
+      </div>
+    </div>
+
+    <div class="footer__cols">
+      <nav class="footer__col" aria-label="页脚 · 站点">
+        <h2>站点</h2>
+        <ul>
+          <li><a href="/">首页</a></li>
+          <li><a href="/tools">在线工具</a></li>
+          <li><a href="/image">图床</a></li>
+        </ul>
+      </nav>
+      <nav class="footer__col" aria-label="页脚 · 媒体库">
+        <h2>媒体库</h2>
+        <ul>
+          <li><a href="/memories">全部媒体</a></li>
+          <li><a href="/memories/links">分享链接</a></li>
+          <li><a href="/memories?sort=new">最近上传</a></li>
+        </ul>
+      </nav>
+      <div class="footer__col">
+        <h2>联系</h2>
+        <ul>
+          <li><a href="https://v.douyin.com/WQSM2axNI2Q/" target="_blank" rel="noopener noreferrer">抖音 · glzx1905</a></li>
+          <li><a href="https://v.douyin.com/4z7HjqtwpTk/" target="_blank" rel="noopener noreferrer">抖音 · Life 摄影社</a></li>
+          <li><a href="https://user.qzone.qq.com/3020148211" target="_blank" rel="noopener noreferrer">QQ 空间 · 时光驿客</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer__base">
+      <span class="footer__copy">© <span data-year>2026</span> 桂林中学新媒体</span>
+      <a class="footer__icp" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">
+        <span class="footer__icp-dot" aria-hidden="true"></span>
+        桂ICP备2020008331号-1
+      </a>
+      <a class="footer__up" href="#top">回到顶部 ↑</a>
+    </div>
+  </div>
+</footer>`;
+
+const SITE_NAV = [
+  { href: "/", label: "首页", key: "home" },
+  { href: "/tools", label: "工具", key: "tools" },
+  { href: "/image", label: "图床", key: "image" },
+  { href: "/memories", label: "媒体库", key: "memories" },
+];
+
+export function siteShell({ title, body, current = "", scripts = "", head = "", bodyClass = "", description = "" }) {
+  const nav = SITE_NAV.map(
+    (item) => `<a href="${item.href}"${item.key === current ? ' aria-current="page"' : ""}>${item.label}</a>`,
+  ).join("\n          ");
+
+  return `<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>${e(title)} · 桂林中学新媒体</title>
+<meta name="description" content="${e(description)}" />
+<meta name="theme-color" content="#f6f3ec" />
+${THEME_BOOT}
+<link rel="icon" href="/assets/img/school-emblem-336.webp" type="image/webp" />
+<link rel="preload" href="/assets/fonts/newsreader-latin.woff2" as="font" type="font/woff2" crossorigin />
+<link rel="stylesheet" href="/assets/css/style.css?v=${assetVersion()}" />
+${head}
+</head>
+<body id="top"${bodyClass ? ` class="${bodyClass}"` : ""}>
+<a class="skip" href="#main">跳到正文</a>
+<header class="masthead">
+  <div class="wrap masthead__inner">
+    <a class="brand" href="/">
+      <img class="brand__mark" src="/assets/img/school-emblem-336.webp" width="336" height="336" alt="桂林中学校徽" decoding="async" />
+      <span class="brand__text">
+        <span class="brand__name">桂林中学新媒体</span>
+        <span class="brand__sub">XMT · Guilin Middle School</span>
+      </span>
+    </a>
+    <nav class="nav" aria-label="主导航">
+      ${nav}
+    </nav>
+    <div class="tools"></div>
+  </div>
+</header>
+<main id="main">${body}</main>
+${SITE_FOOT}
+<script src="/assets/js/site.js?v=${assetVersion()}" type="module"></script>
+${scripts}
+</body>
+</html>`;
+}
+
 /* ---------- 画廊 ---------- */
 
 const card = (item) => {
