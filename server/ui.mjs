@@ -131,6 +131,7 @@ ${head}
   <div class="m-foot__inner">
     <span>${e(site.title || "Memories")} — 桂林中学新媒体</span>
     <span class="m-foot__meta">
+      <a class="m-foot__icp" href="/about">关于</a>
       ${site.icp ? `<a class="m-foot__icp" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">${e(site.icp)}</a>` : ""}
       <span>${year} · 学生维护</span>
     </span>
@@ -179,6 +180,7 @@ const SITE_FOOT = `<footer class="footer" id="footer">
           <li><a href="/">首页</a></li>
           <li><a href="/tools">在线工具</a></li>
           <li><a href="/image">图床</a></li>
+          <li><a href="/about">关于</a></li>
         </ul>
       </nav>
       <nav class="footer__col" aria-label="页脚 · 媒体库">

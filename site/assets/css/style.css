@@ -1351,6 +1351,38 @@ html[dir="rtl"] :is(.page-head__lead, .prose p, .prose-lede, .prose-note, .notic
   max-width: var(--measure);
 }
 
+/* 关于页：宽屏两栏，标题在左、正文在右，标题随滚动吸顶 */
+@media (min-width: 900px) {
+  .page-about .section > .wrap {
+    display: grid;
+    grid-template-columns: minmax(0, 20rem) minmax(0, 1fr);
+    gap: 2.6rem;
+    align-items: start;
+  }
+
+  .page-about .section__head {
+    position: sticky;
+    inset-block-start: 1.4rem;
+  }
+
+  .page-about .section__title {
+    text-wrap: balance;
+  }
+
+  .page-about .prose {
+    max-width: 38rem;
+  }
+}
+
+.page-about .prose code {
+  font-family: var(--mono);
+  font-size: 0.86em;
+  padding: 0.1em 0.34em;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--ink) 7%, transparent);
+  overflow-wrap: anywhere;
+}
+
 .prose h2 {
   font-family: var(--serif);
   font-weight: 500;

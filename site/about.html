@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>关于 — 桂林中学新媒体</title>
+    <meta name="description" content="这个站为什么存在、谁在用、代码放在哪、按什么许可开源。" />
+    <link rel="icon" href="/assets/img/school-emblem-336.webp" type="image/webp" />
+    <link rel="preload" href="/assets/fonts/newsreader-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="/assets/css/style.css" />
+    <meta name="theme-color" content="#f6f3ec" />
+  </head>
+  <body class="page-about" id="top">
+    <header class="masthead">
+      <div class="wrap masthead__inner">
+        <a class="brand" href="/">
+          <img class="brand__mark" src="/assets/img/school-emblem-336.webp" width="336" height="336" alt="桂林中学校徽" decoding="async" />
+          <span class="brand__text">
+            <span class="brand__name">桂林中学新媒体</span>
+            <span class="brand__sub">XMT · Guilin Middle School</span>
+          </span>
+        </a>
+        <nav class="nav" aria-label="主导航">
+          <a href="/">首页</a>
+          <a href="/tools">工具</a>
+          <a href="/image">图床</a>
+          <a href="/memories">媒体库</a>
+        </nav>
+        <div class="tools"></div>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="page-head">
+        <div class="wrap">
+          <p class="eyebrow">About</p>
+          <h1>关于</h1>
+          <p class="page-head__lead">
+            一个学校、三个组织，和一个把影像留下来的地方。这一页讲它为什么存在，以及它是怎么做出来的。
+          </p>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="wrap">
+          <header class="section__head">
+            <div>
+              <p class="eyebrow">01 / 为什么做</p>
+              <h2 class="section__title">影像会散，档案不会</h2>
+            </div>
+          </header>
+
+          <div class="prose">
+            <p class="prose-lede">
+              一场运动会、一次社团招新、一个下午的光，拍下来的时候都在，过两年就散在群聊、云盘链接和各自的手机里了。
+            </p>
+            <p>
+              这个站做的事很简单：把学校的活动影像、社团作品和可复用的素材收在一起，按类归档，给每一份留下出处与时间。它不追即时新闻，也不做热搜——新闻会过期，档案不会。
+            </p>
+            <p>
+              对参与的人来说，这是把「我们做过什么」写下来的地方；对还没参与的人来说，这是了解这所学校在发生什么的入口；对很多年以后的人来说，这是一份还能打开的东西。
+            </p>
+            <p class="prose-note">
+              站点由学生维护，内容以归档为主。照片和视频的版权属于拍摄者与所在组织。
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="wrap">
+          <header class="section__head">
+            <div>
+              <p class="eyebrow">02 / 谁在用</p>
+              <h2 class="section__title">三种身份，三种权限</h2>
+            </div>
+          </header>
+
+          <div class="prose">
+            <ul>
+              <li><strong>游客</strong>：可以看全部公开内容，不需要登录；也可以用只读 WebDAV 挂到自己的设备上浏览。</li>
+              <li><strong>成员</strong>：用校园墙账号登录后上传照片和视频，文件放在自己的文件夹里——能改名、移动、删除的只有自己上传的那些。</li>
+              <li><strong>管理员</strong>：管成员、管存储（本地、WebDAV、移动云盘）、管分享链接；上传不限文件类型。</li>
+            </ul>
+            <p class="prose-note">
+              账号不开放注册，只能由管理员按 QQ 号手动添加；没被加进来的账号登录会被拒绝。
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="wrap">
+          <header class="section__head">
+            <div>
+              <p class="eyebrow">03 / 开源</p>
+              <h2 class="section__title">代码是开源的</h2>
+            </div>
+          </header>
+
+          <div class="prose">
+            <p>
+              整站代码在 GitHub 上公开：
+              <a href="https://github.com/idoknow/xmt" target="_blank" rel="noopener noreferrer">github.com/idoknow/xmt</a>。
+              发现问题、想补一段文案或加一个社团，都可以提 issue 或直接提交 pull request。
+            </p>
+            <ul>
+              <li><strong>前端</strong>：纯静态多页站，原生 HTML、一份 CSS、一份 JS，没有框架、没有构建期依赖；图片在构建时重新压过一遍，页面按内容指纹做长缓存。</li>
+              <li><strong>服务端</strong>：Node 原生 <code>http</code> 模块 + <code>node:sqlite</code>，零第三方依赖，同一个进程提供媒体库（<code>/memories</code>）、图床（<code>/image</code>）与只读 WebDAV。</li>
+              <li><strong>部署</strong>：GitHub Actions 构建静态产物并打镜像推送到 GHCR，再滚动更新到香港节点的 k3s 集群；域名与证书走 Cloudflare。</li>
+              <li><strong>登录</strong>：复用校园墙的 OAuth（PKCE），按 QQ 号判定身份，不另存密码。</li>
+            </ul>
+            <p>
+              代码按 <strong>MIT 许可</strong>开源，可以自由使用、修改与再分发。学校校徽、社团标识、站内照片与视频<strong>不</strong>在 MIT 授权范围内，版权归学校与各社团所有，转载前请先联系。
+            </p>
+            <p class="prose-note">
+              仓库里还有构建脚本（<code>scripts/build.mjs</code>）、本地预览（<code>scripts/serve.mjs</code>）与 k8s 清单（<code>deploy/</code>），照着 README 可以在自己的机器上跑起来。
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="wrap">
+          <header class="section__head">
+            <div>
+              <p class="eyebrow">04 / 联系</p>
+              <h2 class="section__title">怎么找到我们</h2>
+            </div>
+          </header>
+
+          <div class="prose">
+            <p>
+              投稿、纠错、想要某场活动的原片，可以从这几个地方来：
+              <a href="https://v.douyin.com/WQSM2axNI2Q/" target="_blank" rel="noopener noreferrer">学校抖音</a>、
+              <a href="https://v.douyin.com/4z7HjqtwpTk/" target="_blank" rel="noopener noreferrer">Life 摄影社抖音</a>、
+              <a href="https://user.qzone.qq.com/3020148211" target="_blank" rel="noopener noreferrer">时光驿客 QQ 空间</a>，
+              或者直接在
+              <a href="https://github.com/idoknow/xmt/issues" target="_blank" rel="noopener noreferrer">仓库提一个 issue</a>。
+            </p>
+            <p class="prose-note">
+              下载与分享：媒体库里的每个文件都能生成分享链接，带提取码的那种适合发到群里。
+            </p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer" id="footer">
+      <div class="wrap">
+        <div class="footer__lead">
+          <div class="footer__brand">
+            <img src="/assets/img/school-emblem-336.webp" alt="桂林中学校徽" width="336" height="336" decoding="async" />
+            <div class="footer__id">
+              <strong>桂林中学新媒体</strong>
+              <span>XMT · Guilin Middle School</span>
+            </div>
+          </div>
+          <div class="footer__words">
+            <p class="footer__quote">最普通的街景，只要按下快门的那一刻是真诚的，它就是杰作。</p>
+            <p class="footer__quote">百年学府，风华正茂。桂中的校园藏着许多美好的点点滴滴。</p>
+          </div>
+        </div>
+
+        <div class="footer__cols">
+          <nav class="footer__col" aria-label="页脚 · 站点">
+            <h2>站点</h2>
+            <ul>
+              <li><a href="/">首页</a></li>
+              <li><a href="/tools">在线工具</a></li>
+              <li><a href="/image">图床</a></li>
+              <li><a href="/about" aria-current="page">关于</a></li>
+            </ul>
+          </nav>
+          <nav class="footer__col" aria-label="页脚 · 媒体库">
+            <h2>媒体库</h2>
+            <ul>
+              <li><a href="/memories">全部媒体</a></li>
+              <li><a href="/memories/links">分享链接</a></li>
+              <li><a href="/memories?sort=new">最近上传</a></li>
+            </ul>
+          </nav>
+          <div class="footer__col">
+            <h2>联系</h2>
+            <ul>
+              <li><a href="https://v.douyin.com/WQSM2axNI2Q/" target="_blank" rel="noopener noreferrer">抖音 · glzx1905</a></li>
+              <li><a href="https://v.douyin.com/4z7HjqtwpTk/" target="_blank" rel="noopener noreferrer">抖音 · Life 摄影社</a></li>
+              <li><a href="https://user.qzone.qq.com/3020148211" target="_blank" rel="noopener noreferrer">QQ 空间 · 时光驿客</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="footer__base">
+          <span class="footer__copy">© <span data-year>2026</span> 桂林中学新媒体</span>
+          <a class="footer__icp" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">
+            <span class="footer__icp-dot" aria-hidden="true"></span>
+            桂ICP备2020008331号-1
+          </a>
+          <a class="footer__up" href="#top">回到顶部 ↑</a>
+        </div>
+      </div>
+    </footer>
+
+    <script src="/assets/js/site.js" type="module"></script>
+  </body>
+</html>
