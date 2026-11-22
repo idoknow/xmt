@@ -488,9 +488,79 @@
     }
   }
 
+  /* ---------- 二维码放大 ---------- */
+
+  const mountZoom = () => {
+    const targets = [...document.querySelectorAll(".acc-qr img")];
+    if (!targets.length) return;
+
+    const box = document.createElement("div");
+    box.className = "lightbox";
+    box.hidden = true;
+    box.setAttribute("role", "dialog");
+    box.setAttribute("aria-modal", "true");
+    box.setAttribute("aria-label", "二维码大图");
+    box.innerHTML = `
+      <button class="lightbox__close" type="button" aria-label="关闭">
+        <svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true"><path d="M1 1l12 12M13 1L1 13" fill="none" stroke="currentColor" stroke-width="1.3" /></svg>
+      </button>
+      <figure class="lightbox__figure">
+        <img alt="" decoding="async" />
+        <figcaption class="lightbox__cap"></figcaption>
+      </figure>`;
+    document.body.append(box);
+
+    const image = box.querySelector("img");
+    const cap = box.querySelector(".lightbox__cap");
+    const closeBtn = box.querySelector(".lightbox__close");
+    let last = null;
+
+    const close = () => {
+      if (box.hidden) return;
+      box.hidden = true;
+      document.documentElement.classList.remove("is-zoomed");
+      if (last) last.focus({ preventScroll: true });
+    };
+
+    const open = (img) => {
+      last = img.dataset.trigger === "self" ? img : img.closest(".acc-qr").querySelector("figcaption") || img;
+      image.src = img.currentSrc || img.src;
+      image.alt = img.alt || "";
+      image.width = img.naturalWidth || img.width;
+      image.height = img.naturalHeight || img.height;
+      cap.textContent = img.alt || "";
+      box.hidden = false;
+      document.documentElement.classList.add("is-zoomed");
+      closeBtn.focus({ preventScroll: true });
+    };
+
+    for (const img of targets) {
+      img.dataset.trigger = "self";
+      img.setAttribute("tabindex", "0");
+      img.setAttribute("role", "button");
+      img.setAttribute("aria-label", `${img.alt || "二维码"}，点按放大`);
+      img.addEventListener("click", () => open(img));
+      img.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          open(img);
+        }
+      });
+    }
+
+    box.addEventListener("click", (event) => {
+      if (event.target === box) close();
+    });
+    closeBtn.addEventListener("click", close);
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") close();
+    });
+  };
+
   /* ---------- 启动 ---------- */
 
   mountTools();
+  mountZoom();
   applyTheme();
   setLanguage(current, true);
 })();
