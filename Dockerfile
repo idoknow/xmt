@@ -12,6 +12,7 @@ ENV NODE_ENV=production \
     DIST_DIR=/app/dist
 
 COPY server ./server
+COPY scripts ./scripts
 COPY dist ./dist
 COPY package.json ./
 
