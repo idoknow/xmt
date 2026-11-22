@@ -45,14 +45,6 @@ export const PROVIDERS = {
       ],
     },
   },
-  tc360: {
-    name: "360 图床",
-    hint: "上游接口暂时不可用",
-    offline: true,
-    endpoint: "https://api.xinyew.cn/api/360tc",
-    field: "file",
-    max: 8 * 1024 * 1024,
-  },
   sogotc: {
     name: "搜狗图床",
     hint: "外链需 no-referrer（本站预览已处理）",
@@ -61,14 +53,6 @@ export const PROVIDERS = {
     max: 8 * 1024 * 1024,
     referrer: "never",
     secure: true,
-  },
-  psbctc: {
-    name: "中国邮政图床",
-    hint: "上游接口暂时不可用",
-    offline: true,
-    endpoint: "https://api.xinyew.cn/api/psbctc",
-    field: "file",
-    max: 2 * 1024 * 1024,
   },
 };
 
@@ -181,7 +165,7 @@ export function imagePage({ site, user, total }) {
   const chips = Object.entries(PROVIDERS)
     .map(
       ([key, item], index) =>
-        `<button class="im-provider${index === 0 ? " is-on" : ""}${item.offline ? " is-off" : ""}" type="button" data-provider="${key}"${item.offline ? ' data-offline="1" aria-disabled="true"' : ""}>
+        `<button class="im-provider${index === 0 ? " is-on" : ""}" type="button" data-provider="${key}">
           <strong>${e(item.name)}</strong><small>${e(item.hint)}</small>
         </button>`,
     )
@@ -206,6 +190,17 @@ export function imagePage({ site, user, total }) {
 <section class="section" style="border-top:0">
   <div class="wrap">
     <div class="im-providers">${chips}</div>
+
+    <div class="im-drop" data-drop>
+      <input type="file" accept="image/*" multiple hidden data-file />
+      <div class="im-drop__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m0 0 4 4m-4-4L8 8"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+      </div>
+      <p class="im-drop__text">拖图片到这里，或者 <button class="im-link" type="button" data-pick>选文件</button></p>
+      <p class="im-drop__hint" data-hint>单张最大 20 MB，支持 jpg / png / webp / gif</p>
+      <div class="im-bar" data-bar hidden><i data-bar-fill></i></div>
+      <p class="im-status" data-status></p>
+    </div>
 
     <div class="im-opts" data-opts hidden>
       <div class="im-opt">
@@ -256,19 +251,8 @@ export function imagePage({ site, user, total }) {
           </ul>
         </div>
       </div>
-      <p class="im-opts__hint">这三项只对失控图床生效；其他图床不支持选参数。</p>
+      <p class="im-opts__hint">这三项只在失控图床生效。</p>
     </div>
-    </div>
-
-    <div class="im-drop" data-drop>
-      <input type="file" accept="image/*" multiple hidden data-file />
-      <div class="im-drop__icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m0 0 4 4m-4-4L8 8"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
-      </div>
-      <p class="im-drop__text">拖图片到这里，或者 <button class="im-link" type="button" data-pick>选文件</button></p>
-      <p class="im-drop__hint" data-hint>单张最大 20 MB，支持 jpg / png / webp / gif</p>
-      <div class="im-bar" data-bar hidden><i data-bar-fill></i></div>
-      <p class="im-status" data-status></p>
     </div>
 
     <div class="im-results" data-results></div>
@@ -320,9 +304,6 @@ export async function handleImages(req, res, url, user) {
     if (!file) throw Object.assign(new Error("没有收到文件"), { status: 400 });
     const provider = String(uploaded.fields.provider || "scdn");
     if (!PROVIDERS[provider]) throw Object.assign(new Error("未知的图床"), { status: 400 });
-    if (PROVIDERS[provider].offline) {
-      throw Object.assign(new Error(`${PROVIDERS[provider].name}的上游接口暂时不可用（对方返回“未找到图片链接”），换一个图床试试`), { status: 503 });
-    }
     if (file.size > PROVIDERS[provider].max) {
       fs.rmSync(file.path, { force: true });
       throw Object.assign(new Error(`这套图床单张不能超过 ${fmtSize(PROVIDERS[provider].max)}`), { status: 413 });
