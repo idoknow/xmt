@@ -322,7 +322,7 @@
             <header class="tool__head">
               <span class="tool__no">05</span>
               <h2>图片放大</h2>
-              <p>把图片放大到更大的尺寸：按倍数，或直接填目标宽高。放大是插值补像素，细节不会凭空变多。</p>
+              <p>把图片体积撑到指定大小（补零填充，画面不变），或者把分辨率放大若干倍。</p>
             </header>
             <div class="tool__body">
               <label class="tool__drop">
@@ -336,11 +336,23 @@
                 <label class="field">
                   <span class="field__label">放大方式</span>
                   <select class="field__input" data-opt="enlarge.mode">
-                    <option value="times">按倍数</option>
-                    <option value="pixel">按像素</option>
+                    <option value="size" selected>补到指定体积</option>
+                    <option value="times">按倍数放大分辨率</option>
+                    <option value="pixel">按目标宽高放大</option>
                   </select>
                 </label>
-                <label class="field" data-show-times>
+                <label class="field" data-show-size>
+                  <span class="field__label">目标体积</span>
+                  <span class="field__row">
+                    <input type="number" min="1" step="1" value="10" data-opt="enlarge.target" class="field__input" aria-label="目标体积" />
+                    <select class="field__input" data-opt="enlarge.unit" aria-label="单位">
+                      <option value="KB">KB</option>
+                      <option value="MB" selected>MB</option>
+                      <option value="GB">GB</option>
+                    </select>
+                  </span>
+                </label>
+                <label class="field" data-show-times hidden>
                   <span class="field__label">倍数</span>
                   <select class="field__input" data-opt="enlarge.times">
                     <option value="1.5">1.5 倍</option>
@@ -356,7 +368,7 @@
                     <input type="number" min="1" step="1" data-opt="enlarge.height" class="field__input" aria-label="目标高" />
                   </span>
                 </label>
-                <label class="field">
+                <label class="field" data-show-res hidden>
                   <span class="field__label">插值质量</span>
                   <select class="field__input" data-opt="enlarge.smooth">
                     <option value="high" selected>高 · 更顺</option>
@@ -364,7 +376,7 @@
                     <option value="low">低 · 更锐</option>
                   </select>
                 </label>
-                <label class="field">
+                <label class="field" data-show-res hidden>
                   <span class="field__label">输出格式</span>
                   <select class="field__input" data-opt="enlarge.format">
                     <option value="image/png">PNG</option>
@@ -372,7 +384,7 @@
                     <option value="image/jpeg">JPG</option>
                   </select>
                 </label>
-                <label class="field--check">
+                <label class="field--check" data-show-res hidden>
                   <input type="checkbox" data-opt="enlarge.steps" checked /> 分步放大（每步不超过 2 倍）
                 </label>
               </div>
@@ -382,7 +394,7 @@
                 <span class="tool__status" data-status="enlarge"></span>
               </div>
               <ul class="results" data-out="enlarge"></ul>
-              <p class="tool__note">全部在本地处理。上限 12000 像素、6000 万像素总量，超出会提示。</p>
+              <p class="tool__note">「补到指定体积」只在原图数据尾部补零字节，PNG / JPEG 都能照常打开，画面完全不变；GB 级的目标需要足够的内存和磁盘空间。分辨率模式下单边上限 12000 像素。</p>
             </div>
           </div>
         </div>

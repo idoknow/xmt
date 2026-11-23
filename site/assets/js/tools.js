@@ -7,7 +7,8 @@ const fmtSize = (bytes) => {
   if (!bytes && bytes !== 0) return "—";
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  if (bytes < 1024 ** 3) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  return `${(bytes / 1024 ** 3).toFixed(2)} GB`;
 };
 
 const baseName = (name) => String(name || "image").replace(/\.[^.]+$/, "") || "image";
@@ -119,6 +120,7 @@ function show(container, items) {
   }
 
   const ok = items.filter((item) => item.blob);
+  const compare = ok.every((item) => item.compare !== false);
   const beforeSum = ok.reduce((sum, item) => sum + (Number(item.before) || 0), 0);
   const afterSum = ok.reduce((sum, item) => sum + item.blob.size, 0);
   if (bar) {
@@ -126,7 +128,7 @@ function show(container, items) {
     if (beforeSum > 0) {
       parts.push(`${fmtSize(beforeSum)} → ${fmtSize(afterSum)}`);
       const ratio = Math.abs(1 - afterSum / beforeSum);
-      if (ratio >= 0.01) parts.push(`${afterSum <= beforeSum ? "省" : "多"} ${(ratio * 100).toFixed(0)}%`);
+      if (compare && ratio >= 0.01) parts.push(`${afterSum <= beforeSum ? "省" : "多"} ${(ratio * 100).toFixed(0)}%`);
     }
     bar.hidden = false;
     bar.innerHTML = `<span class="results__sum">${parts.join(" · ")}</span><button type="button" class="results__all">全部下载</button>`;
@@ -147,8 +149,8 @@ function show(container, items) {
     }
     const url = URL.createObjectURL(item.blob);
     results[container].push(url);
-    const ratio = item.before ? Math.abs(1 - item.blob.size / item.before) : 0;
-    const change = item.before && ratio >= 0.01 ? `${item.blob.size <= item.before ? "省" : "多"} ${(ratio * 100).toFixed(0)}%` : "";
+    const ratio = item.before && item.compare !== false ? Math.abs(1 - item.blob.size / item.before) : 0;
+    const change = item.before && item.compare !== false && ratio >= 0.01 ? `${item.blob.size <= item.before ? "省" : "多"} ${(ratio * 100).toFixed(0)}%` : "";
     const meta = [item.detail, fmtSize(item.blob.size), change].filter(Boolean).join(" · ");
     li.className = "results__item";
     li.innerHTML = `
@@ -702,21 +704,30 @@ $('[data-file="enlarge"]')?.addEventListener("change", async (event) => {
     const height = $('[data-opt="enlarge.height"]');
     if (width) width.value = String(decoded.width);
     if (height) height.value = String(decoded.height);
-    status("enlarge", `原图 ${decoded.width}×${decoded.height}，挑倍数或改目标宽高。`);
+    status("enlarge", `原图 ${decoded.width}×${decoded.height} · ${fmtSize(file.size)}，填目标体积或选倍数。`);
   } catch (error) {
     status("enlarge", error.message);
   }
 });
 
-$('[data-opt="enlarge.mode"]')?.addEventListener("change", (event) => {
-  const pixel = event.target.value === "pixel";
-  $$("[data-show-pixel]").forEach((node) => {
-    node.hidden = !pixel;
+function applyEnlargeMode() {
+  const mode = $('[data-opt="enlarge.mode"]')?.value || "size";
+  $$("[data-show-size]").forEach((node) => {
+    node.hidden = mode !== "size";
+  });
+  $$("[data-show-res]").forEach((node) => {
+    node.hidden = mode === "size";
   });
   $$("[data-show-times]").forEach((node) => {
-    node.hidden = pixel;
+    node.hidden = mode !== "times";
   });
-});
+  $$("[data-show-pixel]").forEach((node) => {
+    node.hidden = mode !== "pixel";
+  });
+}
+
+$('[data-opt="enlarge.mode"]')?.addEventListener("change", applyEnlargeMode);
+applyEnlargeMode();
 
 // 按像素放大时保持原比例：改一边，另一边跟着算
 $('[data-opt="enlarge.width"]')?.addEventListener("input", (event) => {
@@ -767,14 +778,67 @@ async function enlargeCanvas(decoded, width, height, { smooth = "high", steps = 
   return source;
 }
 
+// 把体积补到指定大小：在原图数据尾部追加零字节，解码器读到结束标记就停，画面不受影响
+const PAD_CHUNK = 8 * 1024 * 1024;
+function padToSize(blob, targetBytes) {
+  if (blob.size >= targetBytes) return blob;
+  const chunk = new Blob([new Uint8Array(PAD_CHUNK)], { type: "application/octet-stream" });
+  const parts = [blob];
+  let left = targetBytes - blob.size;
+  while (left >= PAD_CHUNK) {
+    parts.push(chunk);
+    left -= PAD_CHUNK;
+  }
+  if (left > 0) parts.push(chunk.slice(0, left));
+  return new Blob(parts, { type: blob.type });
+}
+
 $('[data-run="enlarge"]')?.addEventListener("click", async () => {
   const file = inputs.enlarge?.files?.[0];
   if (!file) return status("enlarge", "先选一张图。");
-  const mode = $('[data-opt="enlarge.mode"]')?.value || "times";
+  const mode = $('[data-opt="enlarge.mode"]')?.value || "size";
   const times = Number($('[data-opt="enlarge.times"]')?.value) || 2;
   const smooth = $('[data-opt="enlarge.smooth"]')?.value || "high";
   const format = $('[data-opt="enlarge.format"]')?.value || "image/png";
   const steps = Boolean($('[data-opt="enlarge.steps"]')?.checked);
+
+  // 补体积：保持原图字节不变，只在尾部补零
+  if (mode === "size") {
+    const amount = Number($('[data-opt="enlarge.target"]')?.value) || 0;
+    const unit = ($('[data-opt="enlarge.unit"]')?.value || "MB").toUpperCase();
+    const mult = unit === "GB" ? 1024 ** 3 : unit === "KB" ? 1024 : 1024 ** 2;
+    const target = Math.round(amount * mult);
+    if (!amount || target <= 0) return status("enlarge", "先填一个目标体积。");
+    if (target <= file.size) {
+      return status("enlarge", `目标体积比原图小（原图 ${fmtSize(file.size)}），要变小请用「图片压缩」。`);
+    }
+    if (target > 2 * 1024 ** 3) return status("enlarge", "目标最大 2 GB。");
+    status("enlarge", "补齐中…");
+    try {
+      let base = file;
+      if (!/^image\/(png|jpeg)$/.test(file.type)) {
+        // WebP / GIF / SVG 的容器会校验长度，先转成 PNG 再补
+        const decoded = await decode(file);
+        base = await encode(paint(decoded, decoded.width, decoded.height), "image/png", 0.92);
+      }
+      const blob = padToSize(base, target);
+      await tick();
+      show("enlarge", [
+        {
+          blob,
+          name: `${baseName(file.name)}-${unit.toLowerCase()}${amount}.${extOf(blob.type || "image/png")}`,
+          before: file.size,
+          compare: false,
+          detail: "画面不变",
+        },
+      ]);
+      status("enlarge", `完成：${fmtSize(blob.size)}（原 ${fmtSize(file.size)}，尾部补零）`);
+    } catch (error) {
+      status("enlarge", `失败：${error.message}`);
+    }
+    return;
+  }
+
   status("enlarge", "放大中…");
   try {
     const decoded = await decode(file);
