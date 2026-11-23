@@ -111,7 +111,13 @@
   };
   current = detect();
 
-  const t = (text) => (dict && dict[text]) || (base && base[text]) || text;
+  const lookup = (text) => (dict && dict[text]) || (base && base[text]) || null;
+
+  const t = (text, vars) => {
+    const hit = lookup(text) || text;
+    if (!vars) return hit;
+    return hit.replace(/\{(\w+)\}/g, (whole, name) => (name in vars ? String(vars[name]) : whole));
+  };
 
   const load = async (code) => {
     if (cache.has(code)) return cache.get(code);
@@ -130,25 +136,33 @@
   const restore = () => {
     for (const item of touched) item.node.nodeValue = item.original;
     touched.length = 0;
+    done.clear();
+    if (titleOriginal !== null) {
+      document.title = titleOriginal;
+      titleOriginal = null;
+    }
   };
 
-  const translateNode = (node, map) => {
+  // 已经翻译过的节点记下来，避免观察器把自己的写入再翻一遍
+  const done = new Set();
+
+  const translateNode = (node, map = null) => {
     const raw = node.nodeValue;
     if (!raw || !raw.trim()) return;
+    if (done.has(node)) return;
     const key = raw.replace(/\s+/g, " ").trim();
-    const value = map[key];
+    const value = (map && map[key]) || lookup(key);
     if (!value || value === key) return;
     const lead = /^\s*/.exec(raw)[0];
     touched.push({ node, original: raw });
+    done.add(node);
     node.nodeValue = lead + value;
   };
 
   const ATTRS = ["aria-label", "alt", "title", "placeholder", "data-label"];
 
-  const apply = (map) => {
-    if (!map) return;
-    restore();
-    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+  const translateTree = (root, map = null) => {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
       acceptNode: (node) =>
         /^(SCRIPT|STYLE|TEXTAREA|CODE|PRE)$/.test(node.parentNode.nodeName)
           ? NodeFilter.FILTER_REJECT
@@ -158,16 +172,67 @@
     let node;
     while ((node = walker.nextNode())) batch.push(node);
     for (const item of batch) translateNode(item, map);
+  };
 
-    for (const el of document.querySelectorAll("[aria-label],[alt],[title],[placeholder],[data-label]")) {
+  const translateAttrs = (root, map = null) => {
+    for (const el of root.querySelectorAll("[aria-label],[alt],[title],[placeholder],[data-label]")) {
       for (const attr of ATTRS) {
         const raw = el.getAttribute(attr);
         if (!raw) continue;
-        const value = map[raw.trim()];
-        if (!value) continue;
+        const key = raw.trim();
+        const value = (map && map[key]) || lookup(key);
+        if (!value || value === key) continue;
         el.setAttribute(attr, value);
       }
     }
+  };
+
+  // <title> 与 meta description 不在 body 里，单独处理
+  let titleOriginal = null;
+  const translateHead = (map = null) => {
+    const pick = (text) => (map && map[text]) || lookup(text);
+    const title = document.title.trim();
+    const titleText = title ? pick(title) : null;
+    if (titleText && titleText !== title) {
+      titleOriginal = document.title;
+      document.title = titleText;
+    }
+    const meta = document.querySelector('meta[name="description"]');
+    const content = meta?.getAttribute("content");
+    const contentText = content ? pick(content.trim()) : null;
+    if (contentText && contentText !== content.trim()) meta.setAttribute("content", contentText);
+  };
+
+  const apply = () => {
+    if (!dict && !base) return;
+    restore();
+    translateTree(document.body);
+    translateAttrs(document.body);
+    translateHead();
+  };
+
+  // 页面上的动态内容（工具结果、弹窗、列表）后插入的文本也要跟着翻译
+  let observer = null;
+  const observe = () => {
+    if (observer) return;
+    observer = new MutationObserver((records) => {
+      if (current === "zh-Hans") return;
+      if (!dict && !base) return;
+      for (const record of records) {
+        if (record.type === "characterData") {
+          translateNode(record.target);
+          continue;
+        }
+        for (const node of record.addedNodes) {
+          if (node.nodeType === 3) translateNode(node);
+          else if (node.nodeType === 1) {
+            translateTree(node);
+            translateAttrs(node);
+          }
+        }
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
   };
 
   const notice = (text) => {
@@ -205,7 +270,8 @@
       ]);
       dict = own ? own.map : null;
       base = fallback ? fallback.map : null;
-      apply(dict || base);
+      apply();
+      observe();
       notice(own && own.notice ? own.notice : "");
     }
 
@@ -558,6 +624,22 @@
   };
 
   /* ---------- 启动 ---------- */
+
+  // 给工具脚本用的翻译入口：结果条、状态提示这类动态文案走它
+  window.xmtT = t;
+  window.xmtI18n = {
+    t,
+    locales: LOCALES,
+    get lang() {
+      return current;
+    },
+    translate: (root) => {
+      const map = dict || base;
+      if (!map || !root) return;
+      translateTree(root, map);
+      translateAttrs(root, map);
+    },
+  };
 
   mountTools();
   mountZoom();

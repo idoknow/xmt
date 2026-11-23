@@ -135,13 +135,16 @@ node .tmp/cluster-prep.mjs   # 建 Secret 与 PVC（一次性；脚本里带 tok
 语言同理：`assets/js/site.js` 会给页头装一个语言菜单（和配色一样是下拉），选完存 `xmt-lang`，也可以用 `?lang=en` 分享链接。窄屏下品牌名会省略，两个工具按钮始终留在第一行；菜单会被夹在视口内，不会被屏幕边缘切掉。词条在 `assets/i18n/<code>.json`：
 
 ```json
-{ "code": "en", "notice": "……", "map": { "首页": "Home", "组织": "Organisations" } }
+{ "code": "en", "notice": "", "map": { "首页": "Home", "在线工具": "Online tools" } }
 ```
 
 - 键是**页面上的中文原句**（按空白折叠后逐字匹配），值是译文；匹配不到就保持中文，所以可以只翻一半。
-- 当前是「界面全译、正文待译」：`notice` 一句话说明正文仍是中文，渲染在页头导语下面。英文另有正文兜底，缺词条会先找 `en.json`。
-- 加一门语言：在 `site.js` 的 `LOCALES` 里加一行（`code`/`name`/`dir`），再建对应 json；RTL 语言把 `dir` 写成 `rtl`，页面会自动镜像。
-- 现有：简体、繁體、English、日本語、한국어、Русский、Français、Deutsch、Español、العربية、हिन्दी、བོད་ཡིག、Монгол、ئۇيغۇرچە、Vahcuengh（后四种只译了导航与常用词）。
+- 覆盖范围：四个静态页（首页、关于、工具、404）共 289 条静态文案 + 33 条运行时文案（`共 {n} 个`、`正在转换 {i}/{n}…`、`完成：{size}（原 {from}，尾部补零）` 一类，`site.js` 暴露 `window.xmtT(key, vars)` 给 `tools.js` 用）。
+- 运行时文案用 `{n}` `{size}` 这类占位符，`t()` 负责替换；动态插进 DOM 的内容由 `MutationObserver` 补翻，所以工具页的结果条、状态行、弹窗也跟着变语言。
+- 15 种语言的词条都已补到全量（bo / mn / ug / za 有少量长段落保留中文，主要是专有名词与引文）；`notice` 一律置空，页头不再提示「正文仍是中文」。
+- 加一门语言：在 `site.js` 的 `LOCALES` 里加一行（`code`/`name`/`dir`），再建对应 json；RTL 语言把 `dir` 写成 `rtl`，页面会自动镜像（`skip` 链接等用逻辑属性，不会在 RTL 下撑出横向滚动）。
+- 现有：简体、繁體、English、日本語、한국어、Русский、Français、Deutsch、Español、العربية、हिन्दी、བོད་ཡིག、Монгол、ئۇيغۇرچە、Vahcuengh。
+- 只翻静态站：`/memories` 后台与媒体库界面仍是中文（服务端渲染，词条机制不覆盖）。
 
 ## 字体
 

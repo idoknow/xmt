@@ -156,13 +156,14 @@ blockquote {
 
 .skip {
   position: absolute;
-  left: -9999px;
-  top: 0;
+  /* 用逻辑属性：RTL 下 left:-9999px 会在右侧撑出可滚动宽度 */
+  inset-inline-start: -9999px;
+  inset-block-start: 0;
 }
 
 .skip:focus {
-  left: 1rem;
-  top: 1rem;
+  inset-inline-start: 1rem;
+  inset-block-start: 1rem;
   z-index: 60;
   padding: 0.5rem 0.9rem;
   background: var(--ink);

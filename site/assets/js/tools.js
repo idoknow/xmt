@@ -2,6 +2,8 @@
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+// 动态文案走站点统一的翻译入口（site.js 暴露 window.xmtT），没有就原样返回中文
+const T = (key, vars) => (typeof window !== "undefined" && window.xmtT ? window.xmtT(key, vars) : key);
 
 const fmtSize = (bytes) => {
   if (!bytes && bytes !== 0) return "—";
@@ -111,7 +113,7 @@ function show(container, items) {
 
   const bar = resultsBar(container);
   if (!items.length) {
-    list.innerHTML = '<li class="results__empty">还没有结果。</li>';
+    list.innerHTML = `<li class="results__empty">${T("还没有结果。")}</li>`;
     if (bar) {
       bar.hidden = true;
       bar.innerHTML = "";
@@ -124,14 +126,14 @@ function show(container, items) {
   const beforeSum = ok.reduce((sum, item) => sum + (Number(item.before) || 0), 0);
   const afterSum = ok.reduce((sum, item) => sum + item.blob.size, 0);
   if (bar) {
-    const parts = [`共 ${ok.length} 个`];
+    const parts = [T("共 {n} 个", { n: ok.length })];
     if (beforeSum > 0) {
       parts.push(`${fmtSize(beforeSum)} → ${fmtSize(afterSum)}`);
       const ratio = Math.abs(1 - afterSum / beforeSum);
-      if (compare && ratio >= 0.01) parts.push(`${afterSum <= beforeSum ? "省" : "多"} ${(ratio * 100).toFixed(0)}%`);
+      if (compare && ratio >= 0.01) parts.push(`${afterSum <= beforeSum ? T("省") : T("多")} ${(ratio * 100).toFixed(0)}%`);
     }
     bar.hidden = false;
-    bar.innerHTML = `<span class="results__sum">${parts.join(" · ")}</span><button type="button" class="results__all">全部下载</button>`;
+    bar.innerHTML = `<span class="results__sum">${parts.join(" · ")}</span><button type="button" class="results__all">${T("全部下载")}</button>`;
     bar.querySelector(".results__all").addEventListener("click", () => downloadAll(container));
   }
 
@@ -142,7 +144,7 @@ function show(container, items) {
       li.innerHTML = `
         <span class="results__text">
           <span class="results__name">${escapeHtml(item.name)}</span>
-          <span class="results__meta">${escapeHtml(item.detail || "处理失败")}</span>
+          <span class="results__meta">${escapeHtml(item.detail || T("处理失败"))}</span>
         </span>`;
       list.append(li);
       continue;
@@ -150,7 +152,7 @@ function show(container, items) {
     const url = URL.createObjectURL(item.blob);
     results[container].push(url);
     const ratio = item.before && item.compare !== false ? Math.abs(1 - item.blob.size / item.before) : 0;
-    const change = item.before && item.compare !== false && ratio >= 0.01 ? `${item.blob.size <= item.before ? "省" : "多"} ${(ratio * 100).toFixed(0)}%` : "";
+    const change = item.before && item.compare !== false && ratio >= 0.01 ? `${item.blob.size <= item.before ? T("省") : T("多")} ${(ratio * 100).toFixed(0)}%` : "";
     const meta = [item.detail, fmtSize(item.blob.size), change].filter(Boolean).join(" · ");
     li.className = "results__item";
     li.innerHTML = `
@@ -159,18 +161,21 @@ function show(container, items) {
         <span class="results__name">${escapeHtml(item.name)}</span>
         <span class="results__meta">${escapeHtml(meta)}</span>
       </span>
-      <a class="results__save" href="${url}" download="${escapeHtml(item.name)}">下载</a>`;
+      <a class="results__save" href="${url}" download="${escapeHtml(item.name)}">${T("下载")}</a>`;
     list.append(li);
   }
 }
 
-const status = (tool, text) => {
+const status = (tool, text, kind) => {
   const node = $(`[data-status="${tool}"]`);
   if (!node) return;
   node.textContent = text || "";
-  node.classList.toggle("is-busy", /正在|处理中|读取|压缩/.test(text || ""));
-  node.classList.toggle("is-done", /完成|已生成|已下载|已导出|共 \d+/.test(text || ""));
-  node.classList.toggle("is-error", /失败|错误|不支持|超出/.test(text || ""));
+  const busy = kind ? kind === "busy" : /正在|处理中|读取|压缩|…|\.\.\./.test(text || "");
+  const done = kind ? kind === "done" : /完成|已生成|已下载|已导出|共 \d+/.test(text || "");
+  const error = kind ? kind === "error" : /失败|错误|不支持|超出/.test(text || "");
+  node.classList.toggle("is-busy", busy);
+  node.classList.toggle("is-done", done);
+  node.classList.toggle("is-error", error);
 };
 
 const markPicked = (tool, files) => {
@@ -182,9 +187,9 @@ const picked = (tool, files) => {
   const node = $(`[data-picked="${tool}"]`);
   if (!node) return;
   markPicked(tool, files);
-  if (!files?.length) node.textContent = "还没有选择文件";
+  if (!files?.length) node.textContent = T("还没有选择文件");
   else if (files.length === 1) node.textContent = `${files[0].name} · ${fmtSize(files[0].size)}`;
-  else node.textContent = `已选 ${files.length} 个文件`;
+  else node.textContent = T("已选 {n} 个文件", { n: files.length });
 };
 
 /* ---------- 滑块旁的数值标签 ---------- */
@@ -349,12 +354,12 @@ function preview(tool, file, toolKey) {
 
 $('[data-run="convert"]')?.addEventListener("click", async () => {
   const files = Array.from(inputs.convert?.files || []);
-  if (!files.length) return status("convert", "先选图片。");
+  if (!files.length) return status("convert", T("先选图片。"), "error");
   const mime = $('[data-opt="convert.format"]').value;
   const quality = Number($('[data-opt="convert.quality"]').value) / 100;
   const items = [];
   for (const [index, file] of files.entries()) {
-    status("convert", `正在转换 ${index + 1}/${files.length}…`);
+    status("convert", T("正在转换 {i}/{n}…", { i: index + 1, n: files.length }), "busy");
     await tick();
     try {
       const decoded = await decode(file);
@@ -372,7 +377,13 @@ $('[data-run="convert"]')?.addEventListener("click", async () => {
   }
   show("convert", items);
   const failed = items.filter((item) => !item.blob).length;
-  status("convert", failed ? `完成 ${items.length - failed} 个，${failed} 个失败。` : `完成 ${items.length} 个。`);
+  status(
+    "convert",
+    failed
+      ? T("完成 {ok} 个，{bad} 个失败。", { ok: items.length - failed, bad: failed })
+      : T("完成 {n} 个。", { n: items.length }),
+    failed ? "error" : "done",
+  );
 });
 
 /* ---------- 02 压缩 ---------- */
@@ -398,14 +409,14 @@ $('[data-opt="compress.mode"]')?.addEventListener("change", (event) => {
 
 $('[data-run="compress"]')?.addEventListener("click", async () => {
   const file = inputs.compress?.files?.[0];
-  if (!file) return status("compress", "先选一张图。");
+  if (!file) return status("compress", T("先选一张图。"), "error");
   const mode = $('[data-opt="compress.mode"]').value;
   const value = Number($('[data-opt="compress.value"]').value) || 0;
   const unit = ($('[data-opt="compress.unit"]')?.value || "KB").toUpperCase();
   const bytesPerUnit = unit === "MB" ? 1024 * 1024 : 1024;
   // 压缩统一输出 WebP：PNG 是无损格式，改质量没有意义，体积还会变大。
   const mime = "image/webp";
-  status("compress", "压缩中…");
+  status("compress", T("压缩中…"), "busy");
   try {
     const decoded = await decode(file);
     let width = decoded.width;
@@ -456,7 +467,7 @@ $('[data-run="compress"]')?.addEventListener("click", async () => {
         detail: `${width}×${height}`,
       },
     ]);
-    status("compress", `原来 ${fmtSize(file.size)}，现在 ${fmtSize(blob.size)}。`);
+    status("compress", T("原来 {a}，现在 {b}。", { a: fmtSize(file.size), b: fmtSize(blob.size) }), "done");
   } catch (error) {
     status("compress", error.message);
   }
@@ -476,9 +487,9 @@ $('[data-opt="resize.mode"]')?.addEventListener("change", (event) => {
 
 $('[data-run="resize"]')?.addEventListener("click", async () => {
   const file = inputs.resize?.files?.[0];
-  if (!file) return status("resize", "先选一张图。");
+  if (!file) return status("resize", T("先选一张图。"), "error");
   const mode = $('[data-opt="resize.mode"]').value;
-  status("resize", "处理中…");
+  status("resize", T("处理中…"), "busy");
   try {
     const decoded = await decode(file);
     let width = decoded.width;
@@ -509,7 +520,7 @@ $('[data-run="resize"]')?.addEventListener("click", async () => {
         detail: `${decoded.width}×${decoded.height} → ${width}×${height}`,
       },
     ]);
-    status("resize", "完成。");
+    status("resize", T("完成。"), "done");
   } catch (error) {
     status("resize", error.message);
   }
@@ -661,8 +672,8 @@ stageCrop?.addEventListener("pointercancel", endCropDrag);
 
 $('[data-run="crop"]')?.addEventListener("click", async () => {
   const file = inputs.crop?.files?.[0];
-  if (!file) return status("crop", "先选一张图。");
-  status("crop", "裁剪中…");
+  if (!file) return status("crop", T("先选一张图。"), "error");
+  status("crop", T("裁剪中…"), "busy");
   try {
     const decoded = await decode(file);
     const { x, y, w, h } = cropValues();
@@ -684,7 +695,7 @@ $('[data-run="crop"]')?.addEventListener("click", async () => {
     link.download = `${baseName(file.name)}-crop-${x},${y}-${w}x${h}.${extOf(mime)}`;
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 6000);
-    status("crop", `已裁剪 ${w}×${h}，文件已开始下载。`);
+    status("crop", T("已裁剪 {w}×{h}，文件已开始下载。", { w, h }), "done");
   } catch (error) {
     status("crop", error.message);
   }
@@ -704,7 +715,14 @@ $('[data-file="enlarge"]')?.addEventListener("change", async (event) => {
     const height = $('[data-opt="enlarge.height"]');
     if (width) width.value = String(decoded.width);
     if (height) height.value = String(decoded.height);
-    status("enlarge", `原图 ${decoded.width}×${decoded.height} · ${fmtSize(file.size)}，填目标体积或选倍数。`);
+    status(
+      "enlarge",
+      T("原图 {w}×{h} · {size}，填目标体积或选倍数。", {
+        w: decoded.width,
+        h: decoded.height,
+        size: fmtSize(file.size),
+      }),
+    );
   } catch (error) {
     status("enlarge", error.message);
   }
@@ -795,7 +813,7 @@ function padToSize(blob, targetBytes) {
 
 $('[data-run="enlarge"]')?.addEventListener("click", async () => {
   const file = inputs.enlarge?.files?.[0];
-  if (!file) return status("enlarge", "先选一张图。");
+  if (!file) return status("enlarge", T("先选一张图。"), "error");
   const mode = $('[data-opt="enlarge.mode"]')?.value || "size";
   const times = Number($('[data-opt="enlarge.times"]')?.value) || 2;
   const smooth = $('[data-opt="enlarge.smooth"]')?.value || "high";
@@ -808,12 +826,16 @@ $('[data-run="enlarge"]')?.addEventListener("click", async () => {
     const unit = ($('[data-opt="enlarge.unit"]')?.value || "MB").toUpperCase();
     const mult = unit === "GB" ? 1024 ** 3 : unit === "KB" ? 1024 : 1024 ** 2;
     const target = Math.round(amount * mult);
-    if (!amount || target <= 0) return status("enlarge", "先填一个目标体积。");
+    if (!amount || target <= 0) return status("enlarge", T("先填一个目标体积。"), "error");
     if (target <= file.size) {
-      return status("enlarge", `目标体积比原图小（原图 ${fmtSize(file.size)}），要变小请用「图片压缩」。`);
+      return status(
+      "enlarge",
+      T("目标体积比原图小（原图 {size}），要变小请用「图片压缩」。", { size: fmtSize(file.size) }),
+      "error",
+    );
     }
-    if (target > 2 * 1024 ** 3) return status("enlarge", "目标最大 2 GB。");
-    status("enlarge", "补齐中…");
+    if (target > 2 * 1024 ** 3) return status("enlarge", T("目标最大 2 GB。"), "error");
+    status("enlarge", T("补齐中…"), "busy");
     try {
       let base = file;
       if (!/^image\/(png|jpeg)$/.test(file.type)) {
@@ -829,17 +851,17 @@ $('[data-run="enlarge"]')?.addEventListener("click", async () => {
           name: `${baseName(file.name)}-${unit.toLowerCase()}${amount}.${extOf(blob.type || "image/png")}`,
           before: file.size,
           compare: false,
-          detail: "画面不变",
+          detail: T("画面不变"),
         },
       ]);
-      status("enlarge", `完成：${fmtSize(blob.size)}（原 ${fmtSize(file.size)}，尾部补零）`);
+      status("enlarge", T("完成：{size}（原 {from}，尾部补零）", { size: fmtSize(blob.size), from: fmtSize(file.size) }), "done");
     } catch (error) {
-      status("enlarge", `失败：${error.message}`);
+      status("enlarge", T("失败：{msg}", { msg: error.message }), "error");
     }
     return;
   }
 
-  status("enlarge", "放大中…");
+  status("enlarge", T("放大中…"), "busy");
   try {
     const decoded = await decode(file);
     let width;
@@ -865,9 +887,9 @@ $('[data-run="enlarge"]')?.addEventListener("click", async () => {
         detail: `${decoded.width}×${decoded.height} → ${width}×${height}`,
       },
     ]);
-    status("enlarge", `完成：${width}×${height} · ${fmtSize(blob.size)}`);
+    status("enlarge", T("完成：{w}×{h} · {size}", { w: width, h: height, size: fmtSize(blob.size) }), "done");
   } catch (error) {
-    status("enlarge", `失败：${error.message}`);
+    status("enlarge", T("失败：{msg}", { msg: error.message }), "error");
   }
 });
 
@@ -952,8 +974,8 @@ $$('[data-opt^="watermark."]').forEach((input) => {
 
 $('[data-run="watermark"]')?.addEventListener("click", async () => {
   const file = inputs.watermark?.files?.[0];
-  if (!file) return status("watermark", "先选一张图。");
-  status("watermark", "生成中…");
+  if (!file) return status("watermark", T("先选一张图。"), "error");
+  status("watermark", T("生成中…"), "busy");
   try {
     const decoded = await decode(file);
     const canvas = document.createElement("canvas");
@@ -968,7 +990,7 @@ $('[data-run="watermark"]')?.addEventListener("click", async () => {
     link.download = `${baseName(file.name)}-watermark.${extOf(mime)}`;
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 6000);
-    status("watermark", `已生成，${fmtSize(blob.size)}。`);
+    status("watermark", T("已生成，{size}。", { size: fmtSize(blob.size) }), "done");
   } catch (error) {
     status("watermark", error.message);
   }
@@ -1105,7 +1127,7 @@ $$("[data-preset]").forEach((button) => {
     if (fieldW) fieldW.value = String(width);
     if (fieldH) fieldH.value = String(height);
     $$("[data-preset]").forEach((node) => node.classList.toggle("is-on", node === button));
-    status("resize", `已选 ${width}×${height}，选好图片后点「调整尺寸」。`);
+    status("resize", T("已选 {w}×{h}，选好图片后点「调整尺寸」。", { w: width, h: height }), "done");
   });
 });
 
@@ -1147,7 +1169,7 @@ document.addEventListener("drop", (event) => {
   (input.multiple ? files : files.slice(0, 1)).forEach((file) => transfer.items.add(file));
   input.files = transfer.files;
   input.dispatchEvent(new Event("change"));
-  status(tool, `已接收 ${transfer.files.length} 个文件。`);
+  status(tool, T("已接收 {n} 个文件。", { n: transfer.files.length }), "done");
 });
 
 const views = $$("[data-view]");
