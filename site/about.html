@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>关于 — 桂林中学新媒体</title>
-    <meta name="description" content="这个站为什么存在、谁在用、代码放在哪、按什么许可开源。" />
+    <meta name="description" content="这个站为什么存在、谁在用、代码放在哪、按什么许可开源——桂林中学新媒体的关于页。" />
     <link rel="icon" href="/assets/img/school-emblem-336.webp" type="image/webp" />
     <link rel="preload" href="/assets/fonts/newsreader-latin.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="/assets/css/style.css" />
@@ -31,27 +31,57 @@
     </header>
 
     <main id="main">
-      <section class="page-head">
-        <div class="wrap">
-          <p class="eyebrow">About</p>
-          <h1>关于</h1>
-          <p class="page-head__lead">
-            一个学校、三个组织，和一个把影像留下来的地方。这一页讲它为什么存在，以及它是怎么做出来的。
-          </p>
-        </div>
-      </section>
-
-      <section class="section">
+      <section class="section about-hero">
         <div class="wrap">
           <header class="section__head">
             <div>
-              <p class="eyebrow">01 / 为什么做</p>
-              <h2 class="section__title">影像会散，档案不会</h2>
+              <p class="eyebrow">About</p>
+              <h1 class="about-hero__title">关于</h1>
             </div>
           </header>
 
-          <div class="prose">
-            <p class="prose-lede">
+          <p class="about-hero__lead">
+            一个学校、三个组织，和一个把影像留下来的地方。<br />
+            这一页讲它为什么存在，以及它是怎么做出来的。
+          </p>
+
+          <dl class="about-facts">
+            <div class="about-fact">
+              <dt>始于</dt>
+              <dd>一九〇五</dd>
+              <p>校史比这个站长得多，站只负责记住最近的这些年。</p>
+            </div>
+            <div class="about-fact">
+              <dt>组织</dt>
+              <dd>三个</dd>
+              <p>学校、团委学生会新媒体运营部、时光驿客与 Life 摄影社。</p>
+            </div>
+            <div class="about-fact">
+              <dt>做法</dt>
+              <dd>归档</dd>
+              <p>不追即时新闻，只把活动影像按类收好，留出处与时间。</p>
+            </div>
+            <div class="about-fact">
+              <dt>代码</dt>
+              <dd>开源</dd>
+              <p>MIT 许可，任何人可以照着 README 自己跑一份。</p>
+            </div>
+          </dl>
+        </div>
+      </section>
+
+      <section class="section about-part">
+        <div class="wrap">
+          <header class="section__head">
+            <div>
+              <p class="about-no" aria-hidden="true">01</p>
+              <p class="eyebrow">为什么做</p>
+              <h2 class="section__title">影像会散，<br />档案不会</h2>
+            </div>
+          </header>
+
+          <div class="prose about-prose">
+            <p class="about-lede">
               一场运动会、一次社团招新、一个下午的光，拍下来的时候都在，过两年就散在群聊、云盘链接和各自的手机里了。
             </p>
             <p>
@@ -60,88 +90,168 @@
             <p>
               对参与的人来说，这是把「我们做过什么」写下来的地方；对还没参与的人来说，这是了解这所学校在发生什么的入口；对很多年以后的人来说，这是一份还能打开的东西。
             </p>
-            <p class="prose-note">
+            <p class="about-footnote">
+              <span class="about-footnote__mark">注</span>
               站点由学生维护，内容以归档为主。照片和视频的版权属于拍摄者与所在组织。
             </p>
           </div>
         </div>
       </section>
 
-      <section class="section">
+      <section class="section about-part">
         <div class="wrap">
           <header class="section__head">
             <div>
-              <p class="eyebrow">02 / 谁在用</p>
-              <h2 class="section__title">三种身份，三种权限</h2>
+              <p class="about-no" aria-hidden="true">02</p>
+              <p class="eyebrow">谁在用</p>
+              <h2 class="section__title">三种身份，<br />三种权限</h2>
             </div>
           </header>
 
-          <div class="prose">
-            <ul>
-              <li><strong>游客</strong>：可以看全部公开内容，不需要登录；也可以用只读 WebDAV 挂到自己的设备上浏览。</li>
-              <li><strong>成员</strong>：用校园墙账号登录后上传照片和视频，文件放在自己的文件夹里——能改名、移动、删除的只有自己上传的那些。</li>
-              <li><strong>管理员</strong>：管成员、管存储（本地、WebDAV、移动云盘）、管分享链接；上传不限文件类型。</li>
+          <div class="about-body">
+            <ul class="roles">
+              <li class="role">
+                <span class="role__tag">游客</span>
+                <p class="role__text">
+                  可以看全部公开内容，不需要登录；也可以用只读 WebDAV 挂到自己的设备上浏览。
+                </p>
+              </li>
+              <li class="role">
+                <span class="role__tag">成员</span>
+                <p class="role__text">
+                  用校园墙账号登录后上传照片和视频，文件放在自己的文件夹里——能改名、移动、删除的只有自己上传的那些。
+                </p>
+              </li>
+              <li class="role">
+                <span class="role__tag">管理员</span>
+                <p class="role__text">
+                  管成员、管存储（本地、WebDAV、移动云盘）、管分享链接；上传不限文件类型。
+                </p>
+              </li>
             </ul>
-            <p class="prose-note">
+            <p class="about-footnote">
+              <span class="about-footnote__mark">注</span>
               账号不开放注册，只能由管理员按 QQ 号手动添加；没被加进来的账号登录会被拒绝。
             </p>
           </div>
         </div>
       </section>
 
-      <section class="section">
+      <section class="section about-part">
         <div class="wrap">
           <header class="section__head">
             <div>
-              <p class="eyebrow">03 / 开源</p>
-              <h2 class="section__title">代码是开源的</h2>
+              <p class="about-no" aria-hidden="true">03</p>
+              <p class="eyebrow">开源</p>
+              <h2 class="section__title">代码是<br />开源的</h2>
             </div>
           </header>
 
-          <div class="prose">
-            <p>
-              整站代码在 GitHub 上公开：
-              <a href="https://github.com/idoknow/xmt" target="_blank" rel="noopener noreferrer">github.com/idoknow/xmt</a>。
-              发现问题、想补一段文案或加一个社团，都可以提 issue 或直接提交 pull request。
+          <div class="about-body">
+            <dl class="specs">
+              <div class="spec">
+                <dt>前端</dt>
+                <dd>纯静态多页站，原生 HTML、一份 CSS、一份 JS，没有框架、没有构建期依赖；图片在构建时重新压过一遍，页面按内容指纹做长缓存。</dd>
+              </div>
+              <div class="spec">
+                <dt>服务端</dt>
+                <dd>Node 原生 <code>http</code> 模块 + <code>node:sqlite</code>，零第三方依赖，同一个进程提供媒体库（<code>/memories</code>）、图床（<code>/image</code>）与只读 WebDAV。</dd>
+              </div>
+              <div class="spec">
+                <dt>部署</dt>
+                <dd>GitHub Actions 构建静态产物并打镜像推送到 GHCR，再滚动更新到香港节点的 k3s 集群；域名与证书走 Cloudflare。</dd>
+              </div>
+              <div class="spec">
+                <dt>登录</dt>
+                <dd>复用校园墙的 OAuth（PKCE），按 QQ 号判定身份，不另存密码。</dd>
+              </div>
+            </dl>
+
+            <div class="about-actions">
+              <a class="btn btn--primary" href="https://github.com/idoknow/xmt" target="_blank" rel="noopener noreferrer">
+                打开仓库 ↗
+              </a>
+              <a class="btn btn--ghost" href="https://github.com/idoknow/xmt/issues" target="_blank" rel="noopener noreferrer">
+                提一个 issue
+              </a>
+              <span class="about-license">MIT</span>
+            </div>
+
+            <p class="about-body__text">
+              代码按 MIT 许可开源，可以自由使用、修改与再分发。学校校徽、社团标识、站内照片与视频<strong>不</strong>在 MIT 授权范围内，版权归学校与各社团所有，转载前请先联系。
             </p>
-            <ul>
-              <li><strong>前端</strong>：纯静态多页站，原生 HTML、一份 CSS、一份 JS，没有框架、没有构建期依赖；图片在构建时重新压过一遍，页面按内容指纹做长缓存。</li>
-              <li><strong>服务端</strong>：Node 原生 <code>http</code> 模块 + <code>node:sqlite</code>，零第三方依赖，同一个进程提供媒体库（<code>/memories</code>）、图床（<code>/image</code>）与只读 WebDAV。</li>
-              <li><strong>部署</strong>：GitHub Actions 构建静态产物并打镜像推送到 GHCR，再滚动更新到香港节点的 k3s 集群；域名与证书走 Cloudflare。</li>
-              <li><strong>登录</strong>：复用校园墙的 OAuth（PKCE），按 QQ 号判定身份，不另存密码。</li>
-            </ul>
-            <p>
-              代码按 <strong>MIT 许可</strong>开源，可以自由使用、修改与再分发。学校校徽、社团标识、站内照片与视频<strong>不</strong>在 MIT 授权范围内，版权归学校与各社团所有，转载前请先联系。
-            </p>
-            <p class="prose-note">
+
+            <p class="about-footnote">
+              <span class="about-footnote__mark">注</span>
               仓库里还有构建脚本（<code>scripts/build.mjs</code>）、本地预览（<code>scripts/serve.mjs</code>）与 k8s 清单（<code>deploy/</code>），照着 README 可以在自己的机器上跑起来。
             </p>
           </div>
         </div>
       </section>
 
-      <section class="section">
+      <section class="section about-part">
         <div class="wrap">
           <header class="section__head">
             <div>
-              <p class="eyebrow">04 / 联系</p>
-              <h2 class="section__title">怎么找到我们</h2>
+              <p class="about-no" aria-hidden="true">04</p>
+              <p class="eyebrow">联系</p>
+              <h2 class="section__title">怎么找到<br />我们</h2>
             </div>
           </header>
 
-          <div class="prose">
-            <p>
-              投稿、纠错、想要某场活动的原片，可以从这几个地方来：
-              <a href="https://v.douyin.com/WQSM2axNI2Q/" target="_blank" rel="noopener noreferrer">学校抖音</a>、
-              <a href="https://v.douyin.com/4z7HjqtwpTk/" target="_blank" rel="noopener noreferrer">Life 摄影社抖音</a>、
-              <a href="https://user.qzone.qq.com/3020148211" target="_blank" rel="noopener noreferrer">时光驿客 QQ 空间</a>，
-              或者直接在
-              <a href="https://github.com/idoknow/xmt/issues" target="_blank" rel="noopener noreferrer">仓库提一个 issue</a>。
+          <div class="about-body">
+            <p class="about-body__text">
+              投稿、纠错、想要某场活动的原片，可以从这几个地方来。
             </p>
-            <p class="prose-note">
+
+            <ul class="contacts">
+              <li>
+                <a class="contact" href="https://v.douyin.com/WQSM2axNI2Q/" target="_blank" rel="noopener noreferrer">
+                  <span class="contact__tag">抖音</span>
+                  <strong class="contact__name">桂林市桂林中学</strong>
+                  <span class="contact__note">官方账号 · glzx1905</span>
+                </a>
+              </li>
+              <li>
+                <a class="contact" href="https://v.douyin.com/4z7HjqtwpTk/" target="_blank" rel="noopener noreferrer">
+                  <span class="contact__tag">抖音</span>
+                  <strong class="contact__name">桂林中学 Life 摄影社</strong>
+                  <span class="contact__note">社团日常与活动影像</span>
+                </a>
+              </li>
+              <li>
+                <a class="contact" href="https://user.qzone.qq.com/3020148211" target="_blank" rel="noopener noreferrer">
+                  <span class="contact__tag">QQ 空间</span>
+                  <strong class="contact__name">时光驿客</strong>
+                  <span class="contact__note">专注高品质视频</span>
+                </a>
+              </li>
+              <li>
+                <a class="contact" href="https://github.com/idoknow/xmt/issues" target="_blank" rel="noopener noreferrer">
+                  <span class="contact__tag">Issue</span>
+                  <strong class="contact__name">提一个 issue</strong>
+                  <span class="contact__note">纠错、投稿、想加的东西</span>
+                </a>
+              </li>
+            </ul>
+
+            <p class="about-footnote">
+              <span class="about-footnote__mark">注</span>
               下载与分享：媒体库里的每个文件都能生成分享链接，带提取码的那种适合发到群里。
             </p>
           </div>
+        </div>
+      </section>
+
+      <section class="section about-colophon">
+        <div class="wrap">
+          <p class="about-colophon__text">
+            这一页由桂林中学团委学生会新媒体运营部维护，随站点一起更新。
+          </p>
+          <p class="about-colophon__meta">
+            <span>XMT · Guilin Middle School</span>
+            <span>码是一行一行写的，片子是一张一张拍的。</span>
+          </p>
         </div>
       </section>
     </main>

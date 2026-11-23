@@ -1373,36 +1373,418 @@ html[dir="rtl"] :is(.page-head__lead, .prose p, .prose-lede, .prose-note, .notic
   max-width: var(--measure);
 }
 
-/* 关于页：宽屏两栏，标题在左、正文在右，标题随滚动吸顶 */
-@media (min-width: 900px) {
-  .page-about .section > .wrap {
-    display: grid;
-    grid-template-columns: minmax(0, 20rem) minmax(0, 1fr);
-    gap: 2.6rem;
-    align-items: start;
-  }
+/* ---------- 关于页 ---------- */
 
-  .page-about .section__head {
-    position: sticky;
-    inset-block-start: 1.4rem;
-  }
-
-  .page-about .section__title {
-    text-wrap: balance;
-  }
-
-  .page-about .prose {
-    max-width: 38rem;
-  }
+.about-hero {
+  padding-top: clamp(2rem, 5vw, 3.4rem);
 }
 
-.page-about .prose code {
+.page-about .section {
+  padding-block: clamp(2.1rem, 4.6vw, 3.2rem);
+}
+
+.about-hero .wrap {
+  display: grid;
+  gap: 1.2rem;
+}
+
+.about-hero__title {
+  margin: 0.5rem 0 0;
+  font-family: var(--serif);
+  font-size: clamp(2.8rem, 7.4vw, 4.6rem);
+  line-height: 1.04;
+  letter-spacing: -0.015em;
+}
+
+.about-hero__lead {
+  max-width: 32em;
+  margin: 0;
+  font-family: var(--serif);
+  font-size: clamp(1.12rem, 2.1vw, 1.48rem);
+  line-height: 1.58;
+  color: var(--ink);
+}
+
+/* 抬头下面那排事实：四格，发丝线分隔，像一份简目 */
+.about-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12.5rem), 1fr));
+  margin: clamp(1rem, 3vw, 1.8rem) 0 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.about-fact {
+  padding: 1rem 1.4rem 1.15rem 0;
+}
+
+.about-fact + .about-fact {
+  padding-inline-start: 1.4rem;
+  border-inline-start: 1px solid var(--rule);
+}
+
+.about-fact dt {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.about-fact dd {
+  margin: 0.35rem 0 0.45rem;
+  font-family: var(--serif);
+  font-size: clamp(1.35rem, 2.4vw, 1.7rem);
+  line-height: 1.1;
+  color: var(--ink);
+}
+
+.about-fact p {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.62;
+  color: var(--muted);
+  max-width: 20em;
+}
+
+/* 每一节：左边章节号与标题，右边正文 */
+.about-no {
+  margin: 0 0 0.1rem;
+  font-family: var(--serif);
+  font-size: clamp(2.4rem, 5vw, 3.4rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: color-mix(in srgb, var(--ink) 20%, transparent);
+  font-variant-numeric: oldstyle-nums;
+}
+
+.about-part .section__title {
+  margin-top: 0.35rem;
+  font-size: clamp(1.5rem, 2.7vw, 2.05rem);
+  line-height: 1.16;
+}
+
+/* 开篇那一句：左侧一道朱红细线，不用首字下沉（中文首字常是「一」，浮起来就是一根横线） */
+.about-prose .about-lede {
+  position: relative;
+  margin-bottom: 1.2rem;
+  padding-inline-start: 1.05rem;
+  font-family: var(--serif);
+  font-size: clamp(1.02rem, 1.6vw, 1.14rem);
+  line-height: 1.72;
+  color: var(--ink);
+}
+
+.about-prose .about-lede::before {
+  content: "";
+  position: absolute;
+  inset-block: 0.3em;
+  inset-inline-start: 0;
+  width: 2px;
+  background: var(--vermilion);
+}
+
+/* 身份：一份带横线的清单 */
+.roles {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--rule);
+}
+
+.role {
+  position: relative;
+  display: grid;
+  grid-template-columns: 5.6rem minmax(0, 1fr);
+  gap: 1.4rem;
+  align-items: baseline;
+  padding: 1.05rem 0;
+  border-bottom: 1px solid var(--rule);
+  transition: background 0.25s var(--ease);
+}
+
+.role::before {
+  content: "";
+  position: absolute;
+  inset-block: 0.35rem;
+  inset-inline-start: -1.1rem;
+  width: 2px;
+  background: var(--vermilion);
+  transform: scaleY(0);
+  transform-origin: top;
+  transition: transform 0.3s var(--ease);
+}
+
+.role:hover::before,
+.role:focus-within::before {
+  transform: scaleY(1);
+}
+
+.role:hover {
+  background: color-mix(in srgb, var(--ink) 3%, transparent);
+}
+
+.role__tag {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  color: var(--muted);
+  transition: color 0.25s var(--ease);
+}
+
+.role:hover .role__tag {
+  color: var(--vermilion);
+}
+
+.role__text {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+/* 技术栈：术语 + 一句解释 */
+.specs {
+  margin: 0;
+}
+
+.spec {
+  display: grid;
+  grid-template-columns: 7rem minmax(0, 1fr);
+  gap: 1.4rem;
+  padding: 0.95rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.specs > .spec:first-child {
+  border-top: 1px solid var(--rule);
+}
+
+.spec dt {
+  padding-top: 0.14rem;
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  color: var(--muted);
+}
+
+.spec dd {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.about-part code,
+.about-body code,
+.about-prose code {
   font-family: var(--mono);
   font-size: 0.86em;
   padding: 0.1em 0.34em;
   border-radius: 3px;
   background: color-mix(in srgb, var(--ink) 7%, transparent);
   overflow-wrap: anywhere;
+}
+
+.about-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 1.4rem;
+}
+
+.about-license {
+  margin-inline-start: auto;
+  padding: 0.22rem 0.55rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.2em;
+  color: var(--ink-soft);
+  transform: rotate(-3deg);
+}
+
+.about-body__text {
+  margin: 1.3rem 0 0;
+  color: var(--ink-soft);
+  max-width: 36em;
+}
+
+/* 联系：四张卡 */
+.contacts {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: 0.8rem;
+  margin: 1.2rem 0 0;
+  padding: 0;
+}
+
+.contact {
+  display: grid;
+  gap: 0.28rem;
+  padding: 1rem 1.05rem 1.1rem;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  background: var(--paper-2);
+  text-decoration: none;
+  transition: transform 0.3s var(--ease), border-color 0.3s var(--ease), box-shadow 0.3s var(--ease);
+}
+
+.contact:hover,
+.contact:focus-visible {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--vermilion) 45%, var(--rule));
+  box-shadow: 0 18px 28px -26px rgba(20, 19, 27, 0.55);
+}
+
+.contact__tag {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--vermilion);
+}
+
+.contact__name {
+  font-family: var(--serif);
+  font-size: 1.04rem;
+  line-height: 1.3;
+  color: var(--ink);
+}
+
+.contact__note {
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+/* 小注：一条虚线 + 标记 */
+.about-footnote {
+  margin: 1.3rem 0 0;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.8rem;
+  line-height: 1.75;
+  color: var(--muted);
+}
+
+.about-footnote__mark {
+  display: inline-block;
+  margin-inline-end: 0.45rem;
+  padding: 0.02rem 0.3rem;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  color: var(--ink-soft);
+  vertical-align: 0.08em;
+}
+
+/* 页尾的一行落款 */
+.about-colophon {
+  padding-block: clamp(1.6rem, 4vw, 2.6rem);
+}
+
+.about-colophon__text {
+  margin: 0 0 0.8rem;
+  font-family: var(--serif);
+  font-size: clamp(1rem, 1.9vw, 1.2rem);
+  line-height: 1.6;
+  max-width: 38em;
+  color: var(--ink);
+}
+
+.about-colophon__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.6rem;
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* 宽屏：左栏窄、章号吸顶，正文与左栏之间一条竖线 */
+@media (min-width: 900px) {
+  .about-hero .wrap {
+    grid-template-columns: minmax(0, 20rem) minmax(0, 1fr);
+    column-gap: 2.6rem;
+    align-items: end;
+  }
+
+  .about-hero .section__head {
+    grid-column: 1;
+  }
+
+  .about-hero__lead {
+    grid-column: 2;
+  }
+
+  .about-facts {
+    grid-column: 1 / -1;
+  }
+
+  .about-part .wrap {
+    display: grid;
+    grid-template-columns: minmax(0, 16.5rem) minmax(0, 1fr);
+    column-gap: 3rem;
+    align-items: start;
+  }
+
+  .about-part .section__head {
+    position: sticky;
+    inset-block-start: 1.6rem;
+  }
+
+  .about-part .section__title {
+    text-wrap: balance;
+  }
+
+  .about-part .about-body,
+  .about-part .about-prose {
+    border-inline-start: 1px solid var(--rule);
+    padding-inline-start: 2.2rem;
+  }
+
+  .about-part .prose {
+    max-width: none;
+  }
+}
+
+@media (max-width: 899px) {
+  .about-part .section__head {
+    margin-bottom: 1.4rem;
+  }
+
+  .about-part .about-body,
+  .about-part .about-prose {
+    padding-inline-start: 1.1rem;
+    border-inline-start: 2px solid color-mix(in srgb, var(--ink) 9%, transparent);
+  }
+
+  .role,
+  .spec {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.3rem;
+  }
+
+  .about-fact + .about-fact {
+    padding-inline-start: 0;
+    border-inline-start: 0;
+  }
+
+  .about-fact {
+    border-top: 1px solid var(--rule);
+  }
+
+  .about-fact:first-child {
+    border-top: 0;
+  }
+
+  .about-license {
+    margin-inline-start: 0;
+  }
 }
 
 .prose h2 {
