@@ -730,7 +730,7 @@ const server = http.createServer(async (req, res) => {
         return redirect(res, `/memories/login?error=${encodeURIComponent(error.message)}`);
       }
     }
-    if (pathname === "/memories/my") return redirect(res, "/memories/files");
+    if (pathname === "/memories/my") return pageMy(req, res);
     if (pathname === "/memories/files") return pageBrowser(req, res, url);
 
   if (pathname === "/memories/files/list") {

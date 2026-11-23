@@ -502,11 +502,12 @@ export function myPage({ site, user, items, folder, drives }) {
 <section class="m-hero m-hero--small">
   <p class="m-kicker">我的空间</p>
   <h1>${e(user.name || "我")} 的上传</h1>
-  <p class="m-hero__intro">你上传的内容放在 <code>${e(folder)}</code> 里。只能改自己上传的东西。</p>
+  <p class="m-hero__intro">你上传的照片和视频都在这里，只列自己传的。要新建文件夹、改名、移动，去媒体库。</p>
 </section>
 <div class="m-toolbar">
-  <div class="m-chips"><a class="m-chip is-on" href="/memories/my">${items.length} 项</a></div>
+  <div class="m-chips"><span class="m-chip is-on">${items.length} 项</span></div>
   <div class="m-toolbar__right">
+    <a class="m-btn" href="/memories/files">在媒体库里整理</a>
     ${drives.length > 1 ? `<label class="m-select"><select data-folder-drive>${drives.map((d) => `<option value="${d.id}">${e(d.name)}</option>`).join("")}</select></label>` : ""}
     <button type="button" class="m-btn m-btn--primary" data-upload-open>上传</button>
   </div>
