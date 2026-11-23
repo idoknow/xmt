@@ -913,3 +913,66 @@ input[type="range"] {
   overflow-wrap: anywhere;
   word-break: break-word;
 }
+
+/* ---------- 结果条 / 结果项 ---------- */
+.results__bar {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .3rem .6rem;
+  padding: .45rem .7rem; border: 1px solid var(--rule); border-block-end: 0;
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
+  font-family: var(--mono); font-size: .7rem; letter-spacing: .04em; color: var(--muted);
+}
+.results__sum { min-width: 0; flex: 1 1 10rem; overflow-wrap: anywhere; }
+.results__all {
+  font: inherit; font-family: var(--sans); font-size: .74rem; letter-spacing: 0;
+  padding: .22rem .62rem; border: 1px solid var(--rule); border-radius: 999px;
+  background: transparent; color: var(--ink); cursor: pointer; white-space: nowrap;
+}
+.results__all:hover { border-color: var(--vermilion); color: var(--vermilion); }
+.results__all:focus-visible { outline: 2px solid var(--vermilion); outline-offset: 2px; }
+
+.results li.results__item {
+  display: grid; grid-template-columns: 2.5rem minmax(0, 1fr) auto;
+  align-items: center; gap: .35rem .8rem; padding: .5rem .7rem;
+}
+.results .results__thumb {
+  width: 2.5rem; height: 2.5rem; object-fit: cover;
+  border: 1px solid var(--rule); border-radius: 3px; background: var(--tile);
+}
+.results .results__text { display: grid; gap: .15rem; min-width: 0; }
+.results .results__name {
+  font-family: var(--sans); font-size: .84rem; letter-spacing: 0;
+  color: var(--ink); overflow-wrap: anywhere;
+}
+.results .results__meta { font-family: var(--mono); font-size: .7rem; color: var(--muted); overflow-wrap: anywhere; }
+.results .results__save { font-size: .8rem; white-space: nowrap; }
+.results li.is-error { border-color: color-mix(in srgb, var(--vermilion) 45%, var(--rule)); }
+.results li.is-error .results__name { color: var(--vermilion); }
+
+/* ---------- 常用尺寸 / 常用目标 ---------- */
+.tool__presets { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
+.tool__presets-label {
+  font-family: var(--mono); font-size: .64rem; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--muted); margin-inline-end: .2rem;
+}
+.chip {
+  font: inherit; font-size: .76rem; line-height: 1.3; padding: .28rem .62rem;
+  border: 1px solid var(--rule); border-radius: 999px; background: transparent;
+  color: var(--ink-soft); cursor: pointer;
+  transition: border-color .2s, color .2s, background-color .2s;
+}
+.chip:hover { border-color: color-mix(in srgb, var(--vermilion) 55%, var(--rule)); color: var(--vermilion); }
+.chip.is-on { border-color: var(--vermilion); color: var(--vermilion); background: color-mix(in srgb, var(--vermilion) 8%, transparent); }
+.chip:focus-visible { outline: 2px solid var(--vermilion); outline-offset: 2px; }
+
+@media (max-width: 560px) {
+  .results li.results__item { grid-template-columns: 2.2rem minmax(0, 1fr); }
+  .results .results__save { grid-column: 2; justify-self: start; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chip { transition: none; }
+}
+
+/* 单工具视图：卡片与下面那行说明之间不要留一大片空白 */
+.page-tools .tool-view { padding-block-end: clamp(1.2rem, 2.4vw, 1.8rem); }
+.page-tools .section--quiet { padding-block: clamp(1rem, 2.2vw, 1.6rem) 0; }

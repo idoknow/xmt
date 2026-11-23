@@ -76,21 +76,87 @@ async function encode(canvas, mime, quality) {
 const results = { convert: [], compress: [], resize: [] };
 const urls = [];
 
+// 把主线程让出去一帧，批量处理时进度和按钮状态才来得及刷新
+const tick = () => new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
+
+const escapeHtml = (value) =>
+  String(value ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+
+function resultsBar(container) {
+  const list = $(`[data-out="${container}"]`);
+  if (!list) return null;
+  let bar = list.previousElementSibling;
+  if (!bar || !bar.classList.contains("results__bar")) {
+    bar = document.createElement("div");
+    bar.className = "results__bar";
+    bar.hidden = true;
+    list.before(bar);
+  }
+  return bar;
+}
+
+function downloadAll(container) {
+  const links = $$(`[data-out="${container}"] .results__save`);
+  links.forEach((link, index) => setTimeout(() => link.click(), index * 220));
+}
+
 function show(container, items) {
   const list = $(`[data-out="${container}"]`);
   if (!list) return;
   for (const url of results[container]) URL.revokeObjectURL(url);
   results[container] = [];
-  list.innerHTML = items.length ? "" : '<li class="results__empty">还没有结果。</li>';
+  list.innerHTML = "";
+
+  const bar = resultsBar(container);
+  if (!items.length) {
+    list.innerHTML = '<li class="results__empty">还没有结果。</li>';
+    if (bar) {
+      bar.hidden = true;
+      bar.innerHTML = "";
+    }
+    return;
+  }
+
+  const ok = items.filter((item) => item.blob);
+  const beforeSum = ok.reduce((sum, item) => sum + (Number(item.before) || 0), 0);
+  const afterSum = ok.reduce((sum, item) => sum + item.blob.size, 0);
+  if (bar) {
+    const parts = [`共 ${ok.length} 个`];
+    if (beforeSum > 0) {
+      parts.push(`${fmtSize(beforeSum)} → ${fmtSize(afterSum)}`);
+      const ratio = Math.abs(1 - afterSum / beforeSum);
+      if (ratio >= 0.01) parts.push(`${afterSum <= beforeSum ? "省" : "多"} ${(ratio * 100).toFixed(0)}%`);
+    }
+    bar.hidden = false;
+    bar.innerHTML = `<span class="results__sum">${parts.join(" · ")}</span><button type="button" class="results__all">全部下载</button>`;
+    bar.querySelector(".results__all").addEventListener("click", () => downloadAll(container));
+  }
+
   for (const item of items) {
+    const li = document.createElement("li");
+    if (!item.blob) {
+      li.className = "results__item is-error";
+      li.innerHTML = `
+        <span class="results__text">
+          <span class="results__name">${escapeHtml(item.name)}</span>
+          <span class="results__meta">${escapeHtml(item.detail || "处理失败")}</span>
+        </span>`;
+      list.append(li);
+      continue;
+    }
     const url = URL.createObjectURL(item.blob);
     results[container].push(url);
-    const li = document.createElement("li");
+    const ratio = item.before ? Math.abs(1 - item.blob.size / item.before) : 0;
+    const change = item.before && ratio >= 0.01 ? `${item.blob.size <= item.before ? "省" : "多"} ${(ratio * 100).toFixed(0)}%` : "";
+    const meta = [item.detail, fmtSize(item.blob.size), change].filter(Boolean).join(" · ");
     li.className = "results__item";
     li.innerHTML = `
-      <span class="results__name">${item.name}</span>
-      <span class="results__meta">${item.detail || ""} · ${fmtSize(item.blob.size)}</span>
-      <a class="results__save" href="${url}" download="${item.name}">下载</a>`;
+      <img class="results__thumb" src="${url}" alt="" loading="lazy" decoding="async" />
+      <span class="results__text">
+        <span class="results__name">${escapeHtml(item.name)}</span>
+        <span class="results__meta">${escapeHtml(meta)}</span>
+      </span>
+      <a class="results__save" href="${url}" download="${escapeHtml(item.name)}">下载</a>`;
     list.append(li);
   }
 }
@@ -173,24 +239,27 @@ $('[data-run="convert"]')?.addEventListener("click", async () => {
   if (!files.length) return status("convert", "先选图片。");
   const mime = $('[data-opt="convert.format"]').value;
   const quality = Number($('[data-opt="convert.quality"]').value) / 100;
-  status("convert", "转换中…");
   const items = [];
-  for (const file of files) {
+  for (const [index, file] of files.entries()) {
+    status("convert", `正在转换 ${index + 1}/${files.length}…`);
+    await tick();
     try {
       const decoded = await decode(file);
       const canvas = paint(decoded, decoded.width, decoded.height, mime === "image/jpeg" ? "#ffffff" : null);
       const blob = await encode(canvas, mime, quality);
       items.push({
         blob,
+        before: file.size,
         name: `${baseName(file.name)}.${extOf(mime)}`,
         detail: `${decoded.width}×${decoded.height}`,
       });
     } catch (error) {
-      items.push({ blob: new Blob([String(error.message)]), name: `${baseName(file.name)}.txt`, detail: "失败" });
+      items.push({ name: file.name, detail: `失败：${error.message}` });
     }
   }
   show("convert", items);
-  status("convert", `完成 ${items.length} 个。`);
+  const failed = items.filter((item) => !item.blob).length;
+  status("convert", failed ? `完成 ${items.length - failed} 个，${failed} 个失败。` : `完成 ${items.length} 个。`);
 });
 
 /* ---------- 02 压缩 ---------- */
@@ -211,6 +280,9 @@ $('[data-opt="compress.mode"]')?.addEventListener("change", (event) => {
   if (value) {
     value.value = event.target.value === "size" ? "300" : event.target.value === "edge" ? "1920" : "60";
   }
+  $$("[data-show-size]").forEach((node) => {
+    node.hidden = event.target.value !== "size";
+  });
 });
 
 $('[data-run="compress"]')?.addEventListener("click", async () => {
@@ -263,12 +335,12 @@ $('[data-run="compress"]')?.addEventListener("click", async () => {
       blob = await encode(paint(decoded, width, height), mime, quality);
     }
 
-    const saved = Math.max(0, 1 - blob.size / file.size);
     show("compress", [
       {
         blob,
+        before: file.size,
         name: `${baseName(file.name)}-compressed.${extOf(mime)}`,
-        detail: `${width}×${height} · 减少 ${(saved * 100).toFixed(0)}%`,
+        detail: `${width}×${height}`,
       },
     ]);
     status("compress", `原来 ${fmtSize(file.size)}，现在 ${fmtSize(blob.size)}。`);
@@ -317,7 +389,12 @@ $('[data-run="resize"]')?.addEventListener("click", async () => {
     const mime = decoded.vector || /png$/i.test(file.type) ? "image/png" : "image/webp";
     const blob = await encode(paint(decoded, width, height), mime, 0.92);
     show("resize", [
-      { blob, name: `${baseName(file.name)}-${width}x${height}.${extOf(mime)}`, detail: `${decoded.width}×${decoded.height} → ${width}×${height}` },
+      {
+        blob,
+        before: file.size,
+        name: `${baseName(file.name)}-${width}x${height}.${extOf(mime)}`,
+        detail: `${decoded.width}×${decoded.height} → ${width}×${height}`,
+      },
     ]);
     status("resize", "完成。");
   } catch (error) {
@@ -532,9 +609,6 @@ $('[data-run="watermark"]')?.addEventListener("click", async () => {
 
 /* ---------- 后台维护的清单 ---------- */
 
-const escapeHtml = (value) =>
-  String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-
 async function loadCatalog() {
   try {
     const res = await fetch("/tools/data", { headers: { accept: "application/json" } });
@@ -647,6 +721,82 @@ $$(".tool__drop").forEach((drop) => {
 });
 
 /* ---------- 视图切换：首页磁贴 / 单个工具 ---------- */
+
+/* ---------- 常用尺寸 / 常用目标 ---------- */
+
+$$("[data-preset]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const [width, height] = String(button.dataset.preset || "").split("x").map(Number);
+    if (!width || !height) return;
+    const mode = $('[data-opt="resize.mode"]');
+    if (mode) {
+      mode.value = "pixel";
+      mode.dispatchEvent(new Event("change"));
+    }
+    const fieldW = $('[data-opt="resize.width"]');
+    const fieldH = $('[data-opt="resize.height"]');
+    if (fieldW) fieldW.value = String(width);
+    if (fieldH) fieldH.value = String(height);
+    $$("[data-preset]").forEach((node) => node.classList.toggle("is-on", node === button));
+    status("resize", `已选 ${width}×${height}，选好图片后点「调整尺寸」。`);
+  });
+});
+
+$$("[data-size]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const value = Number(button.dataset.size) || 0;
+    if (!value) return;
+    const mode = $('[data-opt="compress.mode"]');
+    const field = $('[data-opt="compress.value"]');
+    if (mode && mode.value !== "size") {
+      mode.value = "size";
+      mode.dispatchEvent(new Event("change"));
+    }
+    if (field) field.value = String(value);
+    $$("[data-size]").forEach((node) => node.classList.toggle("is-on", node === button));
+  });
+});
+
+/* ---------- 整页拖放：拖到工具视图任意位置都能接收 ---------- */
+
+const activeTool = () => {
+  const view = $("[data-view]:not([hidden])");
+  return view ? view.dataset.view : "";
+};
+
+["dragenter", "dragover"].forEach((type) =>
+  document.addEventListener(type, (event) => {
+    const tool = activeTool();
+    if (!tool || !inputs[tool]) return;
+    if (!Array.from(event.dataTransfer?.types || []).includes("Files")) return;
+    event.preventDefault();
+    inputs[tool].closest(".tool__drop")?.classList.add("is-over");
+  }),
+);
+
+["dragleave", "drop"].forEach((type) =>
+  document.addEventListener(type, (event) => {
+    const tool = activeTool();
+    if (!tool || !inputs[tool]) return;
+    if (type === "dragleave" && event.relatedTarget) return;
+    inputs[tool].closest(".tool__drop")?.classList.remove("is-over");
+  }),
+);
+
+document.addEventListener("drop", (event) => {
+  const tool = activeTool();
+  const input = inputs[tool];
+  if (!input) return;
+  if (event.target.closest?.(".tool__drop")) return;
+  const files = Array.from(event.dataTransfer?.files || []).filter((file) => file.type.startsWith("image/"));
+  if (!files.length) return;
+  event.preventDefault();
+  const transfer = new DataTransfer();
+  (input.multiple ? files : files.slice(0, 1)).forEach((file) => transfer.items.add(file));
+  input.files = transfer.files;
+  input.dispatchEvent(new Event("change"));
+  status(tool, `已接收 ${transfer.files.length} 个文件。`);
+});
 
 const views = $$("[data-view]");
 const homeView = $("[data-tools-home]");

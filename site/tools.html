@@ -165,6 +165,13 @@
                   </span>
                 </label>
               </div>
+              <div class="tool__presets" data-show-size>
+                <span class="tool__presets-label">常用目标</span>
+                <button type="button" class="chip" data-size="200">200 KB</button>
+                <button type="button" class="chip" data-size="500">500 KB</button>
+                <button type="button" class="chip" data-size="1024">1 MB</button>
+                <button type="button" class="chip" data-size="2048">2 MB</button>
+              </div>
               <div class="tool__actions">
                 <button type="button" class="btn btn--primary" data-run="compress">压缩</button>
                 <span class="tool__status" data-status="compress"></span>
@@ -220,10 +227,18 @@
                     <span class="field__unit">px</span>
                   </span>
                 </label>
-                <label class="field field--check" data-show="pixel" hidden>
+                <label class="field--check" data-show="pixel" hidden>
                   <input type="checkbox" data-opt="resize.lock" checked />
                   <span>保持宽高比</span>
                 </label>
+              </div>
+              <div class="tool__presets">
+                <span class="tool__presets-label">常用尺寸</span>
+                <button type="button" class="chip" data-preset="900x383">公众号封面 900×383</button>
+                <button type="button" class="chip" data-preset="1080x1260">视频号封面 1080×1260</button>
+                <button type="button" class="chip" data-preset="1080x1080">方图 1080×1080</button>
+                <button type="button" class="chip" data-preset="1920x1080">横屏 1920×1080</button>
+                <button type="button" class="chip" data-preset="800x800">头像 800×800</button>
               </div>
               <div class="tool__actions">
                 <button type="button" class="btn btn--primary" data-run="resize">调整尺寸</button>
