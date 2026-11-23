@@ -29,7 +29,7 @@ import {
   onlineCount,
 } from "./auth.mjs";
 import { DRIVERS, driverFor, forgetDriver } from "./drives.mjs";
-import { countMedia, duplicateMedia, moveMedia, queryMedia, removeMedia, renameMedia, stats, updateMeta, upload, userFolder, hiddenPrefixes, isHidden, setHidden, publicPrefixes, setPublic, isPublicPath } from "./media.mjs";
+import { countMedia, duplicateMedia, moveMedia, personalFolder, queryMedia, removeMedia, renameMedia, stats, updateMeta, upload, userFolder, hiddenPrefixes, isHidden, setHidden, publicPrefixes, setPublic, isPublicPath } from "./media.mjs";
 import { parseMultipart } from "./multipart.mjs";
 import {
   cookie,
@@ -44,7 +44,7 @@ import {
   sendFile,
   sendJson,
 } from "./util.mjs";
-import { detailPage, driveFieldSpecs, fmtSize, galleryPage, loginPage, myPage, shareFilePage, sharePage, shell, siteShell, assetVersion } from "./ui.mjs";
+import { detailPage, driveFieldSpecs, fmtSize, galleryPage, loginPage, shareFilePage, sharePage, shell, siteShell, assetVersion } from "./ui.mjs";
 import { handleImages, imagePage, imageTotal } from "./images.mjs";
 import { fileAction, fileInfo, fileInfoOf, fileUpload, handleAdmin } from "./admin.mjs";
 import { filesList, pageBrowser, rawBrowser } from "./browser.mjs";
@@ -276,14 +276,6 @@ function pageDetail(req, res, id) {
   html(res, 200, detailPage({ site: siteOf(), user, item, neighbors: { prev, next } }));
 }
 
-function pageMy(req, res) {
-  const user = currentUser(req);
-  if (!user) return redirect(res, "/memories/login");
-  userFolder(user);
-  const items = queryMedia({ owner: user.id, excludeHidden: true });
-  const drives = all("SELECT * FROM drives WHERE enabled = 1 ORDER BY id");
-  html(res, 200, myPage({ site: siteOf(), user, items, folder: user.drive_root, drives }));
-}
 
 function shareLookup(token) {
   const share = get("SELECT * FROM shares WHERE token = ?", token);
@@ -730,7 +722,7 @@ const server = http.createServer(async (req, res) => {
         return redirect(res, `/memories/login?error=${encodeURIComponent(error.message)}`);
       }
     }
-    if (pathname === "/memories/my") return pageMy(req, res);
+    if (pathname === "/memories/my") return pageBrowser(req, res, url, { scope: "mine" });
     if (pathname === "/memories/files") return pageBrowser(req, res, url);
 
   if (pathname === "/memories/files/list") {
@@ -743,7 +735,7 @@ const server = http.createServer(async (req, res) => {
 
   if (pathname === "/memories/files/action") {
     const viewer = currentUser(req);
-    const scope = isAdmin(viewer) ? "" : "/" + String(userFolder(viewer)).replace(/^\/+/, "");
+    const scope = viewer ? personalFolder(viewer) : "-";
     try {
       return await fileAction(req, res, scope);
     } catch (error) {
@@ -762,8 +754,10 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === "/memories/files/upload") {
+    const viewer = currentUser(req);
+    const scope = viewer ? personalFolder(viewer) : "-";
     try {
-      return await fileUpload(req, res);
+      return await fileUpload(req, res, scope);
     } catch (error) {
       return sendJson(res, error.status || 500, { ok: false, error: error.message });
     }

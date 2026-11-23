@@ -85,7 +85,7 @@ const profile = (user) => {
 
 export function shell({ title, site, user, body, bodyClass = "", scripts = "", head = "" }) {
   // 头像下拉不放在 nav 里：手机端 nav 是横向滚动容器，会把绝对定位的子弹层裁掉
-  const nav = `<a href="/memories/files">媒体库</a><a href="/memories/links">分享链接</a><a href="/image">图床</a>${
+  const nav = `${user ? '<a href="/memories/my">我的上传</a>' : ""}<a href="/memories/files">媒体库</a><a href="/memories/links">分享链接</a><a href="/image">图床</a>${
     user ? "" : `<a href="/memories/login">登录</a>`
   }`;
   const account = user ? `<div class="m-top__user">${profile(user)}</div>` : "";
@@ -497,27 +497,6 @@ export function detailPage({ site, user, item, neighbors }) {
 
 /* ---------- 我的 ---------- */
 
-export function myPage({ site, user, items, folder, drives }) {
-  const body = `
-<section class="m-hero m-hero--small">
-  <p class="m-kicker">我的空间</p>
-  <h1>${e(user.name || "我")} 的上传</h1>
-  <p class="m-hero__intro">你上传的照片和视频都在这里，只列自己传的。要新建文件夹、改名、移动，去媒体库。</p>
-</section>
-<div class="m-toolbar">
-  <div class="m-chips"><span class="m-chip is-on">${items.length} 项</span></div>
-  <div class="m-toolbar__right">
-    <a class="m-btn" href="/memories/files">在媒体库里整理</a>
-    ${drives.length > 1 ? `<label class="m-select"><select data-folder-drive>${drives.map((d) => `<option value="${d.id}">${e(d.name)}</option>`).join("")}</select></label>` : ""}
-    <button type="button" class="m-btn m-btn--primary" data-upload-open>上传</button>
-  </div>
-</div>
-${items.length ? `<div class="m-grid" data-grid>${items.map(card).join("")}</div>` : `<p class="m-empty">还没有上传过。点右上角开始。</p>`}
-${uploadDialog({ drives })}
-`;
-  return shell({ title: "我的", site, user, body });
-}
-
 /* ---------- 登录 ---------- */
 
 export function loginPage({ site, error }) {
@@ -643,6 +622,8 @@ export function filesPage({
   rootLabel = "媒体库",
   strip = "",
   error = "",
+  baseHref = "/memories/files",
+  scope = "",
 }) {
   if (!drive) {
     return shell({
@@ -660,18 +641,18 @@ export function filesPage({
     .split("/")
     .filter(Boolean);
   const crumbs = [
-    `<a href="/memories/files?drive=${drive.id}">${e(root)}</a>`,
+    `<a href="${baseHref}?drive=${drive.id}${scope ? `&scope=${scope}` : ""}">${e(root)}</a>`,
     ...parts.map((_, index) => {
       const sub = `${base}/${parts.slice(0, index + 1).join("/")}`;
       const name = parts[index];
-      return `<a href="/memories/files?drive=${drive.id}&path=${encodeURIComponent(sub)}">${e(name)}</a>`;
+      return `<a href="${baseHref}?drive=${drive.id}&path=${encodeURIComponent(sub)}${scope ? `&scope=${scope}` : ""}">${e(name)}</a>`;
     }),
   ].join('<span class="m-crumbs__sep">/</span>');
 
   const chips = drives
     .map(
       (item) =>
-        `<a class="m-chip${item.id === drive.id ? " is-on" : ""}" href="/memories/files?drive=${item.id}">${e(item.name)}</a>`,
+        `<a class="m-chip${item.id === drive.id ? " is-on" : ""}" href="${baseHref}?drive=${item.id}${scope ? `&scope=${scope}` : ""}">${e(item.name)}</a>`,
     )
     .join("");
 
@@ -684,7 +665,7 @@ export function filesPage({
   const rows = (entries || [])
     .map((entry) => {      const kind = entry.isDir ? "dir" : fmKindOf(entry.name);
       const name = entry.isDir
-        ? `<a class="fm-name fm-name--dir" href="/memories/files?drive=${drive.id}&path=${encodeURIComponent(entry.path)}">${e(entry.name)}</a>`
+        ? `<a class="fm-name fm-name--dir" href="${baseHref}?drive=${drive.id}&path=${encodeURIComponent(entry.path)}${scope ? `&scope=${scope}` : ""}">${e(entry.name)}</a>`
         : `<button class="fm-name" type="button" data-fm-preview="${e(entry.path)}" data-fm-kind="${kind}">${e(entry.name)}</button>`;
       return `<tr data-fm-path="${e(entry.path)}" data-fm-dir="${entry.isDir ? 1 : 0}" data-fm-kind="${kind}" data-fm-size="${entry.size || 0}" data-fm-name="${e(entry.name)}">
         <td class="fm-tick"><button class="a-tick" type="button" data-fm-pick data-value="${e(entry.path)}" aria-pressed="false" aria-label="选择 ${e(entry.name)}"></button></td>
@@ -736,15 +717,21 @@ export function filesPage({
         <button class="a-btn a-btn--tiny" type="button" data-fm-clear>取消选择</button>
       </div>
 
-      <table class="a-table fm-table" data-fm-drive="${drive.id}" data-fm-path="${e(currentPath)}"${deferred ? ' data-fm-defer="1"' : ""}>
+      <table class="a-table fm-table" data-fm-drive="${drive.id}" data-fm-path="${e(currentPath)}" data-fm-base="${baseHref}" data-fm-scope="${scope}"${deferred ? ' data-fm-defer="1"' : ""}>
         <thead><tr>
           <th class="fm-tick"><button class="a-tick a-tick--all" type="button" data-fm-all aria-pressed="false" aria-label="全选"></button></th>
           <th>名称</th><th class="fm-size">大小</th><th class="fm-time">修改时间</th><th class="fm-actions">操作</th>
         </tr></thead>
         <tbody data-fm-rows>${deferred ? skeletonRows : rows || '<tr><td colspan="5" class="fm-empty">这个目录是空的。</td></tr>'}</tbody>
       </table>
-      ${deferred ? `<script type="application/json" data-fm-boot>${JSON.stringify({ drive: drive.id, path: currentPath })}</script>` : ""}
-      <p class="fm-note">点一行即可选中（按住 Shift 连选）。${canManage ? "删除会直接生效；移动 / 复制 / 打包在选中后出现。" : "游客只读。"}</p>
+      ${deferred ? `<script type="application/json" data-fm-boot>${JSON.stringify({ drive: drive.id, path: currentPath, scope, base: baseHref })}</script>` : ""}
+      <p class="fm-note">点一行即可选中（按住 Shift 连选）。${
+        canManage
+          ? "删除会直接生效；移动 / 复制 / 打包在选中后出现。"
+          : user
+            ? "媒体库是只读的；要整理自己的文件，去「我的上传」。"
+            : "游客只读。"
+      }</p>
     </div>
   </section>
 

@@ -136,6 +136,14 @@ export const uploadRoot = () =>
     .replace(/\\/g, "/") || "用户上传";
 
 /** 每个用户在总文件夹下有一个子文件夹：优先用昵称，其次 QQ，最后 u-<id> */
+/** 「我的上传」的根：管理员放 admin/，成员放自己名字的目录 */
+export const personalFolder = (user) => {
+  if (!user) return "";
+  // 不引入 auth.mjs，避免循环依赖；角色判断就两行
+  const admin = user.role === "admin" || user.role === "owner";
+  return admin ? "admin" : userFolder(user);
+};
+
 export const userFolder = (user) => {
   const label = String(displayName(user) || "").trim() || (user.qq ? String(user.qq) : `u-${user.id}`);
   const safe = label.replace(/[\\/:*?"<>|]/g, "-").replace(/\s+/g, " ").slice(0, 40) || `u-${user.id}`;

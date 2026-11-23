@@ -164,8 +164,10 @@ function backTo(driveId, dir, patch = {}) {
 
 function within(scope, target) {
   if (!scope) return true;
-  const path = String(target || "");
-  return path === scope || path.startsWith(`${scope}/`);
+  const norm = (value) => "/" + String(value || "").replace(/^\/+/, "").replace(/\/+$/, "");
+  const base = norm(scope);
+  const path = norm(target);
+  return path === base || path.startsWith(`${base}/`);
 }
 
 export async function fileAction(req, res, scope = "") {
@@ -348,7 +350,7 @@ export async function fileAction(req, res, scope = "") {
   throw Object.assign(new Error(`未知操作：${action}`), { status: 400 });
 }
 
-export async function fileUpload(req, res) {
+export async function fileUpload(req, res, scope = "") {
   const user = currentUser(req);
   const contentType = String(req.headers["content-type"] || "");
   const boundary =
@@ -361,6 +363,10 @@ export async function fileUpload(req, res) {
   if (!files.length) throw Object.assign(new Error("没有收到文件"), { status: 400 });
   const drive = driveOf(fields.drive);
   const folder = cleanDir(fields.path);
+  // 前台只允许传到自己的目录（管理员的自由管理走 /memories/admin/files）
+  if (!within(scope, folder || "/")) {
+    throw Object.assign(new Error("只能上传到自己的文件夹"), { status: 403 });
+  }
   const result = await upload({ user, drive, folder: folder === "/" ? "" : folder, files });
   audit(user.id, "upload", `${drive.name}:${folder} ${result.saved.length} 个文件`, req.socket.remoteAddress);
   sendJson(res, 200, { ok: true, saved: result.saved, rejected: result.rejected });

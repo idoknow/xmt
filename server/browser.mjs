@@ -2,7 +2,7 @@
 import { all, get, setting } from "./db.mjs";
 import { currentUser, isAdmin } from "./auth.mjs";
 import { driverFor } from "./drives.mjs";
-import { hiddenPrefixes, publicPrefixes, uploadStats, userFolder } from "./media.mjs";
+import { hiddenPrefixes, personalFolder, publicPrefixes, uploadStats, userFolder } from "./media.mjs";
 import { filesPage } from "./ui.mjs";
 import { html, prettyPath, redirect, send, sendJson } from "./util.mjs";
 import { streamPath } from "./filestream.mjs";
@@ -50,20 +50,47 @@ async function listEntries(drive, user, currentPath) {
     .sort((a, b) => Number(b.isDir) - Number(a.isDir) || a.name.localeCompare(b.name, "zh-Hans-CN"));
 }
 
-export async function pageBrowser(req, res, url) {
+export async function pageBrowser(req, res, url, options = {}) {
   const user = currentUser(req);
+  const mineMode = options.scope === "mine";
+  if (mineMode && !user) return redirect(res, "/memories/login");
+
   const drives = visibleDrives(user);
   const wanted = Number(url.searchParams.get("drive"));
   const drive = drives.find((item) => item.id === wanted) || drives[0] || null;
-  const mine = isAdmin(user) ? "" : user ? userFolder(user) : "";
-  const currentPath = url.searchParams.get("path") || (mine || "/");
+
+  // 「我的上传」只看自己的目录；媒体库对成员也只看自己的目录，但只读
+  const mine = user ? personalFolder(user) : "";
+  const scoped = mineMode || !isAdmin(user);
+  const start = scoped ? mine || "/" : "/";
+  const currentPath = url.searchParams.get("path") || start;
+  const canManage = mineMode && Boolean(user);
+  const baseHref = mineMode ? "/memories/my" : "/memories/files";
+  const rootLabel = mineMode ? "我的上传" : "媒体库";
+
   const stats = uploadStats().global || { files: 0, bytes: 0 };
   const mineStats = user
     ? get("SELECT COUNT(*) AS files, COALESCE(SUM(size),0) AS bytes FROM media WHERE owner_id = ?", user.id)
     : null;
 
   if (!drive) {
-    html(res, 200, filesPage({ site: siteOf(), user, drives: [], drive: null, path: "/", entries: [], stats, mine: mineStats }));
+    html(
+      res,
+      200,
+      filesPage({
+        site: siteOf(),
+        user,
+        drives: [],
+        drive: null,
+        path: "/",
+        entries: [],
+        stats,
+        mine: mineStats,
+        canManage,
+        baseHref,
+        rootLabel,
+      }),
+    );
     return;
   }
 
@@ -80,13 +107,14 @@ export async function pageBrowser(req, res, url) {
         entries: [],
         stats,
         mine: mineStats,
-        canManage: Boolean(user),
-        rootLabel: mine ? "我的文件" : "媒体库",
+        canManage,
+        baseHref,
+        rootLabel,
         error: message,
       }),
     );
 
-  if (mine && !(currentPath === mine || String(currentPath).startsWith(`${mine}/`))) {
+  if (scoped && mine && !(currentPath === mine || String(currentPath).startsWith(`${mine}/`))) {
     return deny("这里是你自己的目录，上面的路径不在范围内。", 403);
   }
   const area = publicFor(drive, user);
@@ -106,9 +134,11 @@ export async function pageBrowser(req, res, url) {
       entries: null,
       stats,
       mine: mineStats,
-      canManage: Boolean(user),
-      rootLabel: mine ? "我的文件" : "媒体库",
-      strip: mine,
+      canManage,
+      baseHref,
+      rootLabel,
+      strip: scoped ? mine : "",
+      scope: mineMode ? "mine" : "",
     }),
   );
 }
@@ -120,7 +150,8 @@ export async function filesList(req, res, url) {
   if (!drive) return sendJson(res, 404, { ok: false, error: "存储不存在" });
   if (!user && drive.visibility !== "public") return sendJson(res, 401, { ok: false, error: "先登录" });
 
-  const mine = isAdmin(user) ? "" : user ? userFolder(user) : "";
+  const mineMode = url.searchParams.get("scope") === "mine";
+  const mine = mineMode || !isAdmin(user) ? (user ? personalFolder(user) : "") : "";
   const currentPath = url.searchParams.get("path") || (mine || "/");
   if (mine && !(currentPath === mine || String(currentPath).startsWith(`${mine}/`))) {
     return sendJson(res, 403, { ok: false, error: "这里是你自己的目录" });
@@ -136,7 +167,7 @@ export async function filesList(req, res, url) {
     return sendJson(res, 200, {
       ok: true,
       path: currentPath,
-      canManage: Boolean(user),
+      canManage: mineMode && Boolean(user),
       entries: entries.map((entry) => ({
         name: entry.name,
         path: entry.path,

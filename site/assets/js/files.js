@@ -6,6 +6,9 @@
 
   const drive = table.dataset.fmDrive;
   const cwd = table.dataset.fmPath || "/";
+  // 「媒体库」与「我的上传」共用这套表格，基址与 scope 由服务端写在 table 上
+  const base = table.dataset.fmBase || "/memories/files";
+  const scope = table.dataset.fmScope || "";
   const dialog = document.querySelector("[data-fm-dialog]");
   const titleEl = dialog?.querySelector("[data-fm-title]");
   const bodyEl = dialog?.querySelector("[data-fm-body]");
@@ -51,8 +54,9 @@
 
   function rowHtml(entry, canManage) {
     const kind = kindOf(entry.name, entry.isDir);
+    const scopeQuery = scope ? `&scope=${encodeURIComponent(scope)}` : "";
     const name = entry.isDir
-      ? `<a class="fm-name fm-name--dir" href="/memories/files?drive=${encodeURIComponent(drive)}&path=${encodeURIComponent(entry.path)}">${esc(entry.name)}</a>`
+      ? `<a class="fm-name fm-name--dir" href="${base}?drive=${encodeURIComponent(drive)}&path=${encodeURIComponent(entry.path)}${scopeQuery}">${esc(entry.name)}</a>`
       : `<button class="fm-name" type="button" data-fm-preview="${esc(entry.path)}" data-fm-kind="${kind}">${esc(entry.name)}</button>`;
     const time = entry.modified ? String(entry.modified).slice(0, 16).replace("T", " ") : "—";
     return `<tr data-fm-path="${esc(entry.path)}" data-fm-dir="${entry.isDir ? 1 : 0}" data-fm-kind="${kind}" data-fm-size="${entry.size || 0}" data-fm-name="${esc(entry.name)}">
@@ -81,6 +85,7 @@
       info = {};
     }
     const query = new URLSearchParams({ drive: String(info.drive || drive), path: String(info.path || cwd) });
+    if (info.scope || scope) query.set("scope", String(info.scope || scope));
     try {
       const response = await fetch(`/memories/files/list?${query}`, { headers: { accept: "application/json" } });
       const data = await response.json();
