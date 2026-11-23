@@ -74,7 +74,7 @@ async function encode(canvas, mime, quality) {
   );
 }
 
-const results = { convert: [], compress: [], resize: [] };
+const results = { convert: [], compress: [], resize: [], enlarge: [] };
 const urls = [];
 
 // 把主线程让出去一帧，批量处理时进度和按钮状态才来得及刷新
@@ -688,7 +688,126 @@ $('[data-run="crop"]')?.addEventListener("click", async () => {
   }
 });
 
-/* ---------- 05 加水印 ---------- */
+/* ---------- 05 图片放大 ---------- */
+
+let enlargeSource = { width: 0, height: 0 };
+
+$('[data-file="enlarge"]')?.addEventListener("change", async (event) => {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  try {
+    const decoded = await decode(file);
+    enlargeSource = { width: decoded.width, height: decoded.height };
+    const width = $('[data-opt="enlarge.width"]');
+    const height = $('[data-opt="enlarge.height"]');
+    if (width) width.value = String(decoded.width);
+    if (height) height.value = String(decoded.height);
+    status("enlarge", `原图 ${decoded.width}×${decoded.height}，挑倍数或改目标宽高。`);
+  } catch (error) {
+    status("enlarge", error.message);
+  }
+});
+
+$('[data-opt="enlarge.mode"]')?.addEventListener("change", (event) => {
+  const pixel = event.target.value === "pixel";
+  $$("[data-show-pixel]").forEach((node) => {
+    node.hidden = !pixel;
+  });
+  $$("[data-show-times]").forEach((node) => {
+    node.hidden = pixel;
+  });
+});
+
+// 按像素放大时保持原比例：改一边，另一边跟着算
+$('[data-opt="enlarge.width"]')?.addEventListener("input", (event) => {
+  if (!enlargeSource.width || !enlargeSource.height) return;
+  const height = $('[data-opt="enlarge.height"]');
+  const value = Number(event.target.value);
+  if (height && value > 0) {
+    height.value = String(Math.max(1, Math.round((value * enlargeSource.height) / enlargeSource.width)));
+  }
+});
+$('[data-opt="enlarge.height"]')?.addEventListener("input", (event) => {
+  if (!enlargeSource.width || !enlargeSource.height) return;
+  const width = $('[data-opt="enlarge.width"]');
+  const value = Number(event.target.value);
+  if (width && value > 0) {
+    width.value = String(Math.max(1, Math.round((value * enlargeSource.width) / enlargeSource.height)));
+  }
+});
+
+async function enlargeCanvas(decoded, width, height, { smooth = "high", steps = true, mime = "image/png" } = {}) {
+  let source = decoded.source;
+  const targets = [];
+  if (steps) {
+    let stepW = decoded.width;
+    let stepH = decoded.height;
+    // 每步不超过 2 倍：一次拉太大，插值出来的边会明显发糊
+    while (stepW * 2 < width || stepH * 2 < height) {
+      stepW = Math.min(width, stepW * 2);
+      stepH = Math.min(height, stepH * 2);
+      targets.push([Math.round(stepW), Math.round(stepH)]);
+    }
+  }
+  targets.push([width, height]);
+  for (const [stepW, stepH] of targets) {
+    const canvas = document.createElement("canvas");
+    canvas.width = stepW;
+    canvas.height = stepH;
+    const ctx = canvas.getContext("2d");
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = smooth;
+    if (mime === "image/jpeg") {
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, stepW, stepH);
+    }
+    ctx.drawImage(source, 0, 0, stepW, stepH);
+    source = canvas;
+  }
+  return source;
+}
+
+$('[data-run="enlarge"]')?.addEventListener("click", async () => {
+  const file = inputs.enlarge?.files?.[0];
+  if (!file) return status("enlarge", "先选一张图。");
+  const mode = $('[data-opt="enlarge.mode"]')?.value || "times";
+  const times = Number($('[data-opt="enlarge.times"]')?.value) || 2;
+  const smooth = $('[data-opt="enlarge.smooth"]')?.value || "high";
+  const format = $('[data-opt="enlarge.format"]')?.value || "image/png";
+  const steps = Boolean($('[data-opt="enlarge.steps"]')?.checked);
+  status("enlarge", "放大中…");
+  try {
+    const decoded = await decode(file);
+    let width;
+    let height;
+    if (mode === "pixel") {
+      width = Math.round(Number($('[data-opt="enlarge.width"]')?.value) || decoded.width);
+      height = Math.round(Number($('[data-opt="enlarge.height"]')?.value) || decoded.height);
+    } else {
+      width = Math.round(decoded.width * times);
+      height = Math.round(decoded.height * times);
+    }
+    if (!width || !height) throw new Error("宽高要大于 0");
+    if (width > 12000 || height > 12000) throw new Error("单边上限 12000 像素");
+    if (width * height > 60000000) throw new Error("总面积太大了，目标尺寸换个小的");
+    await tick();
+    const canvas = await enlargeCanvas(decoded, width, height, { smooth, steps, mime: format });
+    const blob = await encode(canvas, format, 0.92);
+    show("enlarge", [
+      {
+        blob,
+        name: `${baseName(file.name)}-${width}x${height}.${extOf(format)}`,
+        before: file.size,
+        detail: `${decoded.width}×${decoded.height} → ${width}×${height}`,
+      },
+    ]);
+    status("enlarge", `完成：${width}×${height} · ${fmtSize(blob.size)}`);
+  } catch (error) {
+    status("enlarge", `失败：${error.message}`);
+  }
+});
+
+/* ---------- 06 加水印 ---------- */
 
 function watermarkOn(canvas, imageCanvas) {
   const ctx = canvas.getContext("2d");

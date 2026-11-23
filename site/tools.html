@@ -69,20 +69,26 @@
               <p class="tile__desc">拖出想要的框，或直接填数值。</p>
               <span class="tile__go">打开</span>
             </a>
-            <a class="tile" href="#watermark" data-goto="watermark">
+            <a class="tile" href="#enlarge" data-goto="enlarge">
               <span class="tile__no">05</span>
+              <h2 class="tile__name">图片放大</h2>
+              <p class="tile__desc">按倍数或目标像素放大，分步插值更顺。</p>
+              <span class="tile__go">打开</span>
+            </a>
+            <a class="tile" href="#watermark" data-goto="watermark">
+              <span class="tile__no">06</span>
               <h2 class="tile__name">加水印</h2>
               <p class="tile__desc">文字水印，位置、字号、透明度都能调。</p>
               <span class="tile__go">打开</span>
             </a>
             <a class="tile" href="#links" data-goto="links">
-              <span class="tile__no">06</span>
+              <span class="tile__no">07</span>
               <h2 class="tile__name">工具清单</h2>
               <p class="tile__desc">站外好用的图片工具，管理员维护。</p>
               <span class="tile__go">打开</span>
             </a>
             <a class="tile" href="#software" data-goto="software">
-              <span class="tile__no">07</span>
+              <span class="tile__no">08</span>
               <h2 class="tile__name">常用软件</h2>
               <p class="tile__desc">按设备与用途分类的软件下载。</p>
               <span class="tile__go">打开</span>
@@ -309,12 +315,85 @@
         </div>
       </section>
 
-      <section class="section tool-view" id="watermark" data-view="watermark">
+      <section class="section tool-view" id="enlarge" data-view="enlarge">
         <div class="wrap">
           <a class="tool-back" href="#/" data-back>← 全部工具</a>
           <div class="tool">
             <header class="tool__head">
               <span class="tool__no">05</span>
+              <h2>图片放大</h2>
+              <p>把图片放大到更大的尺寸：按倍数，或直接填目标宽高。放大是插值补像素，细节不会凭空变多。</p>
+            </header>
+            <div class="tool__body">
+              <label class="tool__drop">
+                <input type="file" accept="image/*" data-file="enlarge" />
+                <span class="tool__drop-ico" aria-hidden="true">＋</span>
+                <span class="tool__drop-text">选择一张图片</span>
+                <span class="tool__drop-hint" data-picked="enlarge">还没有选择文件</span>
+              </label>
+
+              <div class="tool__fields">
+                <label class="field">
+                  <span class="field__label">放大方式</span>
+                  <select class="field__input" data-opt="enlarge.mode">
+                    <option value="times">按倍数</option>
+                    <option value="pixel">按像素</option>
+                  </select>
+                </label>
+                <label class="field" data-show-times>
+                  <span class="field__label">倍数</span>
+                  <select class="field__input" data-opt="enlarge.times">
+                    <option value="1.5">1.5 倍</option>
+                    <option value="2" selected>2 倍</option>
+                    <option value="3">3 倍</option>
+                    <option value="4">4 倍</option>
+                  </select>
+                </label>
+                <label class="field" data-show-pixel hidden>
+                  <span class="field__label">目标宽 × 高 · 锁比例</span>
+                  <span class="field__row">
+                    <input type="number" min="1" step="1" data-opt="enlarge.width" class="field__input" aria-label="目标宽" />
+                    <input type="number" min="1" step="1" data-opt="enlarge.height" class="field__input" aria-label="目标高" />
+                  </span>
+                </label>
+                <label class="field">
+                  <span class="field__label">插值质量</span>
+                  <select class="field__input" data-opt="enlarge.smooth">
+                    <option value="high" selected>高 · 更顺</option>
+                    <option value="medium">中</option>
+                    <option value="low">低 · 更锐</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span class="field__label">输出格式</span>
+                  <select class="field__input" data-opt="enlarge.format">
+                    <option value="image/png">PNG</option>
+                    <option value="image/webp">WebP</option>
+                    <option value="image/jpeg">JPG</option>
+                  </select>
+                </label>
+                <label class="field--check">
+                  <input type="checkbox" data-opt="enlarge.steps" checked /> 分步放大（每步不超过 2 倍）
+                </label>
+              </div>
+
+              <div class="tool__actions">
+                <button type="button" class="btn btn--primary" data-run="enlarge">放大并下载</button>
+                <span class="tool__status" data-status="enlarge"></span>
+              </div>
+              <ul class="results" data-out="enlarge"></ul>
+              <p class="tool__note">全部在本地处理。上限 12000 像素、6000 万像素总量，超出会提示。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section tool-view" id="watermark" data-view="watermark">
+        <div class="wrap">
+          <a class="tool-back" href="#/" data-back>← 全部工具</a>
+          <div class="tool">
+            <header class="tool__head">
+              <span class="tool__no">06</span>
               <h2>加水印</h2>
               <p>输入文字，挑位置、大小、颜色与透明度；可以铺满整张图。</p>
             </header>
