@@ -1,5 +1,38 @@
 /* ---------- 图床 ---------- */
 
+/* 输入框的底色不能用 --tile：那是留给图片和标识的「纸色」，
+   暗色主题下它不变白，浅字压在浅底上就看不见了。 */
+.page-image {
+  --im-field: color-mix(in srgb, var(--ink) 4%, var(--paper));
+  --im-field-line: color-mix(in srgb, var(--ink) 18%, transparent);
+}
+
+.page-image :is(.im-search, .im-card__field input, .im-dialog__field input) {
+  background: var(--im-field);
+  border-color: var(--im-field-line);
+  color: var(--ink);
+  caret-color: var(--vermilion);
+}
+
+.page-image :is(.im-search, .im-card__field input, .im-dialog__field input)::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+
+.page-image :is(.im-search, .im-card__field input, .im-dialog__field input):hover {
+  border-color: color-mix(in srgb, var(--ink) 28%, transparent);
+}
+
+/* 搜索框自带的清除按钮在暗色下是黑图标，翻一下 */
+:root[data-theme="dark"] .page-image input[type="search"]::-webkit-search-cancel-button {
+  filter: invert(0.85);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .page-image input[type="search"]::-webkit-search-cancel-button {
+    filter: invert(0.85);
+  }
+}
+
 .page-image .section {
   padding-block: clamp(1.4rem, 3vw, 2rem);
 }

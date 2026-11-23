@@ -59,7 +59,8 @@ function minifyCss(css) {
   return css
     .replace(/\/\*[\s\S]*?\*\//g, "")
     .replace(/\s+/g, " ")
-    .replace(/\s*([{};:,>])\s*/g, "$1")
+    // 只收拢这些符号周围的空白；冒号前必须留空格，否则 ".a :is(b)" 会变成 ".a:is(b)"
+    .replace(/\s*([{};,>])\s*/g, "$1")
     .replace(/;}/g, "}")
     .trim();
 }
