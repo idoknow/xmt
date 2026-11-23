@@ -161,16 +161,12 @@
                   <span class="field__label" data-label-for="compress">目标大小</span>
                   <span class="field__row">
                     <input type="number" min="10" step="10" value="300" data-opt="compress.value" class="field__input" />
-                    <span class="field__unit" data-unit="compress">KB</span>
+                    <select class="field__input field__input--unit" data-opt="compress.unit" aria-label="单位">
+                      <option value="KB">KB</option>
+                      <option value="MB">MB</option>
+                    </select>
                   </span>
                 </label>
-              </div>
-              <div class="tool__presets" data-show-size>
-                <span class="tool__presets-label">常用目标</span>
-                <button type="button" class="chip" data-size="200">200 KB</button>
-                <button type="button" class="chip" data-size="500">500 KB</button>
-                <button type="button" class="chip" data-size="1024">1 MB</button>
-                <button type="button" class="chip" data-size="2048">2 MB</button>
               </div>
               <div class="tool__actions">
                 <button type="button" class="btn btn--primary" data-run="compress">压缩</button>
@@ -297,7 +293,16 @@
               </div>
               <div class="crop-stage" data-stage="crop">
                 <img alt="" data-preview="crop" />
-                <span class="crop-box" data-cropbox></span>
+                <span class="crop-box" data-cropbox>
+                  <span class="crop-handle" data-handle="nw"></span>
+                  <span class="crop-handle" data-handle="n"></span>
+                  <span class="crop-handle" data-handle="ne"></span>
+                  <span class="crop-handle" data-handle="e"></span>
+                  <span class="crop-handle" data-handle="se"></span>
+                  <span class="crop-handle" data-handle="s"></span>
+                  <span class="crop-handle" data-handle="sw"></span>
+                  <span class="crop-handle" data-handle="w"></span>
+                </span>
               </div>
             </div>
           </div>

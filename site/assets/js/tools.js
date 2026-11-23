@@ -1,6 +1,7 @@
 // 在线工具：全部在浏览器本地处理，不上传任何文件。
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
 const fmtSize = (bytes) => {
   if (!bytes && bytes !== 0) return "—";
@@ -184,10 +185,108 @@ const picked = (tool, files) => {
   else node.textContent = `已选 ${files.length} 个文件`;
 };
 
+/* ---------- 滑块旁的数值标签 ---------- */
+
+$$('input[type="range"]').forEach((input) => {
+  const label = input.dataset.opt ? $(`[data-out-label="${input.dataset.opt}"]`) : null;
+  if (!label) return;
+  const sync = () => {
+    label.textContent = input.value;
+  };
+  input.addEventListener("input", sync);
+  sync();
+});
+
+/* ---------- 自绘下拉：原生 select 只留值，界面自己画 ---------- */
+
+function enhanceSelect(select) {
+  if (!select || select.dataset.enhanced === "1" || select.classList.contains("sel__native")) return;
+  select.dataset.enhanced = "1";
+  select.classList.add("sel__native");
+  select.setAttribute("aria-hidden", "true");
+
+  const wrap = document.createElement("div");
+  wrap.className = "sel";
+  wrap.innerHTML = `
+    <button type="button" class="sel__btn" aria-haspopup="listbox" aria-expanded="false">
+      <span class="sel__text"></span>
+      <svg class="sel__arrow" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.6 4.6 6 8l3.4-3.4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
+    </button>
+    <ul class="sel__menu" role="listbox" hidden></ul>`;
+  select.after(wrap);
+
+  const btn = wrap.querySelector(".sel__btn");
+  const text = wrap.querySelector(".sel__text");
+  const menu = wrap.querySelector(".sel__menu");
+
+  const render = () => {
+    const options = Array.from(select.options);
+    menu.innerHTML = options
+      .map(
+        (option) =>
+          `<li role="option" data-value="${option.value}"${option.value === select.value ? ' aria-selected="true"' : ""}>${option.textContent}</li>`,
+      )
+      .join("");
+    const current = select.selectedOptions[0];
+    text.textContent = current ? current.textContent : "";
+  };
+  const close = () => {
+    menu.hidden = true;
+    btn.setAttribute("aria-expanded", "false");
+  };
+  const open = () => {
+    render();
+    menu.hidden = false;
+    btn.setAttribute("aria-expanded", "true");
+    (menu.querySelector('[aria-selected="true"]') || menu.firstElementChild)?.focus();
+  };
+
+  btn.addEventListener("click", () => (menu.hidden ? open() : close()));
+  btn.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      open();
+    }
+  });
+  menu.addEventListener("click", (event) => {
+    const item = event.target.closest("li[data-value]");
+    if (!item) return;
+    select.value = item.dataset.value;
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+    render();
+    close();
+    btn.focus();
+  });
+  menu.addEventListener("keydown", (event) => {
+    const items = Array.from(menu.children);
+    const index = items.indexOf(document.activeElement);
+    if (event.key === "Escape") {
+      close();
+      btn.focus();
+    } else if (event.key === "ArrowDown") {
+      event.preventDefault();
+      (items[index + 1] || items[0]).focus();
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      (items[index - 1] || items[items.length - 1]).focus();
+    } else if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      document.activeElement.click();
+    }
+  });
+  document.addEventListener("click", (event) => {
+    if (!wrap.contains(event.target)) close();
+  });
+  select.addEventListener("change", render);
+  select.renderOptions = render;
+  render();
+}
+
+$$("select.field__input").forEach(enhanceSelect);
+
 /* ---------- 文件选择 ---------- */
 
-const inputs = {};
-$$("[data-file]").forEach((input) => {
+const inputs = {};$$("[data-file]").forEach((input) => {
   const tool = input.dataset.file;
   inputs[tool] = input;
   input.addEventListener("change", () => {
@@ -219,6 +318,18 @@ function preview(tool, file, toolKey) {
       if (y) y.max = String(img.naturalHeight - 1);
       if (w) w.max = String(img.naturalWidth);
       if (h) h.max = String(img.naturalHeight);
+      const boxW = Number(w?.value) || 0;
+      const boxH = Number(h?.value) || 0;
+      const inside = boxW > 0 && boxH > 0 && boxW <= img.naturalWidth && boxH <= img.naturalHeight;
+      if (!inside) {
+        // 换了张图、原来的框超出去了：给一个居中的六成框
+        const boxSizeW = Math.round(img.naturalWidth * 0.6);
+        const boxSizeH = Math.round(img.naturalHeight * 0.6);
+        if (w) w.value = String(boxSizeW);
+        if (h) h.value = String(boxSizeH);
+        if (x) x.value = String(Math.round((img.naturalWidth - boxSizeW) / 2));
+        if (y) y.value = String(Math.round((img.naturalHeight - boxSizeH) / 2));
+      }
       syncCropBox();
     }
     if (tool === "watermark") drawWatermarkPreview();
@@ -265,24 +376,22 @@ $('[data-run="convert"]')?.addEventListener("click", async () => {
 /* ---------- 02 压缩 ---------- */
 
 const compressLabels = {
-  size: { label: "目标大小", unit: "KB" },
-  edge: { label: "最长边", unit: "px" },
-  percent: { label: "保留比例", unit: "%" },
+  size: { label: "目标大小", units: ["KB", "MB"], value: "300" },
+  edge: { label: "最长边", units: ["px"], value: "1920" },
+  percent: { label: "保留比例", units: ["%"], value: "60" },
 };
 
 $('[data-opt="compress.mode"]')?.addEventListener("change", (event) => {
   const spec = compressLabels[event.target.value] || compressLabels.size;
   const label = $('[data-label-for="compress"]');
-  const unit = $('[data-unit="compress"]');
   const value = $('[data-opt="compress.value"]');
   if (label) label.textContent = spec.label;
-  if (unit) unit.textContent = spec.unit;
-  if (value) {
-    value.value = event.target.value === "size" ? "300" : event.target.value === "edge" ? "1920" : "60";
+  if (value) value.value = spec.value;
+  const unit = $('[data-opt="compress.unit"]');
+  if (unit) {
+    unit.innerHTML = spec.units.map((name) => `<option value="${name}">${name}</option>`).join("");
+    unit.renderOptions?.();
   }
-  $$("[data-show-size]").forEach((node) => {
-    node.hidden = event.target.value !== "size";
-  });
 });
 
 $('[data-run="compress"]')?.addEventListener("click", async () => {
@@ -290,6 +399,8 @@ $('[data-run="compress"]')?.addEventListener("click", async () => {
   if (!file) return status("compress", "先选一张图。");
   const mode = $('[data-opt="compress.mode"]').value;
   const value = Number($('[data-opt="compress.value"]').value) || 0;
+  const unit = ($('[data-opt="compress.unit"]')?.value || "KB").toUpperCase();
+  const bytesPerUnit = unit === "MB" ? 1024 * 1024 : 1024;
   // 压缩统一输出 WebP：PNG 是无损格式，改质量没有意义，体积还会变大。
   const mime = "image/webp";
   status("compress", "压缩中…");
@@ -310,7 +421,7 @@ $('[data-run="compress"]')?.addEventListener("click", async () => {
 
     let blob;
     if (mode === "size" && value > 0) {
-      const target = value * 1024;
+      const target = value * bytesPerUnit;
       let low = 0.2;
       let high = 0.96;
       let best = null;
@@ -427,51 +538,124 @@ function cropValues() {
   return { x, y, w, h };
 }
 
-function syncCropBox() {
+function cropGeometry() {
   const img = $('[data-preview="crop"]');
-  const box = $("[data-cropbox]");
-  if (!img || !box || !img.src) return;
-  const naturalW = Number(img.dataset.w) || img.naturalWidth;
-  const naturalH = Number(img.dataset.h) || img.naturalHeight;
+  const stage = $('[data-stage="crop"]');
+  if (!img || !stage || !img.src) return null;
+  const naturalW = Number(img.dataset.w) || img.naturalWidth || 0;
+  const naturalH = Number(img.dataset.h) || img.naturalHeight || 0;
   const rect = img.getBoundingClientRect();
-  if (!naturalW || !rect.width) return;
-  const k = rect.width / naturalW;
+  const frame = stage.getBoundingClientRect();
+  if (!naturalW || !naturalH || !rect.width) return null;
+  return {
+    naturalW,
+    naturalH,
+    k: rect.width / naturalW,
+    ox: rect.left - frame.left,
+    oy: rect.top - frame.top,
+  };
+}
+
+function syncCropBox() {
+  const box = $("[data-cropbox]");
+  const geom = cropGeometry();
+  if (!box) return;
+  if (!geom) {
+    box.hidden = true;
+    return;
+  }
   const { x, y, w, h } = cropValues();
-  box.style.left = `${x * k}px`;
-  box.style.top = `${y * k}px`;
-  box.style.width = `${w * k}px`;
-  box.style.height = `${h * k}px`;
+  box.style.left = `${geom.ox + x * geom.k}px`;
+  box.style.top = `${geom.oy + y * geom.k}px`;
+  box.style.width = `${Math.max(12, w * geom.k)}px`;
+  box.style.height = `${Math.max(12, h * geom.k)}px`;
   box.hidden = false;
+}
+
+function writeCrop({ x, y, w, h }) {
+  const set = (key, value) => {
+    const input = $(`[data-opt="crop.${key}"]`);
+    if (input) input.value = String(Math.round(value));
+  };
+  set("x", x);
+  set("y", y);
+  set("w", w);
+  set("h", h);
+  syncCropBox();
 }
 
 $$('[data-opt^="crop."]').forEach((input) => input.addEventListener("input", syncCropBox));
 window.addEventListener("resize", syncCropBox);
 
-$("[data-cropbox]")?.addEventListener("pointerdown", (event) => {
-  const img = $('[data-preview="crop"]');
-  if (!img?.src) return;
-  const rect = img.getBoundingClientRect();
-  const k = rect.width / (Number(img.dataset.w) || img.naturalWidth || 1);
-  cropDrag = { startX: event.clientX, startY: event.clientY, x: cropValues().x, y: cropValues().y, k };
-  event.currentTarget.setPointerCapture(event.pointerId);
+const stageCrop = $('[data-stage="crop"]');
+
+stageCrop?.addEventListener("pointerdown", (event) => {
+  const geom = cropGeometry();
+  if (!geom) return;
+  const handle = event.target.closest("[data-handle]")?.dataset.handle;
+  const inBox = Boolean(event.target.closest("[data-cropbox]"));
+  if (!handle && !inBox) return;
+  event.preventDefault();
+  const start = cropValues();
+  cropDrag = {
+    handle: handle || "move",
+    startX: event.clientX,
+    startY: event.clientY,
+    k: geom.k,
+    ...start,
+  };
+  stageCrop.setPointerCapture(event.pointerId);
+  stageCrop.classList.add("is-dragging");
 });
-$("[data-cropbox]")?.addEventListener("pointermove", (event) => {
+
+stageCrop?.addEventListener("pointermove", (event) => {
   if (!cropDrag) return;
-  const img = $('[data-preview="crop"]');
-  const maxW = Number(img.dataset.w) || 0;
-  const maxH = Number(img.dataset.h) || 0;
-  const { w, h } = cropValues();
+  const geom = cropGeometry();
+  if (!geom) return;
   const dx = (event.clientX - cropDrag.startX) / cropDrag.k;
   const dy = (event.clientY - cropDrag.startY) / cropDrag.k;
-  const x = Math.max(0, Math.min(maxW - w, cropDrag.x + dx));
-  const y = Math.max(0, Math.min(maxH - h, cropDrag.y + dy));
-  $('[data-opt="crop.x"]').value = String(Math.round(x));
-  $('[data-opt="crop.y"]').value = String(Math.round(y));
-  syncCropBox();
+  const { handle, x: x0, y: y0, w: w0, h: h0 } = cropDrag;
+  const min = 16;
+  const square = Boolean($('[data-opt="crop.square"]')?.checked);
+  let x = x0;
+  let y = y0;
+  let w = w0;
+  let h = h0;
+
+  if (handle === "move") {
+    x = clamp(x0 + dx, 0, geom.naturalW - w0);
+    y = clamp(y0 + dy, 0, geom.naturalH - h0);
+  } else {
+    if (handle.includes("e")) w = clamp(w0 + dx, min, geom.naturalW - x0);
+    if (handle.includes("s")) h = clamp(h0 + dy, min, geom.naturalH - y0);
+    if (handle.includes("w")) {
+      x = clamp(x0 + dx, 0, x0 + w0 - min);
+      w = w0 + (x0 - x);
+    }
+    if (handle.includes("n")) {
+      y = clamp(y0 + dy, 0, y0 + h0 - min);
+      h = h0 + (y0 - y);
+    }
+    if (square) {
+      const side = Math.min(w, h);
+      if (handle.includes("w")) x = x0 + w0 - side;
+      if (handle.includes("n")) y = y0 + h0 - side;
+      w = side;
+      h = side;
+    }
+    w = Math.min(w, geom.naturalW - x);
+    h = Math.min(h, geom.naturalH - y);
+  }
+
+  writeCrop({ x, y, w, h });
 });
-$("[data-cropbox]")?.addEventListener("pointerup", () => {
+
+const endCropDrag = () => {
   cropDrag = null;
-});
+  stageCrop?.classList.remove("is-dragging");
+};
+stageCrop?.addEventListener("pointerup", endCropDrag);
+stageCrop?.addEventListener("pointercancel", endCropDrag);
 
 $('[data-run="crop"]')?.addEventListener("click", async () => {
   const file = inputs.crop?.files?.[0];
@@ -739,21 +923,6 @@ $$("[data-preset]").forEach((button) => {
     if (fieldH) fieldH.value = String(height);
     $$("[data-preset]").forEach((node) => node.classList.toggle("is-on", node === button));
     status("resize", `已选 ${width}×${height}，选好图片后点「调整尺寸」。`);
-  });
-});
-
-$$("[data-size]").forEach((button) => {
-  button.addEventListener("click", () => {
-    const value = Number(button.dataset.size) || 0;
-    if (!value) return;
-    const mode = $('[data-opt="compress.mode"]');
-    const field = $('[data-opt="compress.value"]');
-    if (mode && mode.value !== "size") {
-      mode.value = "size";
-      mode.dispatchEvent(new Event("change"));
-    }
-    if (field) field.value = String(value);
-    $$("[data-size]").forEach((node) => node.classList.toggle("is-on", node === button));
   });
 });
 
