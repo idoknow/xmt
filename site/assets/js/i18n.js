@@ -150,13 +150,24 @@ window.XmtI18n = (() => {
     }
   };
 
+  // 标题按「 · 」拆段逐段翻译：段与段之间的分隔、变量名（存储名等）保持原样，
+  // 这样一个「图床 · 桂林中学新媒体」不用为每种语言单列整串。
+  const titleText = (value) => {
+    const whole = lookup(value);
+    if (whole && whole !== value) return whole;
+    const parts = value.split(/\s+·\s+/);
+    if (parts.length < 2) return null;
+    const mapped = parts.map((part) => lookup(part) || part);
+    return mapped.join(" · ");
+  };
+
   const translateHead = () => {
     if (document.documentElement.closest("[data-no-i18n]")) return;
     const title = document.title.trim();
-    const titleText = title ? lookup(title) : null;
-    if (titleText && titleText !== title) {
+    const nextTitle = title ? titleText(title) : null;
+    if (nextTitle && nextTitle !== title) {
       titleOriginal = document.title;
-      document.title = titleText;
+      document.title = nextTitle;
     }
     const meta = document.querySelector('meta[name="description"]');
     const content = meta?.getAttribute("content");
