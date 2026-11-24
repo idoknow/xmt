@@ -126,6 +126,7 @@ ${head}
     <nav class="m-nav">${nav}
       <a href="/" class="m-nav__back">回站点</a>
     </nav>
+    <div class="m-lang" data-lang-slot></div>
     ${account}
   </div>
 </header>
@@ -140,6 +141,7 @@ ${head}
     </span>
   </div>
 </footer>
+<script src="/assets/js/i18n.js?v=${assetVersion()}" defer></script>
 <script src="/memories/assets/app.js?v=${assetVersion()}" type="module"></script>
 ${scripts}
 </body>
@@ -260,6 +262,7 @@ ${head}
 </header>
 <main id="main">${body}</main>
 ${SITE_FOOT}
+<script src="/assets/js/i18n.js?v=${assetVersion()}" defer></script>
 <script src="/assets/js/site.js?v=${assetVersion()}" type="module"></script>
 ${scripts}
 </body>

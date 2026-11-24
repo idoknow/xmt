@@ -706,7 +706,11 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, error.status || 500, { ok: false, error: error.message });
       }
     }
-    if (pathname === "/memories" || pathname === "/memories/") return redirect(res, "/memories/files");
+    if (pathname === "/memories" || pathname === "/memories/") {
+      // 保留 ?lang= 之类的查询参数，否则从站外带着语言进来会被跳丢失
+      const keep = url.search || "";
+      return redirect(res, "/memories/files" + keep);
+    }
     if (pathname === "/memories/login") return html(res, 200, loginPage({ site: siteOf(), error: url.searchParams.get("error") || "" }));
     if (pathname === "/memories/logout") {
       const header = destroySession(req);

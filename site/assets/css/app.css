@@ -1784,3 +1784,26 @@ html[data-view="list"] .m-card__name {
     margin-top: 0.4rem;
   }
 }
+
+/* ---------- 页头语言菜单（服务端渲染页面） ---------- */
+
+.m-lang {
+  display: inline-flex;
+  position: relative;
+}
+
+.m-lang .tools__btn {
+  padding: .3rem;
+  gap: 0;
+}
+
+.m-lang .tools__menu {
+  font-family: var(--sans);
+  text-align: start;
+  inset-inline-end: 0;
+  inset-inline-start: auto;
+}
+
+@media (max-width: 720px) {
+  .m-lang .tools__label { display: none; }
+}

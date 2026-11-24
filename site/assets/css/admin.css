@@ -1949,6 +1949,16 @@
   margin: 0;
 }
 
+/* 多列表格（存储/成员/分享链接/工具/软件）在窄一些的窗口里按内容排，
+   放不下就让 .a-scroll 横向滚动，而不是把「Mount」「Local storage」挤成竖排 */
+.a-scroll > .a-table:not(.a-table--files) {
+  min-width: 52rem;
+}
+
+.a-table th {
+  white-space: nowrap;
+}
+
 @media (max-width: 720px) {
   .a-main {
     padding: 0.9rem 0.7rem 3rem;
@@ -1963,8 +1973,9 @@
     min-width: 0;
     max-width: 100%;
   }
-  .a-scroll > .a-table {
-    min-width: 27rem;
+  .a-scroll > .a-table,
+  .a-scroll > .a-table:not(.a-table--files) {
+    min-width: 0;
   }
   /* 文件表转卡片：名称一行、大小与时间一行、按钮一行 */
   .a-scroll > .a-table--files {

@@ -61,232 +61,12 @@
   }
 
   /* ---------- 2) 语言 ---------- */
+  // 引擎在 /assets/js/i18n.js（静态页与服务端渲染的页面共用），这里只留一层薄封装。
 
-  const LOCALES = [
-    { code: "zh-Hans", name: "简体中文", dir: "ltr" },
-    { code: "zh-Hant", name: "繁體中文", dir: "ltr" },
-    { code: "en", name: "English", dir: "ltr" },
-    { code: "ja", name: "日本語", dir: "ltr" },
-    { code: "ko", name: "한국어", dir: "ltr" },
-    { code: "ru", name: "Русский", dir: "ltr" },
-    { code: "fr", name: "Français", dir: "ltr" },
-    { code: "de", name: "Deutsch", dir: "ltr" },
-    { code: "es", name: "Español", dir: "ltr" },
-    { code: "ar", name: "العربية", dir: "rtl" },
-    { code: "hi", name: "हिन्दी", dir: "ltr" },
-    { code: "bo", name: "བོད་ཡིག", dir: "ltr" },
-    { code: "mn", name: "Монгол", dir: "ltr" },
-    { code: "ug", name: "ئۇيغۇرچە", dir: "rtl" },
-    { code: "za", name: "Vahcuengh", dir: "ltr" },
-  ];
-
-  const cache = new Map();
-  let dict = null; // 当前语言映射
-  let base = null; // 英文兜底映射
-  const touched = []; // 被替换过的文本节点，切回中文时还原
-
+  const I18N = window.XmtI18n;
+  const t = (text, vars) => (I18N ? I18N.t(text, vars) : text);
+  const setLanguage = (code) => I18N && I18N.setLanguage(code);
   const params = new URLSearchParams(location.search);
-  let current = "zh-Hans";
-
-  const detect = () => {
-    const fromUrl = params.get("lang");
-    if (fromUrl && LOCALES.some((item) => item.code === fromUrl)) return fromUrl;
-    const stored = localStorage.getItem("xmt-lang");
-    if (stored && LOCALES.some((item) => item.code === stored)) return stored;
-    const nav = (navigator.language || "zh-CN").toLowerCase();
-    if (nav.startsWith("zh")) return nav.includes("hant") || /-(tw|hk|mo)$/.test(nav) ? "zh-Hant" : "zh-Hans";
-    if (nav.startsWith("ja")) return "ja";
-    if (nav.startsWith("ko")) return "ko";
-    if (nav.startsWith("ru")) return "ru";
-    if (nav.startsWith("fr")) return "fr";
-    if (nav.startsWith("de")) return "de";
-    if (nav.startsWith("es")) return "es";
-    if (nav.startsWith("ar")) return "ar";
-    if (nav.startsWith("hi")) return "hi";
-    if (nav.startsWith("bo")) return "bo";
-    if (nav.startsWith("mn")) return "mn";
-    if (nav.startsWith("ug")) return "ug";
-    if (nav.startsWith("za")) return "za";
-    return "en";
-  };
-  current = detect();
-
-  const lookup = (text) => (dict && dict[text]) || (base && base[text]) || null;
-
-  const t = (text, vars) => {
-    const hit = lookup(text) || text;
-    if (!vars) return hit;
-    return hit.replace(/\{(\w+)\}/g, (whole, name) => (name in vars ? String(vars[name]) : whole));
-  };
-
-  const load = async (code) => {
-    if (cache.has(code)) return cache.get(code);
-    try {
-      const response = await fetch(`/assets/i18n/${code}.json`, { cache: "no-cache" });
-      if (!response.ok) throw new Error(String(response.status));
-      const json = await response.json();
-      cache.set(code, json);
-      return json;
-    } catch {
-      cache.set(code, null);
-      return null;
-    }
-  };
-
-  const restore = () => {
-    for (const item of touched) item.node.nodeValue = item.original;
-    touched.length = 0;
-    done.clear();
-    if (titleOriginal !== null) {
-      document.title = titleOriginal;
-      titleOriginal = null;
-    }
-  };
-
-  // 已经翻译过的节点记下来，避免观察器把自己的写入再翻一遍
-  const done = new Set();
-
-  const translateNode = (node, map = null) => {
-    const raw = node.nodeValue;
-    if (!raw || !raw.trim()) return;
-    if (done.has(node)) return;
-    const key = raw.replace(/\s+/g, " ").trim();
-    const value = (map && map[key]) || lookup(key);
-    if (!value || value === key) return;
-    const lead = /^\s*/.exec(raw)[0];
-    touched.push({ node, original: raw });
-    done.add(node);
-    node.nodeValue = lead + value;
-  };
-
-  const ATTRS = ["aria-label", "alt", "title", "placeholder", "data-label"];
-
-  const translateTree = (root, map = null) => {
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-      acceptNode: (node) =>
-        /^(SCRIPT|STYLE|TEXTAREA|CODE|PRE)$/.test(node.parentNode.nodeName)
-          ? NodeFilter.FILTER_REJECT
-          : NodeFilter.FILTER_ACCEPT,
-    });
-    const batch = [];
-    let node;
-    while ((node = walker.nextNode())) batch.push(node);
-    for (const item of batch) translateNode(item, map);
-  };
-
-  const translateAttrs = (root, map = null) => {
-    for (const el of root.querySelectorAll("[aria-label],[alt],[title],[placeholder],[data-label]")) {
-      for (const attr of ATTRS) {
-        const raw = el.getAttribute(attr);
-        if (!raw) continue;
-        const key = raw.trim();
-        const value = (map && map[key]) || lookup(key);
-        if (!value || value === key) continue;
-        el.setAttribute(attr, value);
-      }
-    }
-  };
-
-  // <title> 与 meta description 不在 body 里，单独处理
-  let titleOriginal = null;
-  const translateHead = (map = null) => {
-    const pick = (text) => (map && map[text]) || lookup(text);
-    const title = document.title.trim();
-    const titleText = title ? pick(title) : null;
-    if (titleText && titleText !== title) {
-      titleOriginal = document.title;
-      document.title = titleText;
-    }
-    const meta = document.querySelector('meta[name="description"]');
-    const content = meta?.getAttribute("content");
-    const contentText = content ? pick(content.trim()) : null;
-    if (contentText && contentText !== content.trim()) meta.setAttribute("content", contentText);
-  };
-
-  const apply = () => {
-    if (!dict && !base) return;
-    restore();
-    translateTree(document.body);
-    translateAttrs(document.body);
-    translateHead();
-  };
-
-  // 页面上的动态内容（工具结果、弹窗、列表）后插入的文本也要跟着翻译
-  let observer = null;
-  const observe = () => {
-    if (observer) return;
-    observer = new MutationObserver((records) => {
-      if (current === "zh-Hans") return;
-      if (!dict && !base) return;
-      for (const record of records) {
-        if (record.type === "characterData") {
-          translateNode(record.target);
-          continue;
-        }
-        for (const node of record.addedNodes) {
-          if (node.nodeType === 3) translateNode(node);
-          else if (node.nodeType === 1) {
-            translateTree(node);
-            translateAttrs(node);
-          }
-        }
-      }
-    });
-    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
-  };
-
-  const notice = (text) => {
-    const host = document.querySelector(".page-head .wrap") || document.querySelector(".hero .wrap");
-    if (!host) return;
-    let box = host.querySelector(".notice");
-    if (!text) {
-      if (box) box.hidden = true;
-      return;
-    }
-    if (!box) {
-      box = document.createElement("p");
-      box.className = "notice";
-      host.append(box);
-    }
-    box.hidden = false;
-    box.textContent = text;
-  };
-
-  const setLanguage = async (code, silent) => {
-    const locale = LOCALES.find((item) => item.code === code) || LOCALES[0];
-    current = locale.code;
-    localStorage.setItem("xmt-lang", locale.code);
-    document.documentElement.lang = locale.code === "zh-Hans" ? "zh-CN" : locale.code;
-    document.documentElement.dir = locale.dir;
-
-    if (locale.code === "zh-Hans") {
-      dict = null;
-      restore();
-      notice("");
-    } else {
-      const [own, fallback] = await Promise.all([
-        load(locale.code),
-        locale.code === "en" ? Promise.resolve(null) : load("en"),
-      ]);
-      dict = own ? own.map : null;
-      base = fallback ? fallback.map : null;
-      apply();
-      observe();
-      notice(own && own.notice ? own.notice : "");
-    }
-
-    updateLangLabel(locale);
-    updateThemeLabel();
-    if (!silent) document.dispatchEvent(new CustomEvent("xmt:lang", { detail: locale.code }));
-  };
-
-  const updateLangLabel = (locale) => {
-    const label = document.querySelector("[data-lang-label]");
-    if (label) label.textContent = locale.name;
-    for (const item of document.querySelectorAll("[data-lang-menu] [data-code]")) {
-      item.setAttribute("aria-checked", String(item.dataset.code === locale.code));
-    }
-  };
 
   /* ---------- 2b) 下拉菜单定位 ---------- */
   // 菜单默认贴着按钮右侧展开；靠边时夹进视口，避免在窄屏或 RTL 下被切掉。
@@ -417,36 +197,10 @@
       }
     }
 
-    if (!tools.querySelector("[data-lang-menu]")) {
-      const lang = document.createElement("details");
-      lang.className = "tools__drop";
-      lang.setAttribute("data-lang", "");
-      lang.innerHTML =
-        '<summary class="tools__btn" aria-label="切换语言">' +
-        `<span class="tools__icon" aria-hidden="true">${ICONS.lang}</span>` +
-        '<span class="tools__label" data-lang-label>简体中文</span>' +
-        "</summary>" +
-        '<div class="tools__menu tools__menu--wide" role="menu" data-lang-menu></div>';
-      tools.append(lang);
+    if (!tools.querySelector("[data-lang-menu]") && I18N) {
+      tools.insertAdjacentHTML("beforeend", I18N.markup());
     }
-
-    const menu = tools.querySelector("[data-lang-menu]");
-    if (menu && !menu.childElementCount) {
-      for (const locale of LOCALES) {
-        const item = document.createElement("button");
-        item.type = "button";
-        item.className = "tools__item";
-        item.dataset.code = locale.code;
-        item.setAttribute("role", "menuitemradio");
-        item.setAttribute("aria-checked", "false");
-        item.innerHTML = `<span class="tools__name">${locale.name}</span><small>${locale.code}</small>`;
-        item.addEventListener("click", () => {
-          setLanguage(locale.code);
-          item.closest("details").open = false;
-        });
-        menu.append(item);
-      }
-    }
+    if (I18N) I18N.mount(tools);
   };
 
   /* ---------- 5) 提取码 / 分享链接：点击复制 ---------- */
@@ -629,20 +383,17 @@
   window.xmtT = t;
   window.xmtI18n = {
     t,
-    locales: LOCALES,
+    locales: I18N ? I18N.locales : [],
     get lang() {
-      return current;
+      return I18N ? I18N.current : "zh-Hans";
     },
     translate: (root) => {
-      const map = dict || base;
-      if (!map || !root) return;
-      translateTree(root, map);
-      translateAttrs(root, map);
+      if (!root || !I18N) return;
+      I18N.mount(root);
     },
   };
 
   mountTools();
   mountZoom();
   applyTheme();
-  setLanguage(current, true);
 })();
